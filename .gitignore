@@ -7,8 +7,12 @@ release.properties
 dependency-reduced-pom.xml
 buildNumber.properties
 .mvn/timing.properties
+<<<<<<< HEAD
 src/main/resources/application.properties
 
+=======
+application.properties
+>>>>>>> 07c94a67f90f039cf54fe2ca7c186a70cf457225
 # https://maven.apache.org/wrapper/#usage-without-binary-jar
 .mvn/wrapper/maven-wrapper.jar
 
