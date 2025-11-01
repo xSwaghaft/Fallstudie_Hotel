@@ -1,0 +1,69 @@
+.login-bg {
+    min-height: 100vh;
+    background: #ecf0f3;
+    padding: clamp(12px, 2vw, 24px);
+}
+
+/* Weiche Karte mit Neumorph-Schatten */
+.login-card {
+    width: 100%;
+    max-width: 460px;
+    border-radius: 18px;
+    background: #ecf0f3;
+    box-shadow: 20px 20px 40px #caced1, -20px -20px 40px #ffffff;
+    padding: clamp(18px, 3vw, 32px);
+    color: #2b2f33;
+    border: 1px solid rgba(0, 0, 0, 0.02);
+}
+
+/* Titel */
+.login-card h2 {
+    margin: 0 0 14px;
+    font-size: clamp(1.15rem, 2.4vw, 1.5rem);
+    font-weight: 800;
+    letter-spacing: .2px;
+}
+
+/* Inputs & Button */
+.login-card vaadin-text-field,
+.login-card vaadin-password-field,
+.login-card vaadin-button {
+    width: 100%;
+}
+
+/* Felder im Neumorph-Look */
+vaadin-text-field::part(input-field),
+vaadin-password-field::part(input-field) {
+    background: #ecf0f3;
+    border-radius: 14px;
+    box-shadow: inset 6px 6px 10px #caced1, inset -6px -6px 10px #ffffff;
+}
+
+vaadin-text-field::part(label),
+vaadin-password-field::part(label) {
+    color: #596067;
+}
+
+/* Sanfter, kräftiger Primary */
+vaadin-button[theme~="primary"] {
+    border-radius: 14px;
+    background: linear-gradient(180deg, #4e7cff 0%, #3567ff 100%);
+    color: white;
+    box-shadow: 10px 10px 20px #caced1, -10px -10px 20px #ffffff,
+        0 8px 16px rgba(53, 103, 255, .25);
+}
+
+/* Link */
+.forgot-link {
+    display: block;
+    text-align: right;
+    margin-top: 8px;
+    color: #3567ff;
+    text-decoration: underline;
+    font-size: var(--lumo-font-size-s);
+}
+
+.forgot-link:hover {
+    color: #224fe0;
+    text-decoration: none;
+}

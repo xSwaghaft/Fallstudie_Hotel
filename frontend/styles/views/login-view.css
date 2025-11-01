@@ -1,0 +1,32 @@
+.login-bg {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #264b7f 0%, #32b3a6 100%);
+    padding: var(--lumo-space-m);
+}
+
+/* Card mit Border + Shadow */
+.login-card {
+    background: white;
+    border: 2px solid #ddd;
+    /* feiner Rahmen */
+    border-radius: 12px;
+    /* abgerundet */
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .15);
+    /* Schatten */
+    padding: var(--lumo-space-l);
+}
+
+/* Überschrift */
+.login-card h2 {
+    margin: 0 0 var(--lumo-space-m);
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--lumo-header-text-color);
+}
+
+/* Inputs & Buttons full width */
+.login-card vaadin-text-field,
+.login-card vaadin-password-field,
+.login-card vaadin-button {
+    width: 100%;
+}
