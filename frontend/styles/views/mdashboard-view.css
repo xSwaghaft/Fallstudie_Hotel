@@ -1,0 +1,95 @@
+/* --- Globales Layout und Kacheln --- */
+/* Stellt sicher, dass das Content-Layout das ganze Dashboard einnimmt */
+.vaadin-vertical-layout {
+    box-sizing: border-box; /* Wichtig für konsistente Abstände */
+}
+
+/* Große Zahl (der eigentliche Metrik-Wert) */
+.metric-value {
+    font-size: 36px;
+    font-weight: bold;
+    color: #343a40; /* Dunkle Farbe */
+    display: block; /* Stellt sicher, dass es eine eigene Zeile einnimmt */
+    margin: 8px 0;
+}
+
+/* Detailzeile unter der Zahl */
+.metric-details {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+/* Orangefarbener Button (New Booking) */
+.action-button.primary {
+    /* Vaadin's 'primary' Theme ist oft blau, wir überschreiben es mit Orange */
+    background-color: #ff8c00 !important; /* Dunkles Orange */
+    color: white !important;
+    font-weight: 600;
+}
+
+/* --- Navigation (Side Nav) --- */
+
+/* Setzt die Breite der Seitenleiste für das gemeinsame MainLayout und die Views */
+.main-app-layout [slot="drawer"],
+.hotel-dashboard-view [slot="drawer"] {
+    width: 250px;
+}
+
+/* Setzt Polsterung und Abstände für den Hauptinhalt */
+.dashboard-content-area {
+    padding: var(--lumo-space-l); /* Ersetzt setPadding(true) */
+    gap: var(--lumo-space-l); /* Ersetzt setSpacing(true) */
+}
+
+/* Hervorhebung des aktiven Dashboard-Elements */
+.main-app-layout .selected-nav-item,
+.hotel-dashboard-view .selected-nav-item,
+.selected-nav-item {
+    background-color: #ffe4c4; /* Helle Hintergrundfarbe (Ocker/Beige) */
+    color: #ff8c00; /* Orange Textfarbe */
+    font-weight: bold;
+    border-left: 4px solid #ff8c00; /* Markanter Streifen links */
+    padding: 10px 15px;
+}
+/* Stil für alle Status-Badges im Grid */
+.status-badge {
+    /* Gemeinsame Formate */
+    padding: 4px 10px;
+    border-radius: 12px; /* Starke Abrundung */
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    display: inline-block; /* Wichtig für die Größe */
+    min-width: 80px; /* Konsistente Breite */
+    text-align: center;
+}
+
+/* Ersetzt die Inline Styles für den primären Button */
+.action-button.primary {
+    background-color: #ff8c00 !important;
+    color: white !important;
+    font-weight: 600;
+    /* Zusätzliches Styling für alle Buttons */
+    border-radius: 6px;
+}
+
+/* Spezifische Farben für jeden Status */
+
+/* confirmed (Bestätigt - Dunkelblau/Schwarz wie im Bild) */
+.confirmed {
+    background-color: #343a44;
+    color: white;
+}
+
+/* checkedin (Eingecheckt - Grün oder hellere Farbe) */
+.checked-in {
+    background-color: #28a745;
+    color: white;
+}
+
+/* completed (Abgeschlossen - Oft Grau oder Subtil) */
+.completed {
+    background-color: #f8f9fa; /* Sehr helles Grau */
+    color: #6c757d; /* Dunkler Text */
+    border: 1px solid #dee2e6;
+}

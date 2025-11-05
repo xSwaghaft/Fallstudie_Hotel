@@ -1,0 +1,61 @@
+.vaadin-vertical-layout {
+    box-sizing: border-box; /* Wichtig für konsistente Abstände */
+}
+
+.sidebar {
+  background-color: #fff;
+  border-right: 1px solid #e0e0e0;
+  min-height: 100vh;
+}
+
+/* Setzt die Breite der Seitenleiste für das gemeinsame MainLayout und die Views */
+.main-app-layout [slot="drawer"],
+.hotel-dashboard-view [slot="drawer"] {
+  width: 250px;
+}
+
+.sidebar-title {
+  color: #d97706;
+  margin-bottom: var(--lumo-space-m);
+}
+
+vaadin-button {
+  justify-content: flex-start;
+}
+
+/* Ersetzt die Inline Styles für den primären Button */
+.action-button.primary {
+    background-color: #ff8c00 !important;
+    color: white !important;
+    font-weight: 600;
+    /* Zusätzliches Styling für alle Buttons */
+    border-radius: 6px;
+}
+
+/* Styling für den runden Avatar */
+.avatar-circle {
+    /* 1. Runde Form */
+    height: 40px; /* Höhe und Breite bestimmen die Größe */
+    width: 40px;
+    border-radius: 50%; /* Macht das Quadrat perfekt rund */
+
+    /* 2. Hintergrund und Farbe (wie bei Google-Konten oft blau/grau) */
+    background-color: var(--lumo-primary-color-10pct); /* Helles Akzent-Blau */
+    color: var(--lumo-primary-color); /* Dunkle Akzent-Farbe */
+    font-weight: bold;
+    font-size: var(--lumo-font-size-s);
+
+    /* 3. Zentrierung des Buchstabens "M" */
+    display: flex; /* Aktiviert Flexbox für Zentrierung */
+    align-items: center; /* Vertikal zentrieren */
+    justify-content: center; /* Horizontal zentrieren */
+
+    /* Optional: Abstand und leichter Klick-Effekt */
+    margin-left: var(--lumo-space-m);
+    cursor: pointer;
+}
+
+/* Stil für den Buchstaben (Span) innerhalb des Divs (optional) */
+.avatar-circle span {
+    text-transform: uppercase;
+}
