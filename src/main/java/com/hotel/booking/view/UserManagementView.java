@@ -21,6 +21,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.*;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -33,7 +34,8 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
     private final SessionService sessionService;
     private static final DateTimeFormatter GERMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
-    public static class User {
+    public static class User implements Serializable {
+        private static final long serialVersionUID = 1L;
         private int id;
         private String username;
         private String email;

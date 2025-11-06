@@ -59,18 +59,24 @@ public class InvoiceView extends VerticalLayout implements BeforeEnterObserver {
     }
 
     private Component createStatsRow() {
-        FlexLayout row = new FlexLayout();
+        HorizontalLayout row = new HorizontalLayout();
         row.setWidthFull();
-        row.getStyle().set("gap", "1rem");
-        row.getStyle().set("flex-wrap", "wrap");
-
+        row.setSpacing(true);
+        
         row.add(
             createStatCard("Total Invoices", "5", null),
             createStatCard("Paid", "3", "#10b981"),
             createStatCard("Pending", "1", "#f59e0b"),
-            createStatCard("Total Amount", "$3552", "#D4AF37")
+            createStatCard("Total Amount", "€3552", "#D4AF37")
         );
-
+        
+        row.expand(
+            row.getComponentAt(0),
+            row.getComponentAt(1),
+            row.getComponentAt(2),
+            row.getComponentAt(3)
+        );
+        
         return row;
     }
 
@@ -94,6 +100,7 @@ public class InvoiceView extends VerticalLayout implements BeforeEnterObserver {
     private Component createSearchCard() {
         Div card = new Div();
         card.addClassName("card");
+        card.setWidthFull(); // WICHTIG: Card nutzt volle Breite
         
         H3 title = new H3("Search & Filter");
         title.getStyle().set("margin", "0 0 1rem 0");
@@ -123,6 +130,7 @@ public class InvoiceView extends VerticalLayout implements BeforeEnterObserver {
     private Component createInvoicesCard() {
         Div card = new Div();
         card.addClassName("card");
+        card.setWidthFull(); // WICHTIG: Card nutzt volle Breite
         
         H3 title = new H3("All Invoices");
         title.getStyle().set("margin", "0 0 0.5rem 0");
@@ -131,7 +139,7 @@ public class InvoiceView extends VerticalLayout implements BeforeEnterObserver {
         subtitle.getStyle().set("margin", "0 0 1rem 0");
         
         Grid<Invoice> grid = new Grid<>(Invoice.class, false);
-        grid.addColumn(Invoice::id).setHeader("Invoice ID").setAutoWidth(true);
+        grid.addColumn(Invoice::id).setHeader("Invoice ID").setAutoWidth(true).setFlexGrow(0);
         grid.addComponentColumn(inv -> {
             Div container = new Div();
             Div name = new Div(new Span(inv.guest()));
@@ -140,22 +148,22 @@ public class InvoiceView extends VerticalLayout implements BeforeEnterObserver {
             bookingId.getStyle().set("font-size", "0.85rem").set("color", "var(--color-text-secondary)");
             container.add(name, bookingId);
             return container;
-        }).setHeader("Guest Name");
-        grid.addColumn(Invoice::issueDate).setHeader("Issue Date");
-        grid.addColumn(Invoice::dueDate).setHeader("Due Date");
-        grid.addColumn(inv -> "$" + inv.amount()).setHeader("Amount");
+        }).setHeader("Guest Name").setFlexGrow(1);
+        grid.addColumn(Invoice::issueDate).setHeader("Issue Date").setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(Invoice::dueDate).setHeader("Due Date").setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(inv -> "€" + inv.amount()).setHeader("Amount").setAutoWidth(true).setFlexGrow(0);
         grid.addComponentColumn(inv -> {
-            Span span = new Span("$" + inv.paid());
+            Span span = new Span("€" + inv.paid());
             span.getStyle().set("color", "#10b981").set("font-weight", "600");
             return span;
-        }).setHeader("Paid");
+        }).setHeader("Paid").setAutoWidth(true).setFlexGrow(0);
         grid.addComponentColumn(inv -> {
-            Span span = new Span("$" + inv.balance());
+            Span span = new Span("€" + inv.balance());
             span.getStyle().set("color", inv.balance() > 0 ? "#ef4444" : "#10b981")
                           .set("font-weight", "600");
             return span;
-        }).setHeader("Balance");
-        grid.addComponentColumn(this::createStatusBadge).setHeader("Status");
+        }).setHeader("Balance").setAutoWidth(true).setFlexGrow(0);
+        grid.addComponentColumn(this::createStatusBadge).setHeader("Status").setAutoWidth(true).setFlexGrow(0);
         grid.addComponentColumn(inv -> {
             HorizontalLayout actions = new HorizontalLayout();
             Button view = new Button(VaadinIcon.EYE.create());
@@ -171,10 +179,11 @@ public class InvoiceView extends VerticalLayout implements BeforeEnterObserver {
             
             actions.setSpacing(true);
             return actions;
-        }).setHeader("Actions").setAutoWidth(true);
+        }).setHeader("Actions").setAutoWidth(true).setFlexGrow(0);
         
         grid.setItems(getMockInvoices());
-        grid.setHeight("500px");
+        grid.setAllRowsVisible(true);
+        grid.setWidthFull();
         
         card.add(title, subtitle, grid);
         return card;

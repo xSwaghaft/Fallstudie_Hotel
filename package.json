@@ -11,6 +11,7 @@
     "@vaadin/avatar-group": "24.2.4",
     "@vaadin/bundles": "24.2.4",
     "@vaadin/button": "24.2.4",
+    "@vaadin/charts": "24.2.4",
     "@vaadin/checkbox": "24.2.4",
     "@vaadin/checkbox-group": "24.2.4",
     "@vaadin/combo-box": "24.2.4",
@@ -98,6 +99,7 @@
       "@vaadin/avatar-group": "24.2.4",
       "@vaadin/bundles": "24.2.4",
       "@vaadin/button": "24.2.4",
+      "@vaadin/charts": "24.2.4",
       "@vaadin/checkbox": "24.2.4",
       "@vaadin/checkbox-group": "24.2.4",
       "@vaadin/combo-box": "24.2.4",
@@ -175,7 +177,7 @@
       "workbox-core": "7.0.0",
       "workbox-precaching": "7.0.0"
     },
-    "hash": "b1c99dc40f08e23c4ed4ea4f0b879f4a6a041e4fd0dc9b3c88c6ce6ef8181948"
+    "hash": "e86144480d6f025da934333b706c9883a572d90aff58bb33388a430beddd726b"
   },
   "overrides": {
     "@vaadin/bundles": "$@vaadin/bundles",
@@ -244,6 +246,7 @@
     "lit": "$lit",
     "@polymer/polymer": "$@polymer/polymer",
     "@vaadin/vaadin-themable-mixin": "$@vaadin/vaadin-themable-mixin",
-    "date-fns": "$date-fns"
+    "date-fns": "$date-fns",
+    "@vaadin/charts": "$@vaadin/charts"
   }
 }

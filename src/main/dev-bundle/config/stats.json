@@ -8,6 +8,7 @@
   "@vaadin/avatar-group": "24.2.4",
   "@vaadin/bundles": "24.2.4",
   "@vaadin/button": "24.2.4",
+  "@vaadin/charts": "24.2.4",
   "@vaadin/checkbox": "24.2.4",
   "@vaadin/checkbox-group": "24.2.4",
   "@vaadin/combo-box": "24.2.4",
@@ -78,6 +79,7 @@
   "@vaadin/avatar": "24.2.4",
   "@vaadin/avatar-group": "24.2.4",
   "@vaadin/button": "24.2.4",
+  "@vaadin/charts": "24.2.4",
   "@vaadin/checkbox": "24.2.4",
   "@vaadin/checkbox-group": "24.2.4",
   "@vaadin/combo-box": "24.2.4",
@@ -134,6 +136,7 @@
   "@vaadin/virtual-list": "24.2.4",
   "construct-style-sheets-polyfill": "3.1.0",
   "date-fns": "2.29.3",
+  "highcharts": "9.2.2",
   "is-regexp": "3.1.0",
   "lit-element": "3.3.3",
   "lit-html": "2.8.0",
@@ -148,6 +151,7 @@
   "@vaadin/avatar-group/theme/lumo/vaadin-avatar-group.js",
   "@vaadin/avatar/theme/lumo/vaadin-avatar.js",
   "@vaadin/button/theme/lumo/vaadin-button.js",
+  "@vaadin/charts/theme/lumo/vaadin-chart.js",
   "@vaadin/checkbox-group/theme/lumo/vaadin-checkbox-group.js",
   "@vaadin/checkbox/theme/lumo/vaadin-checkbox.js",
   "@vaadin/combo-box/theme/lumo/vaadin-combo-box.js",
@@ -252,12 +256,17 @@
  },
  "themeJsonContents": {},
  "entryScripts": [
-  "VAADIN/build/indexhtml-088c67bf.js"
+  "VAADIN/build/indexhtml-91eb2a0e.js"
  ],
  "webComponents": [],
- "cvdlModules": {},
- "packageJsonHash": "b1c99dc40f08e23c4ed4ea4f0b879f4a6a041e4fd0dc9b3c88c6ce6ef8181948",
+ "cvdlModules": {
+  "@vaadin/charts": {
+   "name": "vaadin-chart",
+   "version": "24.2.4"
+  }
+ },
+ "packageJsonHash": "e86144480d6f025da934333b706c9883a572d90aff58bb33388a430beddd726b",
  "indexHtmlGenerated": [
-  "  <script type=\"module\" crossorigin src=\"./VAADIN/build/indexhtml-088c67bf.js\"></script>"
+  "  <script type=\"module\" crossorigin src=\"./VAADIN/build/indexhtml-91eb2a0e.js\"></script>"
  ]
 }

@@ -20,6 +20,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.*;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +32,8 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
 
     private final SessionService sessionService;
 
-    public static class RoomCategory {
+    public static class RoomCategory implements Serializable {
+        private static final long serialVersionUID = 1L;
         private int id;
         private String name;
         private String description;
@@ -64,7 +66,8 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
         public void setActive(boolean active) { this.active = active; }
     }
 
-        public static class Room {
+        public static class Room implements Serializable {
+        private static final long serialVersionUID = 1L;
         private String roomNumber;
         private RoomCategory category;
         private String status; // "available", "occupied", "maintenance", "cleaning"
