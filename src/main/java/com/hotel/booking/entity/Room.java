@@ -1,50 +1,64 @@
 package com.hotel.booking.entity;
 
-import jakarta.persistence.*;
+import java.util.List;
 
+import jakarta.persistence.*;
+//Matthias Lohr
 @Entity
 @Table(name = "rooms")
 public class Room {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long room_id;
 
-    @Column(nullable = false)
-    private String type;
+    @ManyToOne(fetch = FetchType.LAZY) //vll. ist EAGER nötig 
+    @JoinColumn(name = "category_id", nullable = false)
+    private RoomCategory category;
 
-    @Column(nullable = false)
+    @Column(name = "price", nullable = false) //Hat der Raum, oder nur die Kategorie einen Preis?
     private Double price;
 
-    @Column(nullable = false)
+    @Column(name = "availability", nullable = false)
     private Boolean availability;
+
+    @Column(name = "information")
+    private String information;
+
+    // @ManyToMany
+    // @JoinTable(
+    //     name = "room_bookings",
+    //     joinColumns = @JoinColumn(name = "room_id"),
+    //     inverseJoinColumns = @JoinColumn(name = "booking_id")
+    // )
+    // private List<Booking> booking;
 
     // Default constructor
     public Room() {
     }
 
     // Constructor with parameters
-    public Room(String type, Double price, Boolean availability) {
-        this.type = type;
+    public Room(RoomCategory category, Double price, Boolean availability) {
+        this.category = category;
         this.price = price;
         this.availability = availability;
     }
 
     // Getters and Setters
     public Long getId() {
-        return id;
+        return room_id;
     }
 
     public void setId(Long id) {
-        this.id = id;
+        this.room_id = id;
     }
 
-    public String getType() {
-        return type;
+    public RoomCategory getCategory() {
+        return category;
     }
 
-    public void setType(String type) {
-        this.type = type;
+    public void setCategory(RoomCategory category) {
+        this.category = category;
     }
 
     public Double getPrice() {
@@ -65,11 +79,11 @@ public class Room {
 
     @Override
     public String toString() {
-        return "Room{" +
-                "id=" + id +
-                ", type='" + type + '\'' +
-                ", price=" + price +
-                ", availability=" + availability +
-                '}';
+    return "Room{" +
+        "id=" + room_id +
+        ", category=" + (category != null ? category.toString() : "null") +
+        ", price=" + price +
+        ", availability=" + availability +
+        '}';
     }
 }
