@@ -1,7 +1,8 @@
 package com.hotel.booking.repository;
 
 import com.hotel.booking.entity.User;
-import com.hotel.booking.security.UserRole;
+import com.hotel.booking.entity.UserRole;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

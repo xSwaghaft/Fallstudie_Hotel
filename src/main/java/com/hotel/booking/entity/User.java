@@ -1,6 +1,5 @@
 package com.hotel.booking.entity;
 
-import com.hotel.booking.security.UserRole;
 import jakarta.persistence.*;
 import java.io.Serializable;
 import java.time.LocalDate;
