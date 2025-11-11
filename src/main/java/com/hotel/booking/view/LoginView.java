@@ -1,8 +1,8 @@
 package com.hotel.booking.view;
 
+import com.hotel.booking.entity.User;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.security.UserRole;
-import com.hotel.booking.user.User;
 import com.hotel.booking.user.UserService;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
