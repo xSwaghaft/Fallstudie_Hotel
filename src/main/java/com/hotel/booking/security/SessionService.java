@@ -1,6 +1,7 @@
 package com.hotel.booking.security;
 
 import com.hotel.booking.entity.User;
+import com.hotel.booking.entity.UserRole;
 import com.vaadin.flow.server.VaadinSession;
 
 import org.springframework.stereotype.Service;

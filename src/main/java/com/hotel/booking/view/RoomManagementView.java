@@ -1,7 +1,7 @@
 package com.hotel.booking.view;
 
+import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
-import com.hotel.booking.security.UserRole;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
