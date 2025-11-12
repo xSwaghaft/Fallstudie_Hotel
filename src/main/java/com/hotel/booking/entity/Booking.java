@@ -5,7 +5,19 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 
 /**
  * Repräsentiert eine Zimmerbuchung.
@@ -59,9 +71,9 @@ public class Booking {
 
     /** Aktueller Buchungsstatus. */
 
-    // @Enumerated(EnumType.STRING)
-    // @Column(name = "status", nullable = false, length = 32)
-    // private BookingStatus status;
+    //@Enumerated(EnumType.STRING)
+    //@Column(name = "status", nullable = false, length = 32)
+    //private BookingStatus status;
 
     /** Gesamtsumme der Buchung inkl. aller Positionen. */
     @Column(name = "total_price", precision = 12, scale = 2)
@@ -100,10 +112,13 @@ public class Booking {
 
     /** Zusatzleistungen (Extras) dieser Buchung. */
 
-    // @OneToMany(mappedBy = "booking",
-    // cascade = CascadeType.ALL,
-    // orphanRemoval = true)
-    // private List<BookingExtra> extras = new ArrayList<>();
+    @ManyToMany
+    @JoinTable(
+    name = "booking_extra",
+    joinColumns = @JoinColumn(name = "booking_id"),
+    inverseJoinColumns = @JoinColumn(name = "extra_id")
+    )
+    private List<BookingExtra> extras = new ArrayList<>();
 
     /** Optionales Feedback zur Buchung. */
 
