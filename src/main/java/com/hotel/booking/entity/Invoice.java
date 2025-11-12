@@ -1,8 +1,12 @@
 package com.hotel.booking.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.DecimalMin;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 /**
  * Invoice for a booking
@@ -16,9 +20,13 @@ public class Invoice {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
+    @NotNull
+    @Size(max = 50)
     @Column(nullable = false, unique = true)
     private String invoiceNumber;
     
+    @NotNull
+    @DecimalMin("0.00")
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
     
@@ -36,12 +44,12 @@ public class Invoice {
     @Enumerated(EnumType.STRING)
     private PaymentStatus invoiceStatus;
     
-    // TODO: Activate when Booking entity is created
+    // TODO: Activate when Booking entity
     // @OneToOne
     // @JoinColumn(name = "booking_id", nullable = false)
     // private Booking booking;
     
-    // Temporary field until Booking is ready
+    // Temporary field until Booking
     @Column(name = "booking_id")
     private Long bookingId;
     
@@ -116,6 +124,19 @@ public class Invoice {
     public void setInvoiceStatus(PaymentStatus invoiceStatus) {
         this.invoiceStatus = invoiceStatus;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Invoice)) return false;
+        Invoice invoice = (Invoice) o;
+        return Objects.equals(id, invoice.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
     
     // Temporary getter/setter for bookingId
     public Long getBookingId() {
@@ -126,7 +147,7 @@ public class Invoice {
         this.bookingId = bookingId;
     }
     
-    // TODO: Activate when Booking entity is created
+    // Activate when Booking entity
     // public Booking getBooking() {
     //     return booking;
     // }

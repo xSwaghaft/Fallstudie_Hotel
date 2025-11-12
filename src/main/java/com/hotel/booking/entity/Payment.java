@@ -1,8 +1,13 @@
 package com.hotel.booking.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 /**
  * Payment transaction for a booking
@@ -16,24 +21,30 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
+    @NotNull
+    @DecimalMin("0.00")
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
     
+    @NotNull
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private PaymentMethod method;
     
+    @NotNull
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private PaymentStatus status;
     
+    //Referenz ID des Zahlungsanbieters
+    @Size(max = 100)
     @Column
     private String transactionRef;
     
     @Column
     private LocalDateTime paidAt;
     
-    // TODO: Activate when Booking entity is created
+    // Activate when Booking entity 
     // @ManyToOne
     // @JoinColumn(name = "booking_id", nullable = false)
     // private Booking booking;
@@ -49,9 +60,9 @@ public class Payment {
     
     // Constructor with parameters
     public Payment(BigDecimal amount, PaymentMethod method) {
-        this.amount = amount;
         this.method = method;
         this.status = PaymentStatus.PENDING;
+        setAmount(amount);
     }
     
     // Getters and Setters
@@ -68,7 +79,25 @@ public class Payment {
     }
     
     public void setAmount(BigDecimal amount) {
-        this.amount = amount;
+        if (amount == null) {
+            this.amount = null;
+            return;
+        }
+        // Geld-Berechnung auf 2 Dezimalstellen runden
+        this.amount = amount.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Payment)) return false;
+        Payment payment = (Payment) o;
+        return Objects.equals(id, payment.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
     
     public PaymentMethod getMethod() {
@@ -112,7 +141,7 @@ public class Payment {
         this.bookingId = bookingId;
     }
     
-    // TODO: Activate when Booking entity is created
+    // Activate when Booking entity
     // public Booking getBooking() {
     //     return booking;
     // }
