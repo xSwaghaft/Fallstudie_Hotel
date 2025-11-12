@@ -5,8 +5,15 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.hotel.booking.entity.Invoice.PaymentStatus;
+
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
@@ -17,6 +24,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
 /**
@@ -71,9 +79,9 @@ public class Booking {
 
     /** Aktueller Buchungsstatus. */
 
-    //@Enumerated(EnumType.STRING)
-    //@Column(name = "status", nullable = false, length = 32)
-    //private BookingStatus status;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 32)
+    private PaymentStatus status;
 
     /** Gesamtsumme der Buchung inkl. aller Positionen. */
     @Column(name = "total_price", precision = 12, scale = 2)
@@ -81,10 +89,10 @@ public class Booking {
 
     /** Zugehöriger Gast (Eigentümer der Buchung). */
 
-    // @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    // @JoinColumn(name = "guest_id", nullable = false,
-    // foreignKey = @ForeignKey(name = "fk_booking_guest"))
-    // private Guest guest;
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "guest_id", nullable = false,
+    foreignKey = @ForeignKey(name = "fk_booking_guest"))
+    private Guest guest;
 
     /** Gebuchtes Zimmer. */
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
@@ -98,10 +106,10 @@ public class Booking {
      * </p>
      */
 
-    // @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    // @JoinColumn(name = "invoice_id",
-    // foreignKey = @ForeignKey(name = "fk_booking_invoice"))
-    // private Invoice invoice;
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "invoice_id",
+    foreignKey = @ForeignKey(name = "fk_booking_invoice"))
+    private Invoice invoice;
 
     /** Zahlungen, die auf diese Buchung verbucht wurden. */
 
