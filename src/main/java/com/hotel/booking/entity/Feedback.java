@@ -1,6 +1,10 @@
 package com.hotel.booking.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 
 /**
@@ -15,26 +19,30 @@ public class Feedback {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
+    @NotNull
+    @Min(1)
+    @Max(5)
     @Column(nullable = false)
     private Integer rating;
     
+    @Size(max = 1000)
     @Column(length = 1000)
     private String comment;
     
     @Column(nullable = false)
     private LocalDateTime createdAt;
     
-    // TODO: Activate when Booking entity is created
+    // Activate when Booking entity 
     // @OneToOne
     // @JoinColumn(name = "booking_id")
     // private Booking booking;
     
-    // TODO: Activate when Guest entity is created
+    // Activate when Guest entity
     // @ManyToOne
     // @JoinColumn(name = "guest_id")
     // private Guest guest;
     
-    // Temporary fields until Booking/Guest are ready
+    // Temporary fields until Booking/Guest
     @Column(name = "booking_id")
     private Long bookingId;
     
@@ -103,7 +111,7 @@ public class Feedback {
         this.guestId = guestId;
     }
     
-    // TODO: Activate when Booking entity is created
+    // TODO: Activate when Booking entity
     // public Booking getBooking() {
     //     return booking;
     // }
@@ -112,7 +120,7 @@ public class Feedback {
     //     this.booking = booking;
     // }
     
-    // TODO: Activate when Guest entity is created
+    // TODO: Activate when Guest entity
     // public Guest getGuest() {
     //     return guest;
     // }
