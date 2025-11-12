@@ -25,9 +25,9 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
     // Find feedback with rating greater than or equal to specified value
     List<Feedback> findByRatingGreaterThanEqual(Integer rating);
     
-    // TODO: Activate when Guest entity is created
+    // Activate when Guest entity 
     // List<Feedback> findByGuest(Guest guest);
     
-    // TODO: Activate when Booking entity is created
+    // Activate when Booking entity
     // Optional<Feedback> findByBooking(Booking booking);
 }
