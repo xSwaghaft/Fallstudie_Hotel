@@ -1,4 +1,3 @@
-// Datei: PasswordEncoder.java
 package com.hotel.booking.security;
 
 import org.springframework.stereotype.Component;
