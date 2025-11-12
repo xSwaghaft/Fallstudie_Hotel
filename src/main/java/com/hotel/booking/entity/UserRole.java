@@ -1,4 +1,4 @@
-package com.hotel.booking.security;
+package com.hotel.booking.entity;
 
 public enum UserRole {
     GUEST, RECEPTIONIST, MANAGER
