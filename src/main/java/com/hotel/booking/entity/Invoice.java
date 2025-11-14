@@ -1,12 +1,22 @@
 package com.hotel.booking.entity;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import jakarta.validation.constraints.DecimalMin;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 /**
  * Invoice for a booking
@@ -22,7 +32,7 @@ public class Invoice {
     
     @NotNull
     @Size(max = 50)
-    @Column(nullable = false, unique = true)
+    @Column(name = "invoice_number", nullable = false, unique = true, length = 50)
     private String invoiceNumber;
     
     @NotNull
@@ -40,18 +50,16 @@ public class Invoice {
     @Enumerated(EnumType.STRING)
     private PaymentMethod paymentMethod;
     
-    @Column(nullable = false)
+    @NotNull
     @Enumerated(EnumType.STRING)
+    @Column(name = "invoice_status", nullable = false, length = 32)
     private PaymentStatus invoiceStatus;
     
     // TODO: Activate when Booking entity
-    // @OneToOne
-    // @JoinColumn(name = "booking_id", nullable = false)
-    // private Booking booking;
+    @OneToOne
+    @JoinColumn(name = "booking_id", nullable = false)
+    private Booking booking;
     
-    // Temporary field until Booking
-    @Column(name = "booking_id")
-    private Long bookingId;
     
     // Default constructor
     public Invoice() {
@@ -138,23 +146,15 @@ public class Invoice {
         return Objects.hash(id);
     }
     
-    // Temporary getter/setter for bookingId
-    public Long getBookingId() {
-        return bookingId;
-    }
-    
-    public void setBookingId(Long bookingId) {
-        this.bookingId = bookingId;
-    }
     
     // Activate when Booking entity
-    // public Booking getBooking() {
-    //     return booking;
-    // }
+    public Booking getBooking() {
+         return booking;
+     }
     
-    // public void setBooking(Booking booking) {
-    //     this.booking = booking;
-    // }
+     public void setBooking(Booking booking) {
+         this.booking = booking;
+     }
     
     @Override
     public String toString() {
@@ -166,7 +166,7 @@ public class Invoice {
                 ", paidAt=" + paidAt +
                 ", paymentMethod=" + paymentMethod +
                 ", invoiceStatus=" + invoiceStatus +
-                ", bookingId=" + bookingId +
+                ", bookingId=" + booking +
                 '}';
     }
     

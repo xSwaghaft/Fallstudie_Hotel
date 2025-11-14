@@ -5,7 +5,24 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-import jakarta.persistence.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
 
 /**
  * Repräsentiert eine Zimmerbuchung.
@@ -59,9 +76,9 @@ public class Booking {
 
     /** Aktueller Buchungsstatus. */
 
-    // @Enumerated(EnumType.STRING)
-    // @Column(name = "status", nullable = false, length = 32)
-    // private BookingStatus status;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 32)
+    private BookingStatus status;
 
     /** Gesamtsumme der Buchung inkl. aller Positionen. */
     @Column(name = "total_price", precision = 12, scale = 2)
@@ -69,10 +86,10 @@ public class Booking {
 
     /** Zugehöriger Gast (Eigentümer der Buchung). */
 
-    // @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    // @JoinColumn(name = "guest_id", nullable = false,
-    // foreignKey = @ForeignKey(name = "fk_booking_guest"))
-    // private Guest guest;
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "guest_id", nullable = false,
+    foreignKey = @ForeignKey(name = "fk_booking_guest"))
+    private Guest guest;
 
     /** Gebuchtes Zimmer. */
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
@@ -86,29 +103,32 @@ public class Booking {
      * </p>
      */
 
-    // @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    // @JoinColumn(name = "invoice_id",
-    // foreignKey = @ForeignKey(name = "fk_booking_invoice"))
-    // private Invoice invoice;
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "invoice_id",
+    foreignKey = @ForeignKey(name = "fk_booking_invoice"))
+    private Invoice invoice;
 
     /** Zahlungen, die auf diese Buchung verbucht wurden. */
 
-    // @OneToMany(mappedBy = "booking",
-    // cascade = CascadeType.ALL,
-    // orphanRemoval = true)
-    // private List<Payment> payments = new ArrayList<>();
+    @OneToMany(mappedBy = "booking",
+    cascade = CascadeType.ALL,
+    orphanRemoval = true)
+    private List<Payment> payments = new ArrayList<>();
 
     /** Zusatzleistungen (Extras) dieser Buchung. */
 
-    // @OneToMany(mappedBy = "booking",
-    // cascade = CascadeType.ALL,
-    // orphanRemoval = true)
-    // private List<BookingExtra> extras = new ArrayList<>();
+    @ManyToMany
+    @JoinTable(
+    name = "booking_extra",
+    joinColumns = @JoinColumn(name = "booking_id"),
+    inverseJoinColumns = @JoinColumn(name = "extra_id")
+    )
+    private List<BookingExtra> extras = new ArrayList<>();
 
     /** Optionales Feedback zur Buchung. */
 
-    // @OneToOne(mappedBy = "booking", fetch = FetchType.LAZY)
-    // private Feedback feedback;
+    @OneToOne(mappedBy = "booking", fetch = FetchType.LAZY)
+    private Feedback feedback;
 
     // ------------------------------------------------------------
     // Konstruktoren
@@ -122,19 +142,19 @@ public class Booking {
      * Komfort-Konstruktor für Pflichtangaben.
      */
 
-    // public Booking(String bookingNumber,
-    // LocalDate checkInDate,
-    // LocalDate checkOutDate,
-    // BookingStatus status,
-    // Guest guest,
-    // Room room) {
-    // this.bookingNumber = bookingNumber;
-    // this.checkInDate = checkInDate;
-    // this.checkOutDate = checkOutDate;
-    // this.status = status;
-    // this.guest = guest;
-    // this.room = room;
-    // }
+    public Booking(String bookingNumber,
+    LocalDate checkInDate,
+    LocalDate checkOutDate,
+    BookingStatus status,
+    Guest guest,
+    Room room) {
+    this.bookingNumber = bookingNumber;
+    this.checkInDate = checkInDate;
+    this.checkOutDate = checkOutDate;
+    this.status = status;
+    this.guest = guest;
+    this.room = room;
+    }
 
     // ------------------------------------------------------------
     // Getter/Setter
@@ -176,8 +196,8 @@ public class Booking {
         this.checkOutDate = checkOutDate;
     }
 
-    // public BookingStatus getStatus() { return status; }
-    // public void setStatus(BookingStatus status) { this.status = status; }
+    public BookingStatus getStatus() { return status; }
+    public void setStatus(BookingStatus status) { this.status = status; }
 
     public BigDecimal getTotalPrice() {
         return totalPrice;
@@ -187,8 +207,8 @@ public class Booking {
         this.totalPrice = totalPrice;
     }
 
-    // public Guest getGuest() { return guest; }
-    // public void setGuest(Guest guest) { this.guest = guest; }
+    public Guest getGuest() { return guest; }
+    public void setGuest(Guest guest) { this.guest = guest; }
 
     public Room getRoom() {
         return room;
@@ -198,17 +218,17 @@ public class Booking {
         this.room = room;
     }
 
-    // public Invoice getInvoice() { return invoice; }
-    // public void setInvoice(Invoice invoice) { this.invoice = invoice; }
+    public Invoice getInvoice() { return invoice; }
+    public void setInvoice(Invoice invoice) { this.invoice = invoice; }
 
-    // public List<Payment> getPayments() { return payments; }
-    // public void setPayments(List<Payment> payments) { this.payments = payments; }
+    public List<Payment> getPayments() { return payments; }
+    public void setPayments(List<Payment> payments) { this.payments = payments; }
 
-    // public List<BookingExtra> getExtras() { return extras; }
-    // public void setExtras(List<BookingExtra> extras) { this.extras = extras; }
+    public List<BookingExtra> getExtras() { return extras; }
+    public void setExtras(List<BookingExtra> extras) { this.extras = extras; }
 
-    // public Feedback getFeedback() { return feedback; }
-    // public void setFeedback(Feedback feedback) { this.feedback = feedback; }
+    public Feedback getFeedback() { return feedback; }
+    public void setFeedback(Feedback feedback) { this.feedback = feedback; }
 
     // ------------------------------------------------------------
     // Hilfs- und Konsistenzmethoden
@@ -220,11 +240,11 @@ public class Booking {
      * @param payment Zahlung, die dieser Buchung zugeordnet wird
      */
 
-    // public void addPayment(Payment payment) {
-    // if (payment == null) return;
-    // payments.add(payment);
-    // payment.setBooking(this);
-    // }
+    public void addPayment(Payment payment) {
+    if (payment == null) return;
+    payments.add(payment);
+    payment.setBooking(this);
+    }
 
     /**
      * Entfernt eine Zahlung und hält die bidirektionale Beziehung konsistent.
@@ -232,37 +252,32 @@ public class Booking {
      * @param payment Zahlung, die entfernt werden soll
      */
 
-    // public void removePayment(Payment payment) {
-    // if (payment == null) return;
-    // payments.remove(payment);
-    // if (payment.getBooking() == this) {
-    // payment.setBooking(null);
-    // }
-    // }
+    public void removePayment(Payment payment) {
+    if (payment == null) return;
+    payments.remove(payment);
+    if (payment.getBooking() == this) {
+    payment.setBooking(null);
+    }
+    }
 
     /**
      * Fügt ein Extra hinzu und hält die bidirektionale Beziehung konsistent.
      * 
      * @param extra Extra, das hinzugefügt wird
      */
-    // public void addExtra(BookingExtra extra) {
-    // if (extra == null) return;
-    // extras.add(extra);
-    // extra.setBooking(this);
-    // }
+    public void addExtra(BookingExtra extra) {
+    if (extra == null) return;
+    extras.add(extra);
+    if (!extra.getBookings().contains(this)) {
+        extra.getBookings().add(this);
+    }
+}
 
-    /**
-     * Entfernt ein Extra und hält die bidirektionale Beziehung konsistent.
-     * 
-     * @param extra Extra, das entfernt wird
-     */
-    // public void removeExtra(BookingExtra extra) {
-    // if (extra == null) return;
-    // extras.remove(extra);
-    // if (extra.getBooking() == this) {
-    // extra.setBooking(null);
-    // }
-    // }
+public void removeExtra(BookingExtra extra) {
+    if (extra == null) return;
+    extras.remove(extra);
+    extra.getBookings().remove(this);
+}
 
     /**
      * Einfache Validierung: stellt sicher, dass das Check-out nach dem Check-in

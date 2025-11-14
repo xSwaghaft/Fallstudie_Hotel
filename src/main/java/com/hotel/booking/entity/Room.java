@@ -2,7 +2,17 @@ package com.hotel.booking.entity;
 
 import java.util.List;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 //Matthias Lohr
 @Entity
 @Table(name = "rooms")
@@ -12,9 +22,10 @@ public class Room {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long room_id;
 
-    @ManyToOne(fetch = FetchType.LAZY) //vll. ist EAGER nötig 
-    @JoinColumn(name = "category_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", nullable = false) // DB-Spaltenname
     private RoomCategory category;
+
 
     @Column(name = "price", nullable = false) //Hat der Raum, oder nur die Kategorie einen Preis?
     private Double price;
@@ -25,13 +36,13 @@ public class Room {
     @Column(name = "information")
     private String information;
 
-    // @ManyToMany
-    // @JoinTable(
-    //     name = "room_bookings",
-    //     joinColumns = @JoinColumn(name = "room_id"),
-    //     inverseJoinColumns = @JoinColumn(name = "booking_id")
-    // )
-    // private List<Booking> booking;
+    @ManyToMany
+    @JoinTable(
+         name = "room_bookings",
+         joinColumns = @JoinColumn(name = "room_id"),
+         inverseJoinColumns = @JoinColumn(name = "booking_id")
+     )
+    private List<Booking> booking;
 
     // Default constructor
     public Room() {
