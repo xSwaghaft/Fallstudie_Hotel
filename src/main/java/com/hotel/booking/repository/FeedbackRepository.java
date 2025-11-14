@@ -1,10 +1,14 @@
 package com.hotel.booking.repository;
 
-import com.hotel.booking.entity.Feedback;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import com.hotel.booking.entity.Booking;
+import com.hotel.booking.entity.Feedback;
+import com.hotel.booking.entity.Guest;
 
 /**
  * Repository interface for Feedback entity
@@ -26,8 +30,8 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
     List<Feedback> findByRatingGreaterThanEqual(Integer rating);
     
     // TODO: Activate when Guest entity is created
-    // List<Feedback> findByGuest(Guest guest);
+    List<Feedback> findByGuest(Guest guest);
     
     // TODO: Activate when Booking entity is created
-    // Optional<Feedback> findByBooking(Booking booking);
+    Optional<Feedback> findByBooking(Booking booking);
 }

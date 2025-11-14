@@ -1,5 +1,7 @@
 package com.hotel.booking.entity;
 
+import java.util.List;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -7,6 +9,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 //Matthias Lohr
@@ -32,13 +36,13 @@ public class Room {
     @Column(name = "information")
     private String information;
 
-    // @ManyToMany
-    // @JoinTable(
-    //     name = "room_bookings",
-    //     joinColumns = @JoinColumn(name = "room_id"),
-    //     inverseJoinColumns = @JoinColumn(name = "booking_id")
-    // )
-    // private List<Booking> booking;
+    @ManyToMany
+    @JoinTable(
+         name = "room_bookings",
+         joinColumns = @JoinColumn(name = "room_id"),
+         inverseJoinColumns = @JoinColumn(name = "booking_id")
+     )
+    private List<Booking> booking;
 
     // Default constructor
     public Room() {

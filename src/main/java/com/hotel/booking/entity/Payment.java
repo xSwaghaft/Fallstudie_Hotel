@@ -1,13 +1,23 @@
 package com.hotel.booking.entity;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.Objects;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 /**
  * Payment transaction for a booking
@@ -45,13 +55,11 @@ public class Payment {
     private LocalDateTime paidAt;
     
     // Activate when Booking entity 
-    // @ManyToOne
-    // @JoinColumn(name = "booking_id", nullable = false)
-    // private Booking booking;
+    @ManyToOne
+    @JoinColumn(name = "booking_id", nullable = false)
+    private Booking booking;
     
-    // Temporary field until Booking is ready
-    @Column(name = "booking_id")
-    private Long bookingId;
+    
     
     // Default constructor
     public Payment() {
@@ -132,23 +140,16 @@ public class Payment {
         this.paidAt = paidAt;
     }
     
-    // Temporary getter/setter for bookingId
-    public Long getBookingId() {
-        return bookingId;
-    }
     
-    public void setBookingId(Long bookingId) {
-        this.bookingId = bookingId;
-    }
     
     // Activate when Booking entity
-    // public Booking getBooking() {
-    //     return booking;
-    // }
+    public Booking getBooking() {
+         return booking;
+     }
     
-    // public void setBooking(Booking booking) {
-    //     this.booking = booking;
-    // }
+     public void setBooking(Booking booking) {
+         this.booking = booking;
+     }
     
     @Override
     public String toString() {
@@ -159,7 +160,7 @@ public class Payment {
                 ", status=" + status +
                 ", transactionRef='" + transactionRef + '\'' +
                 ", paidAt=" + paidAt +
-                ", bookingId=" + bookingId +
+                ", bookingId=" + booking +
                 '}';
     }
     

@@ -11,6 +11,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
@@ -54,13 +56,10 @@ public class Invoice {
     private PaymentStatus invoiceStatus;
     
     // TODO: Activate when Booking entity
-    // @OneToOne
-    // @JoinColumn(name = "booking_id", nullable = false)
-    // private Booking booking;
+    @OneToOne
+    @JoinColumn(name = "booking_id", nullable = false)
+    private Booking booking;
     
-    // Temporary field until Booking
-    @Column(name = "booking_id")
-    private Long bookingId;
     
     // Default constructor
     public Invoice() {
@@ -147,23 +146,15 @@ public class Invoice {
         return Objects.hash(id);
     }
     
-    // Temporary getter/setter for bookingId
-    public Long getBookingId() {
-        return bookingId;
-    }
-    
-    public void setBookingId(Long bookingId) {
-        this.bookingId = bookingId;
-    }
     
     // Activate when Booking entity
-    // public Booking getBooking() {
-    //     return booking;
-    // }
+    public Booking getBooking() {
+         return booking;
+     }
     
-    // public void setBooking(Booking booking) {
-    //     this.booking = booking;
-    // }
+     public void setBooking(Booking booking) {
+         this.booking = booking;
+     }
     
     @Override
     public String toString() {
@@ -175,7 +166,7 @@ public class Invoice {
                 ", paidAt=" + paidAt +
                 ", paymentMethod=" + paymentMethod +
                 ", invoiceStatus=" + invoiceStatus +
-                ", bookingId=" + bookingId +
+                ", bookingId=" + booking +
                 '}';
     }
     
