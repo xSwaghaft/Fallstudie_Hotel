@@ -18,23 +18,19 @@ public class RoomService {
         this.roomRepository = roomRepository;
     }
 
-    public List<Room> findAll() {
+    public List<Room> getAllRooms() {
         return roomRepository.findAll();
     }
 
-    public Optional<Room> findById(Long id) {
+    public Optional<Room> getRoomById(Long id) {
         return roomRepository.findById(id);
     }
 
-    public Room save(Room room) {
+    public Room saveRoom(Room room) {
         return roomRepository.save(room);
     }
 
-    public void delete(Room room) {
-        roomRepository.delete(room);
-    }
-
-    public void deleteById(Long id) {
+    public void deleteRoom(Long id) {
         roomRepository.deleteById(id);
     }
 }
