@@ -9,50 +9,32 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
-/**
+/* Artur Derr
  * Repository für User-Entitäten.
- * Bietet Datenbankzugriff und zusätzliche Query-Methoden für Benutzer.
- */
+ * Bietet Datenbankzugriff und zusätzliche Query-Methoden für Benutzer. */
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
-    /**
-     * Findet einen User anhand von Username und Passwort (für Login)
-     */
-    Optional<User> findByUsernameAndPassword(String username, String password);
-
-    /**
-     * Findet einen User anhand des Usernames
-     */
+    // Findet einen User anhand des Usernames
+    // Wird für Authentifizierung verwendet (zusammen mit PasswordEncoder im Service)
     Optional<User> findByUsername(String username);
 
-    /**
-     * Findet einen User anhand der E-Mail-Adresse
-     */
+    // Findet einen User anhand der E-Mail-Adresse
+    // Wird für Authentifizierung und Registrierung verwendet
     Optional<User> findByEmail(String email);
 
-    /**
-     * Findet alle User mit einer bestimmten Rolle
-     */
+    // Findet alle User mit einer bestimmten Rolle
     List<User> findByRole(UserRole role);
 
-    /**
-     * Findet User anhand des Nachnamens (case-insensitive)
-     */
+    // Findet User anhand des Nachnamens (case-insensitive)
     List<User> findByLastNameContainingIgnoreCase(String lastName);
 
-    /**
-     * Findet User anhand des Vornamens (case-insensitive)
-     */
+    // Findet User anhand des Vornamens (case-insensitive)
     List<User> findByFirstNameContainingIgnoreCase(String firstName);
 
-    /**
-     * Prüft, ob ein User mit dem Username existiert
-     */
+    // Prüft, ob ein User mit dem Username existiert
     boolean existsByUsername(String username);
 
-    /**
-     * Prüft, ob ein User mit der E-Mail existiert
-     */
+    // Prüft, ob ein User mit der E-Mail existiert
     boolean existsByEmail(String email);
 }
