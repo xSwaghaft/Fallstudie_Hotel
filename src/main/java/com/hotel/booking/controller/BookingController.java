@@ -26,7 +26,7 @@ public class BookingController {
 
     private final BookingService bookingService;
 
-    // Konstruktor-Injection (Best Practice)
+    // Konstruktor-Injection 
     public BookingController(BookingService bookingService) {
         this.bookingService = bookingService;
     }
@@ -89,7 +89,7 @@ public class BookingController {
 
         Booking existing = bookingOpt.get();
 
-        // Felder aus dem Request übernehmen (ID bleibt unverändert)
+        // Felder aus dem Request übernehmen 
         if (bookingFromRequest.getBookingNumber() != null) {
             existing.setBookingNumber(bookingFromRequest.getBookingNumber());
         }
