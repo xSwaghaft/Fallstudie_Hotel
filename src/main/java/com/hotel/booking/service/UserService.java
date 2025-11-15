@@ -1,18 +1,19 @@
 package com.hotel.booking.service;
 
-import com.hotel.booking.entity.User;
-import com.hotel.booking.entity.UserRole;
-import com.hotel.booking.repository.UserRepository;
-import com.hotel.booking.security.PasswordEncoder;
+import java.util.List;
+import java.util.Optional;
 
-import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
+import com.hotel.booking.entity.User;
+import com.hotel.booking.entity.UserRole;
+import com.hotel.booking.repository.UserRepository;
+import com.hotel.booking.security.PasswordEncoder;
+
+ 
 /* Artur Derr
  * Service-Klasse für User-Entitäten.
  * Enthält Business-Logik, CRUD-Operationen und Authentifizierung für Benutzer. */
@@ -30,29 +31,17 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    /* Demo-Daten mit GEHASHTEN Passwörtern */
-    @PostConstruct
-    void initDemoUsers() {
-        if (userRepository.count() == 0) {
-            log.info("Initialisiere Demo-Benutzer...");
-            
-            User guest = new User("john.guest", passwordEncoder.encode("guest"), UserRole.GUEST);
-            User receptionist = new User("sarah.receptionist", passwordEncoder.encode("reception"), UserRole.RECEPTIONIST);
-            User manager = new User("david.manager", passwordEncoder.encode("manager"), UserRole.MANAGER);
-            
-            userRepository.save(guest);
-            userRepository.save(receptionist);
-            userRepository.save(manager);
-            
-            log.info("Demo-Benutzer erfolgreich erstellt");
-        }
-    }
+    // Demo user seeding removed; create users via SQL or admin flows if needed
 
     /* Authentifiziert einen User anhand von Username und Passwort */
     public Optional<User> authenticate(String username, String password) {
         log.debug("Authentifizierungsversuch für Username: {}", username);
-        
+        // Versuche zunächst Username, falls nicht gefunden -> E-Mail
         Optional<User> userOpt = findByUsername(username);
+        if (userOpt.isEmpty()) {
+            log.debug("User mit Username '{}' nicht gefunden, versuche Suche per E-Mail...", username);
+            userOpt = findByEmail(username);
+        }
         
         if (userOpt.isPresent()) {
             User user = userOpt.get();
@@ -62,9 +51,9 @@ public class UserService {
             } else {
                 log.warn("Authentifizierung fehlgeschlagen - falsches Passwort für User: {}", username);
             }
-        } else {
-            log.warn("Authentifizierung fehlgeschlagen - User nicht gefunden: {}", username);
-        }
+            } else {
+                log.warn("Authentifizierung fehlgeschlagen - User nicht gefunden: {} (weder Username noch E-Mail)", username);
+            }
         
         return Optional.empty();
     }
