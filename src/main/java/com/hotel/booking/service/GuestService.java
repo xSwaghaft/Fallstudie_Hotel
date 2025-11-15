@@ -46,12 +46,16 @@ public class GuestService {
     }
 
     /**
-     * E-Mail Suche (optional, oft nützlich)
+     * Gast per E-Mail finden
      */
     public Optional<Guest> findByEmail(String email) {
-        return guestRepository.findAll()
-                .stream()
-                .filter(g -> g.getEmail().equalsIgnoreCase(email))
-                .findFirst();
+        return guestRepository.findByEmail(email);
+    }
+
+    /**
+     * Prüfen, ob ein Gast mit E-Mail existiert
+     */
+    public boolean existsByEmail(String email) {
+        return guestRepository.existsByEmail(email);
     }
 }
