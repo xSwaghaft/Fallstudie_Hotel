@@ -1,13 +1,13 @@
 package com.hotel.booking.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.io.Serializable;
 import java.time.LocalDate;
 
-/**
+/* Artur Derr
  * Entity für Gäste im Hotelbuchungssystem.
- * Jeder Guest ist 1:1 mit einem User verknüpft und enthält persönliche Informationen.
- */
+ * Jeder Guest ist 1:1 mit einem User verknüpft und enthält persönliche Informationen. */
 @Entity
 @Table(name = "guests")
 public class Guest implements Serializable {
@@ -18,57 +18,41 @@ public class Guest implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /**
-     * 1:1 Beziehung zum zugehörigen User
-     */
+    /* 1:1 Beziehung zum zugehörigen User
+     * @JsonIgnore verhindert Endlosschleife (Guest → User → Guest) dto muss benutzt werden */
+    @JsonIgnore
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
-    /**
-     * E-Mail-Adresse des Gastes
-     */
+    // E-Mail-Adresse des Gastes
     @Column(nullable = false, length = 100)
     private String email;
 
-    /**
-     * Vorname des Gastes
-     */
+    // Vorname des Gastes
     @Column(nullable = false, length = 100)
     private String firstName;
 
-    /**
-     * Nachname des Gastes
-     */
+    // Nachname des Gastes
     @Column(nullable = false, length = 100)
     private String lastName;
 
-    /**
-     * Adresse des Gastes
-     */
+    // Adresse des Gastes
     @Column(length = 255)
     private String address;
 
-    /**
-     * Telefonnummer des Gastes
-     */
+    // Telefonnummer des Gastes
     @Column(length = 50)
     private String phoneNumber;
 
-    /**
-     * Geburtsdatum des Gastes
-     */
+    // Geburtsdatum des Gastes
     @Column
     private LocalDate birthdate;
 
-    /**
-     * Standard-Konstruktor für JPA
-     */
+    // Standard-Konstruktor für JPA
     protected Guest() {}
 
-    /**
-     * Konstruktor mit allen Parametern
-     */
+    // Konstruktor mit allen Parametern
     public Guest(User user, String email, String firstName, String lastName, 
                  String address, String phoneNumber, LocalDate birthdate) {
         this.user = user;
@@ -81,7 +65,6 @@ public class Guest implements Serializable {
     }
 
     // Getter und Setter
-
     public Long getId() {
         return id;
     }
