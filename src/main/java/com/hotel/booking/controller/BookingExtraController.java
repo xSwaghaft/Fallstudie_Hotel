@@ -39,7 +39,7 @@ public class BookingExtraController {
     @PutMapping("/{id}")
     public ResponseEntity<BookingExtra> updateBookingExtra(@PathVariable Long id, @RequestBody BookingExtra updatedBookingExtra) {
         if (bookingExtraService.getBookingExtraById(id).isPresent()) {
-            updatedBookingExtra.setId(id);
+            updatedBookingExtra.setBookingExtra_id(id);
             return ResponseEntity.ok(bookingExtraService.saveBookingExtra(updatedBookingExtra));
         } else {
             return ResponseEntity.notFound().build();

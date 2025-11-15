@@ -39,7 +39,7 @@ public class RoomCategoryController {
     @PutMapping("/{id}")
     public ResponseEntity<RoomCategory> updateRoomCategory(@PathVariable Long id, @RequestBody RoomCategory updatedRoomCategory) {
         if (roomCategoryService.getRoomCategoryById(id).isPresent()) {
-            updatedRoomCategory.setId(id);
+            updatedRoomCategory.setCategory_id(id);
             return ResponseEntity.ok(roomCategoryService.saveRoomCategory(updatedRoomCategory));
         } else {
             return ResponseEntity.notFound().build();
