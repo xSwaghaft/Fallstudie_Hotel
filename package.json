@@ -49,7 +49,7 @@
     "@vaadin/polymer-legacy-adapter": "24.2.4",
     "@vaadin/progress-bar": "24.2.4",
     "@vaadin/radio-group": "24.2.4",
-    "@vaadin/router": "1.7.5",
+    "@vaadin/router": "^2.0.1",
     "@vaadin/scroller": "24.2.4",
     "@vaadin/select": "24.2.4",
     "@vaadin/side-nav": "24.2.4",
@@ -75,7 +75,7 @@
   "devDependencies": {
     "@rollup/plugin-replace": "5.0.2",
     "@rollup/pluginutils": "5.0.2",
-    "@vitejs/plugin-react": "4.0.4",
+    "@vitejs/plugin-react": "^4.7.0",
     "async": "3.2.4",
     "glob": "10.3.3",
     "rollup-plugin-brotli": "3.1.0",
@@ -83,8 +83,8 @@
     "strip-css-comments": "5.0.0",
     "transform-ast": "2.4.4",
     "typescript": "5.1.6",
-    "vite": "4.4.11",
-    "vite-plugin-checker": "0.6.1",
+    "vite": "^7.2.2",
+    "vite-plugin-checker": "^0.6.4",
     "workbox-build": "7.0.0",
     "workbox-core": "7.0.0",
     "workbox-precaching": "7.0.0"
