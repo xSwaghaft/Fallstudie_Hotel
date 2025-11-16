@@ -11,11 +11,14 @@ import java.util.List;
 public interface RoomRepository extends JpaRepository<Room, Long> {
 
     // Find rooms by availability
-    List<Room> findByAvailability(Boolean availability);
+    List<Room> findByAvailability(String availability);
 
     // Find rooms by category
     List<Room> findByCategory(RoomCategory category);
 
     // Find rooms by price range
     List<Room> findByPriceBetween(Double minPrice, Double maxPrice);
+    
+    // Count rooms by category
+    long countByCategory(RoomCategory category);
 }
