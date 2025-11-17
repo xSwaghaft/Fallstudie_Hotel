@@ -1,12 +1,22 @@
 package com.hotel.booking.entity;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import jakarta.validation.constraints.DecimalMin;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 /**
  * Invoice for a booking
@@ -22,7 +32,7 @@ public class Invoice {
     
     @NotNull
     @Size(max = 50)
-    @Column(nullable = false, unique = true)
+    @Column(name = "invoice_number", nullable = false, unique = true, length = 50)
     private String invoiceNumber;
     
     @NotNull
@@ -40,14 +50,23 @@ public class Invoice {
     @Enumerated(EnumType.STRING)
     private PaymentMethod paymentMethod;
     
-    @Column(nullable = false)
+    @NotNull
     @Enumerated(EnumType.STRING)
+    @Column(name = "invoice_status", nullable = false, length = 32)
     private PaymentStatus invoiceStatus;
     
+<<<<<<< HEAD
     // Link to booking (use relationship, remove temporary bookingId column)
      @OneToOne(fetch = FetchType.LAZY)
      @JoinColumn(name = "booking_id", nullable = false)
      private Booking booking;
+=======
+    // TODO: Activate when Booking entity
+    @OneToOne
+    @JoinColumn(name = "booking_id", nullable = false)
+    private Booking booking;
+    
+>>>>>>> 3f2601670b17036cdc8f0536c74f3a281afbb46c
     
     // Default constructor
     public Invoice() {
@@ -134,6 +153,7 @@ public class Invoice {
         return Objects.hash(id);
     }
     
+<<<<<<< HEAD
     // Getter/setter for booking relationship
     public Booking getBooking() {
         return booking;
@@ -143,6 +163,18 @@ public class Invoice {
         this.booking = booking;
     }
     
+=======
+    
+    // Activate when Booking entity
+    public Booking getBooking() {
+         return booking;
+     }
+    
+     public void setBooking(Booking booking) {
+         this.booking = booking;
+     }
+    
+>>>>>>> 3f2601670b17036cdc8f0536c74f3a281afbb46c
     @Override
     public String toString() {
         return "Invoice{" +
@@ -153,7 +185,11 @@ public class Invoice {
                 ", paidAt=" + paidAt +
                 ", paymentMethod=" + paymentMethod +
                 ", invoiceStatus=" + invoiceStatus +
+<<<<<<< HEAD
                 ", bookingId=" + (booking != null ? booking.getId() : null) +
+=======
+                ", bookingId=" + booking +
+>>>>>>> 3f2601670b17036cdc8f0536c74f3a281afbb46c
                 '}';
     }
     

@@ -1,5 +1,6 @@
 package com.hotel.booking.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.io.Serializable;
 import java.time.LocalDate;
@@ -7,10 +8,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
+/* Artur Derr
  * Entity für Benutzer im Hotelbuchungssystem.
- * Enthält Authentifizierungsdaten, Rolle und persönliche Informationen.
- */
+ * Enthält Authentifizierungsdaten, Rolle und persönliche Informationen. */
 @Entity
 @Table(name = "users")
 public class User implements Serializable {
@@ -21,75 +21,57 @@ public class User implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /**
-     * Eindeutiger Benutzername für Login
-     */
+    // Eindeutiger Benutzername für Login
     @Column(unique = true, nullable = false, length = 100)
     private String username;
 
-    /**
-     * Passwort (Demo: im Klartext, kein Spring Security)
-     */
+    // Passwort mit BCrypt
+    // @JsonIgnore verhindert, dass Passwort jemals serialisiert wird
+    @JsonIgnore
     @Column(nullable = false, length = 255)
     private String password;
 
-    /**
-     * E-Mail-Adresse des Benutzers
-     */
+    // E-Mail-Adresse des Benutzers
     @Column(length = 100)
     private String email;
 
-    /**
-     * Vorname des Benutzers
-     */
+    // Vorname des Benutzers
     @Column(length = 100)
     private String firstName;
 
-    /**
-     * Nachname des Benutzers
-     */
+    // Nachname des Benutzers
     @Column(length = 100)
     private String lastName;
 
-    /**
-     * Geburtsdatum des Benutzers
-     */
+    // Geburtsdatum des Benutzers
     @Column
     private LocalDate birthdate;
 
-    /**
-     * Rolle des Benutzers (GUEST, RECEPTIONIST, MANAGER, ADMIN)
-     */
+    // Rolle des Benutzers (GUEST, RECEPTIONIST, MANAGER)
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     private UserRole role;
 
-    /**
-     * Zeitpunkt der Erstellung des Benutzerkontos
-     */
+    // Zeitpunkt der Erstellung des Benutzerkontos
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    /**
-     * Liste der vom User erstellten Reports (1:n Beziehung)
-     */
+    // Liste der vom User erstellten Reports (1:n Beziehung)
+    // @JsonIgnore verhindert Endlosschleifen bei JSON-Serialisierung
+    @JsonIgnore
     @OneToMany(mappedBy = "createdBy", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Report> reports = new ArrayList<>();
 
-    /**
-     * Zugeordneter Guest (1:1 Beziehung, optional)
-     */
+    // Zugeordneter Guest (1:1 Beziehung, optional)
+    // @JsonIgnore verhindert Endlosschleifen bei JSON-Serialisierung
+    @JsonIgnore
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Guest guest;
 
-    /**
-     * Standard-Konstruktor für JPA
-     */
+    // Standard-Konstruktor für JPA
     protected User() {}
 
-    /**
-     * Konstruktor für einfache User-Erstellung (kompatibel mit bestehendem Code)
-     */
+    // Konstruktor für einfache User-Erstellung (kompatibel mit bestehendem Code)
     public User(String username, String password, UserRole role) {
         this.username = username;
         this.password = password;
@@ -97,9 +79,7 @@ public class User implements Serializable {
         this.createdAt = LocalDateTime.now();
     }
 
-    /**
-     * Setzt createdAt automatisch vor dem Persistieren
-     */
+    // Setzt createdAt automatisch vor dem Persistieren
     @PrePersist
     protected void onCreate() {
         if (this.createdAt == null) {
@@ -107,24 +87,19 @@ public class User implements Serializable {
         }
     }
 
-    /**
-     * Hilfsmethode zum Hinzufügen eines Reports
-     */
+    // Hilfsmethode zum Hinzufügen eines Reports
     public void addReport(Report report) {
         reports.add(report);
         report.setCreatedBy(this);
     }
 
-    /**
-     * Hilfsmethode zum Entfernen eines Reports
-     */
+    // Hilfsmethode zum Entfernen eines Reports
     public void removeReport(Report report) {
         reports.remove(report);
         report.setCreatedBy(null);
     }
 
     // Getter und Setter
-
     public Long getId() {
         return id;
     }

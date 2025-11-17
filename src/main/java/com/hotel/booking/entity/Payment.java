@@ -1,13 +1,23 @@
 package com.hotel.booking.entity;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.Objects;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 /**
  * Payment transaction for a booking
@@ -44,10 +54,19 @@ public class Payment {
     @Column
     private LocalDateTime paidAt;
     
+<<<<<<< HEAD
     // Link to booking (use relationship, remove temporary bookingId column)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "booking_id", nullable = false)
     private Booking booking;
+=======
+    // Activate when Booking entity 
+    @ManyToOne
+    @JoinColumn(name = "booking_id", nullable = false)
+    private Booking booking;
+    
+    
+>>>>>>> 3f2601670b17036cdc8f0536c74f3a281afbb46c
     
     // Default constructor
     public Payment() {
@@ -128,6 +147,7 @@ public class Payment {
         this.paidAt = paidAt;
     }
     
+<<<<<<< HEAD
     // Getter/setter for booking relationship
     public Booking getBooking() {
         return booking;
@@ -139,6 +159,18 @@ public class Payment {
     
     // Activate when Booking entity
         // (relationship accessors provided above)
+=======
+    
+    
+    // Activate when Booking entity
+    public Booking getBooking() {
+         return booking;
+     }
+    
+     public void setBooking(Booking booking) {
+         this.booking = booking;
+     }
+>>>>>>> 3f2601670b17036cdc8f0536c74f3a281afbb46c
     
     @Override
     public String toString() {
@@ -149,7 +181,11 @@ public class Payment {
                 ", status=" + status +
                 ", transactionRef='" + transactionRef + '\'' +
                 ", paidAt=" + paidAt +
+<<<<<<< HEAD
                 ", bookingId=" + (booking != null ? booking.getId() : null) +
+=======
+                ", bookingId=" + booking +
+>>>>>>> 3f2601670b17036cdc8f0536c74f3a281afbb46c
                 '}';
     }
     

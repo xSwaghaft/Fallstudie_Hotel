@@ -6,20 +6,22 @@ import com.hotel.booking.repository.UserRepository;
 import com.hotel.booking.security.PasswordEncoder;
 
 import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
-
-/**
+/* Artur Derr
  * Service-Klasse für User-Entitäten.
- * Enthält Business-Logik, CRUD-Operationen und Authentifizierung für Benutzer.
- */
+ * Enthält Business-Logik, CRUD-Operationen und Authentifizierung für Benutzer. */
 @Service
 @Transactional
 public class UserService {
 
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
+    
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -28,32 +30,58 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    /**
-     * Demo-Daten, damit Login out-of-the-box funktioniert
-     */
+    /* Demo-Daten mit GEHASHTEN Passwörtern */
     @PostConstruct
     void initDemoUsers() {
         if (userRepository.count() == 0) {
-            userRepository.save(new User("john.guest", "guest", UserRole.GUEST));
-            userRepository.save(new User("sarah.receptionist", "reception", UserRole.RECEPTIONIST));
-            userRepository.save(new User("david.manager", "manager", UserRole.MANAGER));
+            log.info("Initialisiere Demo-Benutzer...");
+            
+            User guest = new User("john.guest", passwordEncoder.encode("guest"), UserRole.GUEST);
+            User receptionist = new User("sarah.receptionist", passwordEncoder.encode("reception"), UserRole.RECEPTIONIST);
+            User manager = new User("david.manager", passwordEncoder.encode("manager"), UserRole.MANAGER);
+            
+            userRepository.save(guest);
+            userRepository.save(receptionist);
+            userRepository.save(manager);
+            
+            log.info("Demo-Benutzer erfolgreich erstellt");
         }
     }
 
-    /**
-     * Authentifiziert einen User anhand von Username und Passwort
-     */
+    /* Authentifiziert einen User anhand von Username und Passwort */
     public Optional<User> authenticate(String username, String password) {
-        return userRepository.findByUsernameAndPassword(username, password);
+        log.debug("Authentifizierungsversuch für Username: {}", username);
+        
+        Optional<User> userOpt = findByUsername(username);
+        
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            if (passwordEncoder.matches(password, user.getPassword())) {
+                log.info("Authentifizierung erfolgreich für User: {}", username);
+                return Optional.of(user);
+            } else {
+                log.warn("Authentifizierung fehlgeschlagen - falsches Passwort für User: {}", username);
+            }
+        } else {
+            log.warn("Authentifizierung fehlgeschlagen - User nicht gefunden: {}", username);
+        }
+        
+        return Optional.empty();
     }
 
-    /**
-     * Registriert einen neuen User
-     * Prüft ob E-Mail bereits existiert, hasht das Passwort und setzt Rolle auf GUEST
-     */
+    /* Registriert einen neuen User und prüft auf Duplikate */
     public User registerUser(User user) {
-        // Prüfe ob E-Mail bereits existiert
+        log.info("Registrierungsversuch für Username: {}, E-Mail: {}", user.getUsername(), user.getEmail());
+        
+        // Username-Validierung 
+        if (existsByUsername(user.getUsername())) {
+            log.warn("Registrierung fehlgeschlagen - Username bereits vergeben: {}", user.getUsername());
+            throw new IllegalArgumentException("Username bereits vergeben");
+        }
+        
+        // E-Mail-Validierung
         if (existsByEmail(user.getEmail())) {
+            log.warn("Registrierung fehlgeschlagen - E-Mail bereits registriert: {}", user.getEmail());
             throw new IllegalArgumentException("E-Mail bereits registriert");
         }
 
@@ -62,123 +90,106 @@ public class UserService {
         user.setPassword(hashedPassword);
 
         // Rolle standardmäßig auf GUEST setzen
-        user.setRole(UserRole.GUEST);
+        if (user.getRole() == null) {
+            user.setRole(UserRole.GUEST);
+        }
 
         // User speichern
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        log.info("User erfolgreich registriert: {}", savedUser.getUsername());
+        
+        return savedUser;
     }
 
-    /**
-     * Login-Methode: Authentifiziert User mit E-Mail und Passwort
-     */
+    /* Login-Methode: Authentifiziert User mit E-Mail und Passwort */
     public Optional<User> login(String email, String password) {
+        log.debug("Login-Versuch für E-Mail: {}", email);
+        
         Optional<User> userOpt = findByEmail(email);
         
         if (userOpt.isPresent()) {
             User user = userOpt.get();
-            // Passwort überprüfen
             if (passwordEncoder.matches(password, user.getPassword())) {
+                log.info("Login erfolgreich für User: {} ({})", user.getUsername(), email);
                 return Optional.of(user);
+            } else {
+                log.warn("Login fehlgeschlagen - falsches Passwort für E-Mail: {}", email);
             }
+        } else {
+            log.warn("Login fehlgeschlagen - E-Mail nicht gefunden: {}", email);
         }
         
         return Optional.empty();
     }
 
-    /**
-     * Findet einen User anhand der E-Mail (für Login/Registrierung)
-     */
+    /* Findet einen User anhand der E-Mail (für Login/Registrierung) */
     public Optional<User> findByEmail(String email) {
         return userRepository.findByEmail(email);
     }
 
-    /**
-     * Gibt alle Users zurück
-     */
+    /* Gibt alle Users zurück */
     public List<User> findAll() {
         return userRepository.findAll();
     }
 
-    /**
-     * Findet einen User anhand der ID
-     */
+    /* Findet einen User anhand der ID */
     public Optional<User> findById(Long id) {
         return userRepository.findById(id);
     }
 
-    /**
-     * Findet einen User anhand des Usernames
-     */
+    /* Findet einen User anhand des Usernames */
     public Optional<User> findByUsername(String username) {
         return userRepository.findByUsername(username);
     }
 
-    /**
-     * Speichert oder aktualisiert einen User
-     */
+    /* Speichert oder aktualisiert einen User */
     public User save(User user) {
         return userRepository.save(user);
     }
 
-    /**
-     * Löscht einen User anhand der ID
-     */
+    /* Löscht einen User anhand der ID */
     public void deleteById(Long id) {
+        log.info("Lösche User mit ID: {}", id);
         userRepository.deleteById(id);
     }
 
-    /**
-     * Löscht einen User
-     */
+    /* Löscht einen User */
     public void delete(User user) {
+        log.info("Lösche User: {}", user.getUsername());
         userRepository.delete(user);
     }
 
-    /**
-     * Findet alle User mit einer bestimmten Rolle
-     */
+    /* Findet alle User mit einer bestimmten Rolle */
     public List<User> findByRole(UserRole role) {
         return userRepository.findByRole(role);
     }
 
-    /**
-     * Sucht User nach Nachname
-     */
+    /* Sucht User nach Nachname */
     public List<User> searchByLastName(String lastName) {
         return userRepository.findByLastNameContainingIgnoreCase(lastName);
     }
 
-    /**
-     * Sucht User nach Vorname
-     */
+    /* Sucht User nach Vorname */
     public List<User> searchByFirstName(String firstName) {
         return userRepository.findByFirstNameContainingIgnoreCase(firstName);
     }
 
-    /**
-     * Prüft, ob ein Username bereits existiert
-     */
+    /* Prüft, ob ein Username bereits existiert */
     public boolean existsByUsername(String username) {
         return userRepository.existsByUsername(username);
     }
 
-    /**
-     * Prüft, ob eine E-Mail bereits existiert
-     */
+    /* Prüft, ob eine E-Mail bereits existiert */
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
     }
 
-    /**
-     * Zählt die Anzahl aller Users
-     */
+    /* Zählt die Anzahl aller Users */
     public long count() {
         return userRepository.count();
     }
 
-    /**
-     * Prüft, ob ein User mit der ID existiert
-     */
+    /* Prüft, ob ein User mit der ID existiert */
     public boolean existsById(Long id) {
         return userRepository.existsById(id);
     }
