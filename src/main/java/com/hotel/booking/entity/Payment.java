@@ -9,6 +9,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -21,84 +22,74 @@ import jakarta.validation.constraints.Size;
 
 /**
  * Payment transaction for a booking
- * @author Arman Özcanli
  */
 @Entity
 @Table(name = "payments")
 public class Payment {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @NotNull
     @DecimalMin("0.00")
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
-    
+
     @NotNull
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private PaymentMethod method;
-    
+
     @NotNull
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private PaymentStatus status;
-    
-    //Referenz ID des Zahlungsanbieters
+
+    // Reference ID of payment provider
     @Size(max = 100)
     @Column
     private String transactionRef;
-    
+
     @Column
     private LocalDateTime paidAt;
-    
-<<<<<<< HEAD
-    // Link to booking (use relationship, remove temporary bookingId column)
+
+    // Link to booking (use relationship; lazy fetch to avoid eager loads)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "booking_id", nullable = false)
     private Booking booking;
-=======
-    // Activate when Booking entity 
-    @ManyToOne
-    @JoinColumn(name = "booking_id", nullable = false)
-    private Booking booking;
-    
-    
->>>>>>> 3f2601670b17036cdc8f0536c74f3a281afbb46c
-    
+
     // Default constructor
     public Payment() {
         this.status = PaymentStatus.PENDING;
     }
-    
+
     // Constructor with parameters
     public Payment(BigDecimal amount, PaymentMethod method) {
         this.method = method;
         this.status = PaymentStatus.PENDING;
         setAmount(amount);
     }
-    
+
     // Getters and Setters
     public Long getId() {
         return id;
     }
-    
+
     public void setId(Long id) {
         this.id = id;
     }
-    
+
     public BigDecimal getAmount() {
         return amount;
     }
-    
+
     public void setAmount(BigDecimal amount) {
         if (amount == null) {
             this.amount = null;
             return;
         }
-        // Geld-Berechnung auf 2 Dezimalstellen runden
+        // Round monetary values to 2 decimal places
         this.amount = amount.setScale(2, RoundingMode.HALF_UP);
     }
 
@@ -114,64 +105,47 @@ public class Payment {
     public int hashCode() {
         return Objects.hash(id);
     }
-    
+
     public PaymentMethod getMethod() {
         return method;
     }
-    
+
     public void setMethod(PaymentMethod method) {
         this.method = method;
     }
-    
+
     public PaymentStatus getStatus() {
         return status;
     }
-    
+
     public void setStatus(PaymentStatus status) {
         this.status = status;
     }
-    
+
     public String getTransactionRef() {
         return transactionRef;
     }
-    
+
     public void setTransactionRef(String transactionRef) {
         this.transactionRef = transactionRef;
     }
-    
+
     public LocalDateTime getPaidAt() {
         return paidAt;
     }
-    
+
     public void setPaidAt(LocalDateTime paidAt) {
         this.paidAt = paidAt;
     }
-    
-<<<<<<< HEAD
-    // Getter/setter for booking relationship
+
     public Booking getBooking() {
         return booking;
     }
-    
+
     public void setBooking(Booking booking) {
         this.booking = booking;
     }
-    
-    // Activate when Booking entity
-        // (relationship accessors provided above)
-=======
-    
-    
-    // Activate when Booking entity
-    public Booking getBooking() {
-         return booking;
-     }
-    
-     public void setBooking(Booking booking) {
-         this.booking = booking;
-     }
->>>>>>> 3f2601670b17036cdc8f0536c74f3a281afbb46c
-    
+
     @Override
     public String toString() {
         return "Payment{" +
@@ -181,13 +155,9 @@ public class Payment {
                 ", status=" + status +
                 ", transactionRef='" + transactionRef + '\'' +
                 ", paidAt=" + paidAt +
-<<<<<<< HEAD
                 ", bookingId=" + (booking != null ? booking.getId() : null) +
-=======
-                ", bookingId=" + booking +
->>>>>>> 3f2601670b17036cdc8f0536c74f3a281afbb46c
                 '}';
     }
-    
+
     // Enums are centralized in separate files: PaymentMethod, PaymentStatus
 }

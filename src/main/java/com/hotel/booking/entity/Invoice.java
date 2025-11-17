@@ -8,6 +8,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -20,60 +21,52 @@ import jakarta.validation.constraints.Size;
 
 /**
  * Invoice for a booking
- * @author Arman Özcanli
  */
 @Entity
 @Table(name = "invoices")
+
 public class Invoice {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @NotNull
     @Size(max = 50)
     @Column(name = "invoice_number", nullable = false, unique = true, length = 50)
     private String invoiceNumber;
-    
+
     @NotNull
     @DecimalMin("0.00")
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
-    
+
     @Column(nullable = false)
     private LocalDateTime issuedAt;
-    
+
     @Column
     private LocalDateTime paidAt;
-    
+
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private PaymentMethod paymentMethod;
-    
+
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(name = "invoice_status", nullable = false, length = 32)
     private PaymentStatus invoiceStatus;
-    
-<<<<<<< HEAD
-    // Link to booking (use relationship, remove temporary bookingId column)
-     @OneToOne(fetch = FetchType.LAZY)
-     @JoinColumn(name = "booking_id", nullable = false)
-     private Booking booking;
-=======
-    // TODO: Activate when Booking entity
-    @OneToOne
+
+    // Link to booking (use relationship; lazy fetch to avoid eager loads)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "booking_id", nullable = false)
     private Booking booking;
-    
->>>>>>> 3f2601670b17036cdc8f0536c74f3a281afbb46c
-    
+
     // Default constructor
     public Invoice() {
         this.issuedAt = LocalDateTime.now();
         this.invoiceStatus = PaymentStatus.PENDING;
     }
-    
+
     // Constructor with parameters
     public Invoice(String invoiceNumber, BigDecimal amount, PaymentMethod paymentMethod) {
         this.invoiceNumber = invoiceNumber;
@@ -82,60 +75,60 @@ public class Invoice {
         this.issuedAt = LocalDateTime.now();
         this.invoiceStatus = PaymentStatus.PENDING;
     }
-    
+
     // Getters and Setters
     public Long getId() {
         return id;
     }
-    
+
     public void setId(Long id) {
         this.id = id;
     }
-    
+
     public String getInvoiceNumber() {
         return invoiceNumber;
     }
-    
+
     public void setInvoiceNumber(String invoiceNumber) {
         this.invoiceNumber = invoiceNumber;
     }
-    
+
     public BigDecimal getAmount() {
         return amount;
     }
-    
+
     public void setAmount(BigDecimal amount) {
         this.amount = amount;
     }
-    
+
     public LocalDateTime getIssuedAt() {
         return issuedAt;
     }
-    
+
     public void setIssuedAt(LocalDateTime issuedAt) {
         this.issuedAt = issuedAt;
     }
-    
+
     public LocalDateTime getPaidAt() {
         return paidAt;
     }
-    
+
     public void setPaidAt(LocalDateTime paidAt) {
         this.paidAt = paidAt;
     }
-    
+
     public PaymentMethod getPaymentMethod() {
         return paymentMethod;
     }
-    
+
     public void setPaymentMethod(PaymentMethod paymentMethod) {
         this.paymentMethod = paymentMethod;
     }
-    
+
     public PaymentStatus getInvoiceStatus() {
         return invoiceStatus;
     }
-    
+
     public void setInvoiceStatus(PaymentStatus invoiceStatus) {
         this.invoiceStatus = invoiceStatus;
     }
@@ -152,8 +145,7 @@ public class Invoice {
     public int hashCode() {
         return Objects.hash(id);
     }
-    
-<<<<<<< HEAD
+
     // Getter/setter for booking relationship
     public Booking getBooking() {
         return booking;
@@ -162,19 +154,7 @@ public class Invoice {
     public void setBooking(Booking booking) {
         this.booking = booking;
     }
-    
-=======
-    
-    // Activate when Booking entity
-    public Booking getBooking() {
-         return booking;
-     }
-    
-     public void setBooking(Booking booking) {
-         this.booking = booking;
-     }
-    
->>>>>>> 3f2601670b17036cdc8f0536c74f3a281afbb46c
+
     @Override
     public String toString() {
         return "Invoice{" +
@@ -185,13 +165,9 @@ public class Invoice {
                 ", paidAt=" + paidAt +
                 ", paymentMethod=" + paymentMethod +
                 ", invoiceStatus=" + invoiceStatus +
-<<<<<<< HEAD
                 ", bookingId=" + (booking != null ? booking.getId() : null) +
-=======
-                ", bookingId=" + booking +
->>>>>>> 3f2601670b17036cdc8f0536c74f3a281afbb46c
                 '}';
     }
-    
+
     // Enums are centralized in separate files: PaymentMethod, PaymentStatus
 }

@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -40,27 +41,15 @@ public class Feedback {
     
     @Column(nullable = false)
     private LocalDateTime createdAt;
-    
-<<<<<<< HEAD
-    // Relationships to Booking and Guest (remove duplicate id columns)
-     @OneToOne(fetch = FetchType.LAZY)
-     @JoinColumn(name = "booking_id")
-     private Booking booking;
-    
-     @ManyToOne(fetch = FetchType.LAZY)
-     @JoinColumn(name = "guest_id")
-     private Guest guest;
-=======
-    // Activate when Booking entity 
-    @OneToOne
+
+    // Relationships to Booking and Guest 
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "booking_id")
     private Booking booking;
-    
-    // Activate when Guest entity
-    @ManyToOne
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "guest_id")
     private Guest guest;
->>>>>>> 3f2601670b17036cdc8f0536c74f3a281afbb46c
     
     // Default constructor
     public Feedback() {
@@ -107,7 +96,6 @@ public class Feedback {
         this.createdAt = createdAt;
     }
     
-<<<<<<< HEAD
     // Getter/setters for relationships
     public Booking getBooking() {
         return booking;
@@ -124,28 +112,6 @@ public class Feedback {
     public void setGuest(Guest guest) {
         this.guest = guest;
     }
-    
-=======
-    
-    // TODO: Activate when Booking entity
-    public Booking getBooking() {
-         return booking;
-     }
-    
-     public void setBooking(Booking booking) {
-         this.booking = booking;
-     }
-    
-    // TODO: Activate when Guest entity
-     public Guest getGuest() {
-         return guest;
-     }
-    
-     public void setGuest(Guest guest) {
-         this.guest = guest;
-     }
-    
->>>>>>> 3f2601670b17036cdc8f0536c74f3a281afbb46c
     @Override
     public String toString() {
         return "Feedback{" +
@@ -153,13 +119,8 @@ public class Feedback {
                 ", rating=" + rating +
                 ", comment='" + comment + '\'' +
                 ", createdAt=" + createdAt +
-<<<<<<< HEAD
                 ", bookingId=" + (booking != null ? booking.getId() : null) +
                 ", guestId=" + (guest != null ? guest.getId() : null) +
                 '}';
-=======
-                ", bookingId=" + booking +
-                ", guestId=" + guest +'}';
->>>>>>> 3f2601670b17036cdc8f0536c74f3a281afbb46c
     }
 }
