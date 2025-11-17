@@ -5,11 +5,11 @@ USE hotelbooking;
 
 -- ---------- Users (mind. 5 Einträge) ----------
 INSERT IGNORE INTO users (id, username, password, email, first_name, last_name, birthdate, role, created_at) VALUES
-(1,'admin','$2a$10$yH1Q8rWq9KpS6uVf3LzURe0b7XnOq3e1F5gH2jK4lM8nP0sT2vQyG','admin@example.com','Admin','Istrator','1980-01-01','MANAGER','2025-01-01 08:00:00'),
-(2,'reception1','$2a$10$fakehash0000000000000000000000000000000000000000000000','desk1@example.com','Anna','Desk','1990-05-12','RECEPTIONIST','2025-02-01 09:00:00'),
+(1,'david.manager','$2a$10$$2a$12$cvsztCoyNGCH0bxWkBz81ehVC5xanf8MhGpfo8W1mddG93N2gO/Lu','admin@example.com','Admin','Istrator','1980-01-01','MANAGER','2025-01-01 08:00:00'),
+(2,'sarah.receptionist','$2a$12$/ScEY4pafzw6nK14CWsJWuwthHDMwd9dJDac7ffKlnHWV15CZR9Pe','desk1@example.com','Anna','Desk','1990-05-12','RECEPTIONIST','2025-02-01 09:00:00'),
 (3,'reception2','$2a$10$fakehash1111111111111111111111111111111111111111111111','desk2@example.com','John','Front','1992-03-30','RECEPTIONIST','2025-03-01 09:30:00'),
 (4,'clerk','$2a$10$fakehash2222222222222222222222222222222222222222222222','clerk@example.com','Luca','Bianchi','1985-07-07','RECEPTIONIST','2025-04-01 10:00:00'),
-(5,'guestuser','$2a$10$fakehash3333333333333333333333333333333333333333333333','guest@example.com','Sofia','Garcia','1995-11-11','GUEST','2025-05-01 11:00:00');
+(5,'john.guest','$2a$12$n/nXTY1sKND6CHjtc/t.zeXqI0hwCufOtCgoY9k3kA7syFlRFalvK','guest@example.com','Sofia','Garcia','1995-11-11','GUEST','2025-05-01 11:00:00');
 
 -- ---------- RoomCategory (mind. 5 Einträge) ----------
 INSERT IGNORE INTO room_category (id, name, description, price_per_night, max_occupancy, active) VALUES
