@@ -36,9 +36,9 @@ public class UserService {
         if (userRepository.count() == 0) {
             log.info("Initialisiere Demo-Benutzer...");
             
-            User guest = new User("john.guest", passwordEncoder.encode("guest"), UserRole.GUEST);
-            User receptionist = new User("sarah.receptionist", passwordEncoder.encode("reception"), UserRole.RECEPTIONIST);
-            User manager = new User("david.manager", passwordEncoder.encode("manager"), UserRole.MANAGER);
+            User guest = new User("john.guest", "John", "Guest", passwordEncoder.encode("guest"), UserRole.GUEST, true);
+            User receptionist = new User("sarah.receptionist", "Sarah", "Receptionist", passwordEncoder.encode("reception"), UserRole.RECEPTIONIST, true);
+            User manager = new User("david.manager", "David", "Manager", passwordEncoder.encode("manager"), UserRole.MANAGER, true);
             
             userRepository.save(guest);
             userRepository.save(receptionist);

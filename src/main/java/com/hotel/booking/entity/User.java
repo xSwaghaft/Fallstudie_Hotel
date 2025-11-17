@@ -52,6 +52,9 @@ public class User implements Serializable {
     @Column(nullable = false, length = 32)
     private UserRole role;
 
+    @Column(nullable = false)
+    private boolean active = true;
+
     // Zeitpunkt der Erstellung des Benutzerkontos
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -72,10 +75,13 @@ public class User implements Serializable {
     protected User() {}
 
     // Konstruktor für einfache User-Erstellung (kompatibel mit bestehendem Code)
-    public User(String username, String password, UserRole role) {
+    public User(String username, String firstName, String lastName, String password, UserRole role, boolean active) {
         this.username = username;
+        this.firstName = firstName;
+        this.lastName = lastName;
         this.password = password;
         this.role = role;
+        this.active = active;
         this.createdAt = LocalDateTime.now();
     }
 
@@ -144,6 +150,10 @@ public class User implements Serializable {
         this.lastName = lastName;
     }
 
+    public String getFullName() {
+        return firstName + " " + lastName;
+    }
+
     public LocalDate getBirthdate() {
         return birthdate;
     }
@@ -158,6 +168,14 @@ public class User implements Serializable {
 
     public void setRole(UserRole role) {
         this.role = role;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 
     public LocalDateTime getCreatedAt() {
