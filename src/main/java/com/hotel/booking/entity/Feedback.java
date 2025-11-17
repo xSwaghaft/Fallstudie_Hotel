@@ -32,22 +32,14 @@ public class Feedback {
     @Column(nullable = false)
     private LocalDateTime createdAt;
     
-    // Activate when Booking entity 
-    // @OneToOne
-    // @JoinColumn(name = "booking_id")
-    // private Booking booking;
+    // Relationships to Booking and Guest (remove duplicate id columns)
+     @OneToOne(fetch = FetchType.LAZY)
+     @JoinColumn(name = "booking_id")
+     private Booking booking;
     
-    // Activate when Guest entity
-    // @ManyToOne
-    // @JoinColumn(name = "guest_id")
-    // private Guest guest;
-    
-    // Temporary fields until Booking/Guest
-    @Column(name = "booking_id")
-    private Long bookingId;
-    
-    @Column(name = "guest_id")
-    private Long guestId;
+     @ManyToOne(fetch = FetchType.LAZY)
+     @JoinColumn(name = "guest_id")
+     private Guest guest;
     
     // Default constructor
     public Feedback() {
@@ -94,40 +86,22 @@ public class Feedback {
         this.createdAt = createdAt;
     }
     
-    // Temporary getters/setters for IDs
-    public Long getBookingId() {
-        return bookingId;
+    // Getter/setters for relationships
+    public Booking getBooking() {
+        return booking;
     }
-    
-    public void setBookingId(Long bookingId) {
-        this.bookingId = bookingId;
+
+    public void setBooking(Booking booking) {
+        this.booking = booking;
     }
-    
-    public Long getGuestId() {
-        return guestId;
+
+    public Guest getGuest() {
+        return guest;
     }
-    
-    public void setGuestId(Long guestId) {
-        this.guestId = guestId;
+
+    public void setGuest(Guest guest) {
+        this.guest = guest;
     }
-    
-    // TODO: Activate when Booking entity
-    // public Booking getBooking() {
-    //     return booking;
-    // }
-    
-    // public void setBooking(Booking booking) {
-    //     this.booking = booking;
-    // }
-    
-    // TODO: Activate when Guest entity
-    // public Guest getGuest() {
-    //     return guest;
-    // }
-    
-    // public void setGuest(Guest guest) {
-    //     this.guest = guest;
-    // }
     
     @Override
     public String toString() {
@@ -136,8 +110,8 @@ public class Feedback {
                 ", rating=" + rating +
                 ", comment='" + comment + '\'' +
                 ", createdAt=" + createdAt +
-                ", bookingId=" + bookingId +
-                ", guestId=" + guestId +
+                ", bookingId=" + (booking != null ? booking.getId() : null) +
+                ", guestId=" + (guest != null ? guest.getId() : null) +
                 '}';
     }
 }

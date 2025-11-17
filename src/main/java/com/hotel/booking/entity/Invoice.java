@@ -44,14 +44,10 @@ public class Invoice {
     @Enumerated(EnumType.STRING)
     private PaymentStatus invoiceStatus;
     
-    // TODO: Activate when Booking entity
-    // @OneToOne
-    // @JoinColumn(name = "booking_id", nullable = false)
-    // private Booking booking;
-    
-    // Temporary field until Booking
-    @Column(name = "booking_id")
-    private Long bookingId;
+    // Link to booking (use relationship, remove temporary bookingId column)
+     @OneToOne(fetch = FetchType.LAZY)
+     @JoinColumn(name = "booking_id", nullable = false)
+     private Booking booking;
     
     // Default constructor
     public Invoice() {
@@ -138,23 +134,14 @@ public class Invoice {
         return Objects.hash(id);
     }
     
-    // Temporary getter/setter for bookingId
-    public Long getBookingId() {
-        return bookingId;
+    // Getter/setter for booking relationship
+    public Booking getBooking() {
+        return booking;
     }
-    
-    public void setBookingId(Long bookingId) {
-        this.bookingId = bookingId;
+
+    public void setBooking(Booking booking) {
+        this.booking = booking;
     }
-    
-    // Activate when Booking entity
-    // public Booking getBooking() {
-    //     return booking;
-    // }
-    
-    // public void setBooking(Booking booking) {
-    //     this.booking = booking;
-    // }
     
     @Override
     public String toString() {
@@ -166,22 +153,9 @@ public class Invoice {
                 ", paidAt=" + paidAt +
                 ", paymentMethod=" + paymentMethod +
                 ", invoiceStatus=" + invoiceStatus +
-                ", bookingId=" + bookingId +
+                ", bookingId=" + (booking != null ? booking.getId() : null) +
                 '}';
     }
     
-    // Enums
-    public enum PaymentMethod {
-        CARD,
-        CASH,
-        ONLINE,
-        INVOICE
-    }
-    
-    public enum PaymentStatus {
-        PENDING,
-        PAID,
-        FAILED,
-        REFUNDED
-    }
+    // Enums are centralized in separate files: PaymentMethod, PaymentStatus
 }

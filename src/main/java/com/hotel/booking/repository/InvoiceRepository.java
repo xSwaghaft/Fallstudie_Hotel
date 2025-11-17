@@ -1,7 +1,8 @@
 package com.hotel.booking.repository;
 
 import com.hotel.booking.entity.Invoice;
-import com.hotel.booking.entity.Invoice.PaymentStatus;
+import com.hotel.booking.entity.PaymentStatus;
+import com.hotel.booking.entity.Booking;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -31,6 +32,6 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     // Find unpaid invoices
     List<Invoice> findByInvoiceStatusAndPaidAtIsNull(PaymentStatus status);
     
-    // TODO: Activate when Booking entity is created
-    // Optional<Invoice> findByBooking(Booking booking);
+    // Find invoice by booking entity
+    Optional<Invoice> findByBooking(Booking booking);
 }

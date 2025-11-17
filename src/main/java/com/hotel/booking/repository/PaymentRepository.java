@@ -1,8 +1,9 @@
 package com.hotel.booking.repository;
 
 import com.hotel.booking.entity.Payment;
-import com.hotel.booking.entity.Payment.PaymentMethod;
-import com.hotel.booking.entity.Payment.PaymentStatus;
+import com.hotel.booking.entity.PaymentMethod;
+import com.hotel.booking.entity.PaymentStatus;
+import com.hotel.booking.entity.Booking;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -35,6 +36,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     // Find all payments by status and method
     List<Payment> findByStatusAndMethod(PaymentStatus status, PaymentMethod method);
     
-    // TODO: Activate when Booking entity is created
-    // List<Payment> findByBooking(Booking booking);
+    // Find payments by booking entity
+    List<Payment> findByBooking(Booking booking);
 }
