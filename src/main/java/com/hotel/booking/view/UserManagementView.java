@@ -1,6 +1,7 @@
 package com.hotel.booking.view;
 
 import com.hotel.booking.entity.UserRole;
+import com.hotel.booking.entity.AdressEmbeddable;
 import com.hotel.booking.entity.User;
 import com.hotel.booking.service.UserService;
 import com.hotel.booking.security.SessionService;
@@ -23,8 +24,6 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.*;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.io.Serializable;
-import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -166,7 +165,7 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
                     user.getFullName().toLowerCase().contains(search);
                 
                 String role = roleFilter.getValue();
-                boolean matchesRole = "All Roles".equals(role) || user.getRole().equals(role);
+                boolean matchesRole = "All Roles".equals(role) || user.getRole().name().equals(role);
                 
                 return matchesSearch && matchesRole;
             })
@@ -303,6 +302,34 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
         lastNameField.setRequired(true);
         lastNameField.setWidthFull();
 
+        TextField streetField = new TextField("Street");
+        streetField.setValue(existingUser != null && existingUser.getAddress() != null ? existingUser.getAddress().getStreet() : "");
+        streetField.setWidthFull();
+
+        TextField houseNumberField = new TextField("House Number");
+        houseNumberField.setValue(existingUser != null && existingUser.getAddress() != null ? existingUser.getAddress().getHouseNumber() : "");
+        houseNumberField.setWidth("150px");
+
+        HorizontalLayout streetLayout = new HorizontalLayout(streetField, houseNumberField);
+        streetLayout.setWidthFull();
+        streetLayout.setFlexGrow(1, streetField);
+
+        TextField cityField = new TextField("City");
+        cityField.setValue(existingUser != null && existingUser.getAddress() != null ? existingUser.getAddress().getCity() : "");
+        cityField.setWidthFull();
+
+        TextField postalCodeField = new TextField("Postal Code");
+        postalCodeField.setValue(existingUser != null && existingUser.getAddress() != null ? existingUser.getAddress().getPostalCode() : "");
+        postalCodeField.setWidth("150px");
+
+        TextField countryField = new TextField("Country");
+        countryField.setValue(existingUser != null && existingUser.getAddress() != null ? existingUser.getAddress().getCountry() : "");
+        countryField.setWidth("200px");
+
+        HorizontalLayout cityLayout = new HorizontalLayout(cityField, postalCodeField, countryField);
+        cityLayout.setWidthFull();
+        cityLayout.setFlexGrow(1, cityField);
+
         PasswordField passwordField = new PasswordField("Password");
         passwordField.setRequiredIndicatorVisible(true);
         passwordField.setWidthFull();
@@ -327,9 +354,26 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
                 return;
             }
 
-            User user = existingUser != null ? existingUser : new User(
-                usernameField.getValue(), firstNameField.getValue(), lastNameField.getValue(), passwordField.getValue(), roleSelect.getValue(), activeCheckbox.getValue());
+            AdressEmbeddable address = new AdressEmbeddable(
+                streetField.getValue(),
+                houseNumberField.getValue(),
+                postalCodeField.getValue(),
+                cityField.getValue(),
+                countryField.getValue()
+            );
 
+            User user = existingUser != null ? existingUser : new User(
+                usernameField.getValue(),
+                firstNameField.getValue(),
+                lastNameField.getValue(),
+                address,
+                emailField.getValue(),
+                passwordField.getValue(),
+                roleSelect.getValue(),
+                activeCheckbox.getValue()
+            );
+
+            user.setAddress(address);
             userService.save(user);
 
             users.clear();
@@ -344,7 +388,7 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
         cancelButton.addClassName("primary-button");
 
         HorizontalLayout buttonLayout = new HorizontalLayout(saveButton, cancelButton);
-        dialog.add(usernameField, firstNameField, lastNameField, passwordField, emailField, roleSelect, activeCheckbox, buttonLayout);
+        dialog.add(usernameField, firstNameField, lastNameField, streetLayout, cityLayout, passwordField, emailField, roleSelect, activeCheckbox, buttonLayout);
 
         dialog.open();
     }
@@ -361,6 +405,7 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
         content.add(createDetailRow("ID", String.valueOf(user.getId())));
         content.add(createDetailRow("Username", user.getUsername()));
         content.add(createDetailRow("Full Name", user.getFullName()));
+        content.add(createDetailRow("Address", user.getAdressString()));
         content.add(createDetailRow("Email", user.getEmail()));
         content.add(createDetailRow("Role", user.getRole().name()));
         content.add(createDetailRow("Status", user.isActive() ? "Active" : "Inactive"));
@@ -403,6 +448,7 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
         Button confirmBtn = new Button("Yes, Delete");
         confirmBtn.addClassName("logout-btn-header");
         confirmBtn.addClickListener(e -> {
+            userService.delete(user); // Use the service to delete the user from the database
             users.remove(user);
             grid.getDataProvider().refreshAll();
             dialog.close();

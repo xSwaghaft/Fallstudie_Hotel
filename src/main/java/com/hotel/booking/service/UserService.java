@@ -1,6 +1,7 @@
 package com.hotel.booking.service;
 
 import com.hotel.booking.entity.User;
+import com.hotel.booking.entity.AdressEmbeddable;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.repository.UserRepository;
 import com.hotel.booking.security.PasswordEncoder;
@@ -35,10 +36,12 @@ public class UserService {
     void initDemoUsers() {
         if (userRepository.count() == 0) {
             log.info("Initialisiere Demo-Benutzer...");
+
+            AdressEmbeddable address = new AdressEmbeddable("Demo Street", "1", "12345", "Demo City", "Demo Country");
             
-            User guest = new User("john.guest", "John", "Guest", passwordEncoder.encode("guest"), UserRole.GUEST, true);
-            User receptionist = new User("sarah.receptionist", "Sarah", "Receptionist", passwordEncoder.encode("reception"), UserRole.RECEPTIONIST, true);
-            User manager = new User("david.manager", "David", "Manager", passwordEncoder.encode("manager"), UserRole.MANAGER, true);
+            User guest = new User("john.guest", "John", "Guest", address, "john.guest@example.com", passwordEncoder.encode("guest"), UserRole.GUEST, true);
+            User receptionist = new User("sarah.receptionist", "Sarah", "Receptionist", address, "sarah.receptionist@example.com", passwordEncoder.encode("reception"), UserRole.RECEPTIONIST, true);
+            User manager = new User("david.manager", "David", "Manager", address, "david.manager@example.com", passwordEncoder.encode("manager"), UserRole.MANAGER, true);
             
             userRepository.save(guest);
             userRepository.save(receptionist);

@@ -4,12 +4,13 @@ USE hotelbooking;
 -- Hinweis: Ersetze bei Bedarf die Passwort-Hashes (bcrypt). Für admin kannst du z.B. deinen generierten Hash für "admin123" einsetzen.
 
 -- ---------- Users (mind. 5 Einträge) ----------
-INSERT IGNORE INTO users (id, username, password, email, first_name, last_name, birthdate, role, active, created_at) VALUES
-(1,'admin','admin','admin@example.com','Admin','Istrator','1980-01-01','MANAGER','1','2025-01-01 08:00:00'),
-(2,'reception1','reception','desk1@example.com','Anna','Desk','1990-05-12','RECEPTIONIST','1','2025-02-01 09:00:00'),
-(3,'reception2','$2a$10$fakehash1111111111111111111111111111111111111111111111','desk2@example.com','John','Front','1992-03-30','RECEPTIONIST','1','2025-03-01 09:30:00'),
-(4,'clerk','clerk','clerk@example.com','Luca','Bianchi','1985-07-07','RECEPTIONIST','0','2025-04-01 10:00:00'),
-(5,'guestuser','guest','guest@example.com','Sofia','Garcia','1995-11-11','GUEST','1','2025-05-01 11:00:00');
+INSERT IGNORE INTO users 
+(id, username, password, email, first_name, last_name, address_street, address_house_number, address_postal_code, address_city, address_country, birthdate, role, active, created_at) VALUES
+(1,'admin','admin','admin@example.com','Admin','Istrator','Hauptstraße','1','33602','Bielefeld','Germany','1980-01-01','MANAGER','1','2025-01-01 08:00:00'),
+(2,'reception1','reception','desk1@example.com','Anna','Desk','Marktweg','12','33604','Bielefeld','Germany','1990-05-12','RECEPTIONIST','1','2025-02-01 09:00:00'),
+(3,'reception2','$2a$10$fakehash1111111111111111111111111111111111111111111111','desk2@example.com','John','Front','Bahnhofstraße','88','33609','Bielefeld','Germany','1992-03-30','RECEPTIONIST','1','2025-03-01 09:30:00'),
+(4,'clerk','clerk','clerk@example.com','Luca','Bianchi','Alte Allee','4A','33615','Bielefeld','Germany','1985-07-07','RECEPTIONIST','0','2025-04-01 10:00:00'),
+(5,'guestuser','guest','guest@example.com','Sofia','Garcia','Wiesenweg','7','33619','Bielefeld','Germany','1995-11-11','GUEST','1','2025-05-01 11:00:00');
 
 -- ---------- RoomCategory (mind. 5 Einträge) ----------
 INSERT IGNORE INTO room_category (category_id, name, description, price_per_night, max_occupancy, active) VALUES
