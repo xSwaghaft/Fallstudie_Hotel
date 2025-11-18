@@ -1,6 +1,9 @@
 package com.hotel.booking.view;
 
 import com.hotel.booking.entity.UserRole;
+import com.hotel.booking.entity.AdressEmbeddable;
+import com.hotel.booking.entity.User;
+import com.hotel.booking.service.UserService;
 import com.hotel.booking.security.SessionService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
@@ -21,64 +24,19 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.*;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.io.Serializable;
-import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+
+//User sollte mehr Attribute und Konstruktors bekommen, damit vollständig erstellt werden kann (active, last login...)
 
 @Route(value = "user-management", layout = MainLayout.class)
 @CssImport("./themes/hotel/styles.css")
 public class UserManagementView extends VerticalLayout implements BeforeEnterObserver {
 
     private final SessionService sessionService;
+    private final UserService userService;
     private static final DateTimeFormatter GERMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-
-    public static class User implements Serializable {
-        private static final long serialVersionUID = 1L;
-        private int id;
-        private String username;
-        private String email;
-        private String firstName;
-        private String lastName;
-        private String role; // "MANAGER", "RECEPTIONIST", "GUEST"
-        private boolean active;
-        private LocalDate createdAt;
-        private LocalDate lastLogin;
-
-        public User(int id, String username, String email, String firstName, String lastName, 
-                   String role, boolean active, LocalDate createdAt, LocalDate lastLogin) {
-            this.id = id;
-            this.username = username;
-            this.email = email;
-            this.firstName = firstName;
-            this.lastName = lastName;
-            this.role = role;
-            this.active = active;
-            this.createdAt = createdAt;
-            this.lastLogin = lastLogin;
-        }
-
-        // Getters and Setters
-        public int getId() { return id; }
-        public String getUsername() { return username; }
-        public String getEmail() { return email; }
-        public String getFirstName() { return firstName; }
-        public String getLastName() { return lastName; }
-        public String getFullName() { return firstName + " " + lastName; }
-        public String getRole() { return role; }
-        public boolean isActive() { return active; }
-        public LocalDate getCreatedAt() { return createdAt; }
-        public LocalDate getLastLogin() { return lastLogin; }
-
-        public void setUsername(String username) { this.username = username; }
-        public void setEmail(String email) { this.email = email; }
-        public void setFirstName(String firstName) { this.firstName = firstName; }
-        public void setLastName(String lastName) { this.lastName = lastName; }
-        public void setRole(String role) { this.role = role; }
-        public void setActive(boolean active) { this.active = active; }
-        public void setLastLogin(LocalDate lastLogin) { this.lastLogin = lastLogin; }
-    }
 
     private final Grid<User> grid = new Grid<>(User.class, false);
     private final List<User> users = new ArrayList<>();
@@ -86,31 +44,14 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
     private Select<String> roleFilter;
 
     @Autowired
-    public UserManagementView(SessionService sessionService) {
+    public UserManagementView(SessionService sessionService, UserService userService) {
         this.sessionService = sessionService;
+        this.userService = userService;
         setSpacing(true);
         setPadding(true);
         setSizeFull();
-
-        seedData();
-
+        users.addAll(userService.findAll());
         add(createHeader(), createStatsRow(), createFilters(), createUsersCard());
-    }
-
-    private void seedData() {
-        users.clear();
-        users.add(new User(1, "david.manager", "david@hotelium.com", "David", "Manager", 
-                          "MANAGER", true, LocalDate.of(2024, 1, 15), LocalDate.of(2025, 11, 5)));
-        users.add(new User(2, "sarah.receptionist", "sarah@hotelium.com", "Sarah", "Johnson", 
-                          "RECEPTIONIST", true, LocalDate.of(2024, 3, 20), LocalDate.of(2025, 11, 4)));
-        users.add(new User(3, "john.guest", "john@email.com", "John", "Guest", 
-                          "GUEST", true, LocalDate.of(2024, 6, 10), LocalDate.of(2025, 11, 3)));
-        users.add(new User(4, "emma.receptionist", "emma@hotelium.com", "Emma", "Wilson", 
-                          "RECEPTIONIST", true, LocalDate.of(2024, 7, 1), LocalDate.of(2025, 11, 5)));
-        users.add(new User(5, "michael.guest", "michael@email.com", "Michael", "Brown", 
-                          "GUEST", true, LocalDate.of(2024, 8, 15), LocalDate.of(2025, 10, 28)));
-        users.add(new User(6, "lisa.guest", "lisa@email.com", "Lisa", "Anderson", 
-                          "GUEST", false, LocalDate.of(2024, 9, 20), LocalDate.of(2025, 9, 15)));
     }
 
     private Component createHeader() {
@@ -142,10 +83,10 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
         Div card1 = createStatCard("Total Users", String.valueOf(users.size()), VaadinIcon.USERS);
         Div card2 = createStatCard("Active Users", 
                 String.valueOf(users.stream().filter(User::isActive).count()), VaadinIcon.CHECK_CIRCLE);
-        Div card3 = createStatCard("Managers", 
-                String.valueOf(users.stream().filter(u -> "MANAGER".equals(u.getRole())).count()), VaadinIcon.USER_STAR);
+        Div card3 = createStatCard("Employees", 
+                String.valueOf(users.stream().filter(u -> u.getRole() == UserRole.MANAGER || u.getRole() == UserRole.RECEPTIONIST).count()), VaadinIcon.USER_STAR);
         Div card4 = createStatCard("Guests", 
-                String.valueOf(users.stream().filter(u -> "GUEST".equals(u.getRole())).count()), VaadinIcon.USER);
+                String.valueOf(users.stream().filter(u -> "GUEST".equals(u.getRole().name())).count()), VaadinIcon.USER);
         
         row.add(card1, card2, card3, card4);
         row.expand(card1, card2, card3, card4);
@@ -220,11 +161,11 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
                 String search = searchField.getValue().toLowerCase();
                 boolean matchesSearch = search.isEmpty() || 
                     user.getUsername().toLowerCase().contains(search) ||
-                    user.getEmail().toLowerCase().contains(search) ||
+                    user.getEmail().toLowerCase().contains(search);
                     user.getFullName().toLowerCase().contains(search);
                 
                 String role = roleFilter.getValue();
-                boolean matchesRole = "All Roles".equals(role) || user.getRole().equals(role);
+                boolean matchesRole = "All Roles".equals(role) || user.getRole().name().equals(role);
                 
                 return matchesSearch && matchesRole;
             })
@@ -273,11 +214,11 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
             .setAutoWidth(true)
             .setFlexGrow(0);
         
-        grid.addColumn(user -> user.getLastLogin() != null ? 
-                user.getLastLogin().format(GERMAN_DATE_FORMAT) : "Never")
-            .setHeader("Last Login")
-            .setAutoWidth(true)
-            .setFlexGrow(0);
+        // grid.addColumn(user -> user.getLastLogin() != null ? 
+        //         user.getLastLogin().format(GERMAN_DATE_FORMAT) : "Never")
+        //     .setHeader("Last Login")
+        //     .setAutoWidth(true)
+        //     .setFlexGrow(0);
         
         grid.addComponentColumn(this::createUserActions)
             .setHeader("Actions")
@@ -293,7 +234,7 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
     }
 
     private Component createRoleBadge(User user) {
-        Span badge = new Span(user.getRole());
+        Span badge = new Span(user.getRole().name());
         badge.getStyle()
             .set("padding", "0.25rem 0.75rem")
             .set("border-radius", "0.5rem")
@@ -301,7 +242,7 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
             .set("font-weight", "600")
             .set("text-transform", "capitalize");
         
-        switch (user.getRole()) {
+        switch (user.getRole().name()) {
             case "MANAGER" -> badge.getStyle()
                 .set("background", "#fef3c7")
                 .set("color", "#f59e0b");
@@ -346,81 +287,109 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
         dialog.setHeaderTitle(existingUser == null ? "Add New User" : "Edit User");
         dialog.setWidth("600px");
 
-        TextField username = new TextField("Username*");
-        username.setWidthFull();
-        
-        EmailField email = new EmailField("Email*");
-        email.setWidthFull();
-        
-        TextField firstName = new TextField("First Name*");
-        firstName.setWidthFull();
-        
-        TextField lastName = new TextField("Last Name*");
-        lastName.setWidthFull();
-        
-        Select<String> role = new Select<>();
-        role.setLabel("Role*");
-        role.setItems("MANAGER", "RECEPTIONIST", "GUEST");
-        role.setWidthFull();
-        
-        PasswordField password = new PasswordField(existingUser == null ? "Password*" : "New Password (leave empty to keep current)");
-        password.setWidthFull();
-        
-        Checkbox active = new Checkbox("Active");
-        active.setValue(true);
+        TextField usernameField = new TextField("Username");
+        usernameField.setValue(existingUser != null ? existingUser.getUsername() : "");
+        usernameField.setRequired(true);
+        usernameField.setWidthFull();
 
-        if (existingUser != null) {
-            username.setValue(existingUser.getUsername());
-            email.setValue(existingUser.getEmail());
-            firstName.setValue(existingUser.getFirstName());
-            lastName.setValue(existingUser.getLastName());
-            role.setValue(existingUser.getRole());
-            active.setValue(existingUser.isActive());
-        }
+        TextField firstNameField = new TextField("First Name");
+        firstNameField.setValue(existingUser != null ? existingUser.getFirstName() : "");
+        firstNameField.setRequired(true);
+        firstNameField.setWidthFull();
 
-        FormLayout form = new FormLayout(username, email, firstName, lastName, role, password, active);
-        form.setResponsiveSteps(
-            new FormLayout.ResponsiveStep("0", 1),
-            new FormLayout.ResponsiveStep("600px", 2)
-        );
-        form.setColspan(password, 2);
-        form.setColspan(active, 2);
+        TextField lastNameField = new TextField("Last Name");
+        lastNameField.setValue(existingUser != null ? existingUser.getLastName() : "");
+        lastNameField.setRequired(true);
+        lastNameField.setWidthFull();
 
-        Button saveBtn = new Button(existingUser == null ? "Add User" : "Update User");
-        saveBtn.addClassName("primary-button");
-        saveBtn.addClickListener(e -> {
-            if (existingUser == null) {
-                User newUser = new User(
-                    users.stream().mapToInt(User::getId).max().orElse(0) + 1,
-                    username.getValue(),
-                    email.getValue(),
-                    firstName.getValue(),
-                    lastName.getValue(),
-                    role.getValue(),
-                    active.getValue(),
-                    LocalDate.now(),
-                    null
-                );
-                users.add(newUser);
-                Notification.show("User added successfully");
-            } else {
-                existingUser.setUsername(username.getValue());
-                existingUser.setEmail(email.getValue());
-                existingUser.setFirstName(firstName.getValue());
-                existingUser.setLastName(lastName.getValue());
-                existingUser.setRole(role.getValue());
-                existingUser.setActive(active.getValue());
-                Notification.show("User updated successfully");
+        TextField streetField = new TextField("Street");
+        streetField.setValue(existingUser != null && existingUser.getAddress() != null ? existingUser.getAddress().getStreet() : "");
+        streetField.setWidthFull();
+
+        TextField houseNumberField = new TextField("House Number");
+        houseNumberField.setValue(existingUser != null && existingUser.getAddress() != null ? existingUser.getAddress().getHouseNumber() : "");
+        houseNumberField.setWidth("150px");
+
+        HorizontalLayout streetLayout = new HorizontalLayout(streetField, houseNumberField);
+        streetLayout.setWidthFull();
+        streetLayout.setFlexGrow(1, streetField);
+
+        TextField cityField = new TextField("City");
+        cityField.setValue(existingUser != null && existingUser.getAddress() != null ? existingUser.getAddress().getCity() : "");
+        cityField.setWidthFull();
+
+        TextField postalCodeField = new TextField("Postal Code");
+        postalCodeField.setValue(existingUser != null && existingUser.getAddress() != null ? existingUser.getAddress().getPostalCode() : "");
+        postalCodeField.setWidth("150px");
+
+        TextField countryField = new TextField("Country");
+        countryField.setValue(existingUser != null && existingUser.getAddress() != null ? existingUser.getAddress().getCountry() : "");
+        countryField.setWidth("200px");
+
+        HorizontalLayout cityLayout = new HorizontalLayout(cityField, postalCodeField, countryField);
+        cityLayout.setWidthFull();
+        cityLayout.setFlexGrow(1, cityField);
+
+        PasswordField passwordField = new PasswordField("Password");
+        passwordField.setRequiredIndicatorVisible(true);
+        passwordField.setWidthFull();
+
+        EmailField emailField = new EmailField("Email");
+        emailField.setValue(existingUser != null ? existingUser.getEmail() : "");
+        emailField.setWidthFull();
+
+        Select<UserRole> roleSelect = new Select<>();
+        roleSelect.setLabel("Role");
+        roleSelect.setItems(UserRole.values());
+        roleSelect.setValue(existingUser != null ? existingUser.getRole() : UserRole.GUEST);
+        roleSelect.setRequiredIndicatorVisible(true);
+        roleSelect.setWidthFull();
+
+        Checkbox activeCheckbox = new Checkbox("Active");
+        activeCheckbox.setValue(existingUser != null && existingUser.isActive());
+
+        Button saveButton = new Button("Save", e -> {
+            if (usernameField.isEmpty() || passwordField.isEmpty() || roleSelect.isEmpty()) {
+                Notification.show("Please fill in all required fields.", 3000, Notification.Position.MIDDLE);
+                return;
             }
+
+            AdressEmbeddable address = new AdressEmbeddable(
+                streetField.getValue(),
+                houseNumberField.getValue(),
+                postalCodeField.getValue(),
+                cityField.getValue(),
+                countryField.getValue()
+            );
+
+            User user = existingUser != null ? existingUser : new User(
+                usernameField.getValue(),
+                firstNameField.getValue(),
+                lastNameField.getValue(),
+                address,
+                emailField.getValue(),
+                passwordField.getValue(),
+                roleSelect.getValue(),
+                activeCheckbox.getValue()
+            );
+
+            user.setAddress(address);
+            userService.save(user);
+
+            users.clear();
+            users.addAll(userService.findAll());
             grid.getDataProvider().refreshAll();
+
             dialog.close();
+            Notification.show("User saved successfully.", 3000, Notification.Position.BOTTOM_START);
         });
 
-        Button cancelBtn = new Button("Cancel");
-        cancelBtn.addClickListener(e -> dialog.close());
+        Button cancelButton = new Button("Cancel", e -> dialog.close());
+        cancelButton.addClassName("primary-button");
 
-        dialog.add(new VerticalLayout(form));
-        dialog.getFooter().add(new HorizontalLayout(cancelBtn, saveBtn));
+        HorizontalLayout buttonLayout = new HorizontalLayout(saveButton, cancelButton);
+        dialog.add(usernameField, firstNameField, lastNameField, streetLayout, cityLayout, passwordField, emailField, roleSelect, activeCheckbox, buttonLayout);
+
         dialog.open();
     }
 
@@ -436,12 +405,13 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
         content.add(createDetailRow("ID", String.valueOf(user.getId())));
         content.add(createDetailRow("Username", user.getUsername()));
         content.add(createDetailRow("Full Name", user.getFullName()));
+        content.add(createDetailRow("Address", user.getAdressString()));
         content.add(createDetailRow("Email", user.getEmail()));
-        content.add(createDetailRow("Role", user.getRole()));
+        content.add(createDetailRow("Role", user.getRole().name()));
         content.add(createDetailRow("Status", user.isActive() ? "Active" : "Inactive"));
         content.add(createDetailRow("Created", user.getCreatedAt().format(GERMAN_DATE_FORMAT)));
-        content.add(createDetailRow("Last Login", 
-            user.getLastLogin() != null ? user.getLastLogin().format(GERMAN_DATE_FORMAT) : "Never"));
+        // content.add(createDetailRow("Last Login", 
+        //     user.getLastLogin() != null ? user.getLastLogin().format(GERMAN_DATE_FORMAT) : "Never"));
 
         Button closeBtn = new Button("Close");
         closeBtn.addClickListener(e -> dialog.close());
@@ -478,6 +448,7 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
         Button confirmBtn = new Button("Yes, Delete");
         confirmBtn.addClassName("logout-btn-header");
         confirmBtn.addClickListener(e -> {
+            userService.delete(user); // Use the service to delete the user from the database
             users.remove(user);
             grid.getDataProvider().refreshAll();
             dialog.close();

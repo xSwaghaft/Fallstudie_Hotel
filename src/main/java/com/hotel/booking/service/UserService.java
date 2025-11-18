@@ -1,5 +1,10 @@
 package com.hotel.booking.service;
 
+import com.hotel.booking.entity.User;
+import com.hotel.booking.entity.AdressEmbeddable;
+import com.hotel.booking.entity.UserRole;
+import com.hotel.booking.repository.UserRepository;
+import com.hotel.booking.security.PasswordEncoder;
 import java.util.List;
 import java.util.Optional;
 

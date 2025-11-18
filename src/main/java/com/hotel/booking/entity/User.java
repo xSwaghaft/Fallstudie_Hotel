@@ -43,6 +43,9 @@ public class User implements Serializable {
     @Column(length = 100)
     private String lastName;
 
+    @Embedded
+    private AdressEmbeddable address;
+
     // Geburtsdatum des Benutzers
     @Column
     private LocalDate birthdate;
@@ -51,6 +54,9 @@ public class User implements Serializable {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     private UserRole role;
+
+    @Column(nullable = false)
+    private boolean active = true;
 
     // Zeitpunkt der Erstellung des Benutzerkontos
     @Column(nullable = false, updatable = false)
@@ -71,11 +77,16 @@ public class User implements Serializable {
     // Standard-Konstruktor für JPA
     protected User() {}
 
-    // Konstruktor für einfache User-Erstellung (kompatibel mit bestehendem Code)
-    public User(String username, String password, UserRole role) {
+    // Konstruktor für einfache User-Erstellung
+    public User(String username, String firstName, String lastName, AdressEmbeddable address, String email, String password, UserRole role, boolean active) {
         this.username = username;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.address = address;
+        this.email = email;
         this.password = password;
         this.role = role;
+        this.active = active;
         this.createdAt = LocalDateTime.now();
     }
 
@@ -144,6 +155,10 @@ public class User implements Serializable {
         this.lastName = lastName;
     }
 
+    public String getFullName() {
+        return firstName + " " + lastName;
+    }
+
     public LocalDate getBirthdate() {
         return birthdate;
     }
@@ -158,6 +173,14 @@ public class User implements Serializable {
 
     public void setRole(UserRole role) {
         this.role = role;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -178,5 +201,20 @@ public class User implements Serializable {
 
     public void setGuest(Guest guest) {
         this.guest = guest;
+    }
+
+    public AdressEmbeddable getAddress() {
+        return address;
+    }
+
+    public String getAdressString() {
+        if(address == null) {
+            return "";
+        }
+        return address.getFormatted();
+    }
+
+    public void setAddress(AdressEmbeddable address) {
+        this.address = address;
     }
 }
