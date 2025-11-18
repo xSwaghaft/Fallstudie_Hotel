@@ -47,14 +47,22 @@ CREATE TABLE room_category (
 
   -- Rooms
 CREATE TABLE rooms (
-  room_id BIGINT AUTO_INCREMENT PRIMARY KEY,  --"room_id" statt "id"
-  room_number VARCHAR(50) NOT NULL,           -- Raumnummer (z.B. 101, 102)
-  floor INT,                                  -- Etage
+  room_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  room_number VARCHAR(64),
+  floor INTEGER,
   category_id BIGINT NOT NULL,
   price DECIMAL(10,2) NOT NULL,
-  availability VARCHAR(32) NOT NULL DEFAULT 'Available',  -- String statt Boolean (Available/Maintenance/Occupied)
-  information TEXT,                             -- "information" (wie in Entity)
+  availability VARCHAR(255),
+  information TEXT,
   CONSTRAINT fk_rooms_category FOREIGN KEY (category_id) REFERENCES room_category(category_id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Password reset tokens (for forgot-password flow)
+CREATE TABLE password_reset_tokens (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  token VARCHAR(64) NOT NULL UNIQUE,
+  email VARCHAR(255) NOT NULL,
+  expires_at TIMESTAMP NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Bookings
@@ -98,7 +106,7 @@ ALTER TABLE bookings
 
 -- Room extras (BookingExtra)
 CREATE TABLE room_extras (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  BookingExtra_id BIGINT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   description TEXT,
   price DECIMAL(10,2) NOT NULL,
@@ -111,7 +119,7 @@ CREATE TABLE booking_extra (
   extra_id BIGINT NOT NULL,
   PRIMARY KEY (booking_id, extra_id),
   CONSTRAINT fk_bookingextra_booking FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
-  CONSTRAINT fk_bookingextra_extra FOREIGN KEY (extra_id) REFERENCES room_extras(id) ON DELETE CASCADE
+  CONSTRAINT fk_bookingextra_extra FOREIGN KEY (extra_id) REFERENCES room_extras(BookingExtra_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Many-to-Many Room <-> Booking
