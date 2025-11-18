@@ -41,14 +41,16 @@ public class LoginView extends Div implements BeforeEnterObserver {
 
     private final UserService userService;
     private final SessionService sessionService;
+    private final com.hotel.booking.service.PasswordResetService passwordResetService;
 
     private final Div themeToggle = new Div();
     private boolean darkMode = false;
 
     @Autowired
-    public LoginView(UserService userService, SessionService sessionService) {
+    public LoginView(UserService userService, SessionService sessionService, com.hotel.booking.service.PasswordResetService passwordResetService) {
         this.userService = userService;
         this.sessionService = sessionService;
+        this.passwordResetService = passwordResetService;
 
         setSizeFull();
         getStyle().set("display", "flex")
@@ -100,8 +102,9 @@ public class LoginView extends Div implements BeforeEnterObserver {
         password.addKeyDownListener(Key.ENTER, e -> loginBtn.click());
         username.addKeyDownListener(Key.ENTER, e -> loginBtn.click());
 
-        Anchor forgot = new Anchor("#", "Forgot password?");
+        Button forgot = new Button("Forgot password?");
         forgot.addClassName("forgot-link");
+        forgot.addClickListener(e -> openForgotPasswordDialog());
 
         HorizontalLayout creds = new HorizontalLayout(remember, forgot);
         creds.setWidthFull();
@@ -124,6 +127,37 @@ public class LoginView extends Div implements BeforeEnterObserver {
         themeToggle.addClickListener(e -> toggleTheme());
 
         add(left, right, themeToggle);
+    }
+
+    private void openForgotPasswordDialog() {
+        com.vaadin.flow.component.dialog.Dialog dialog = new com.vaadin.flow.component.dialog.Dialog();
+        com.vaadin.flow.component.orderedlayout.VerticalLayout layout = new com.vaadin.flow.component.orderedlayout.VerticalLayout();
+        com.vaadin.flow.component.textfield.TextField emailField = new com.vaadin.flow.component.textfield.TextField("Your email");
+        emailField.setWidth("400px");
+        com.vaadin.flow.component.button.Button sendBtn = new com.vaadin.flow.component.button.Button("Send reset email");
+        com.vaadin.flow.component.button.Button cancelBtn = new com.vaadin.flow.component.button.Button("Cancel");
+
+        sendBtn.addClickListener(ev -> {
+            String email = emailField.getValue();
+            if (email == null || email.isBlank()) {
+                Notification.show("Please enter your email", 3000, Notification.Position.MIDDLE);
+                return;
+            }
+
+            boolean sent = passwordResetService.createTokenAndSend(email);
+            if (sent) {
+                Notification.show("If an account with that email exists, a reset link was sent.", 4000, Notification.Position.MIDDLE);
+            } else {
+                Notification.show("If an account with that email exists, a reset link was sent.", 4000, Notification.Position.MIDDLE);
+            }
+            dialog.close();
+        });
+
+        cancelBtn.addClickListener(ev -> dialog.close());
+
+        layout.add(emailField, new com.vaadin.flow.component.orderedlayout.HorizontalLayout(sendBtn, cancelBtn));
+        dialog.add(layout);
+        dialog.open();
     }
 
     private void authenticate(String username, String password) {
