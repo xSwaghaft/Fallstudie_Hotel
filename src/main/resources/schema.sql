@@ -43,11 +43,11 @@ CREATE TABLE room_category (
 CREATE TABLE rooms (
   room_id BIGINT AUTO_INCREMENT PRIMARY KEY,
   room_number VARCHAR(64),
+  floor INTEGER,
   category_id BIGINT NOT NULL,
   price DECIMAL(10,2) NOT NULL,
-  capacity INT DEFAULT 1,
-  available BOOLEAN NOT NULL DEFAULT TRUE,
-  description TEXT,
+  availability VARCHAR(255),
+  information TEXT,
   CONSTRAINT fk_rooms_category FOREIGN KEY (category_id) REFERENCES room_category(category_id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
