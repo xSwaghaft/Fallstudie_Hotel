@@ -2,6 +2,7 @@ package com.hotel.booking.entity;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -22,8 +23,15 @@ public class Room {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long room_id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @Column(name = "room_number", nullable = false)
+    private String roomNumber;
+
+    @Column(name = "floor")
+    private Integer floor;
+
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id", nullable = false) // DB-Spaltenname
+    @JsonBackReference
     private RoomCategory category;
 
 
@@ -31,7 +39,7 @@ public class Room {
     private Double price;
 
     @Column(name = "availability", nullable = false)
-    private Boolean availability;
+    private String availability;  // Changed to String für Available/Maintenance/Occupied
 
     @Column(name = "information")
     private String information;
@@ -49,7 +57,7 @@ public class Room {
     }
 
     // Constructor with parameters
-    public Room(RoomCategory category, Double price, Boolean availability) {
+    public Room(RoomCategory category, Double price, String availability) {
         this.category = category;
         this.price = price;
         this.availability = availability;
@@ -62,6 +70,22 @@ public class Room {
 
     public void setId(Long id) {
         this.room_id = id;
+    }
+
+    public String getRoomNumber() {
+        return roomNumber;
+    }
+
+    public void setRoomNumber(String roomNumber) {
+        this.roomNumber = roomNumber;
+    }
+
+    public Integer getFloor() {
+        return floor;
+    }
+
+    public void setFloor(Integer floor) {
+        this.floor = floor;
     }
 
     public RoomCategory getCategory() {
@@ -80,12 +104,20 @@ public class Room {
         this.price = price;
     }
 
-    public Boolean getAvailability() {
+    public String getAvailability() {
         return availability;
     }
 
-    public void setAvailability(Boolean availability) {
+    public void setAvailability(String availability) {
         this.availability = availability;
+    }
+
+    public String getInformation() {
+        return information;
+    }
+
+    public void setInformation(String information) {
+        this.information = information;
     }
 
     @Override
