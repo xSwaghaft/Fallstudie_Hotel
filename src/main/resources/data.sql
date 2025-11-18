@@ -5,13 +5,30 @@ USE hotelbooking;
 
 -- ---------- Users (mind. 5 Einträge) ----------
 INSERT IGNORE INTO users 
-(id, username, password, email, first_name, last_name, address_street, address_house_number, address_postal_code, address_city, address_country, birthdate, role, active, created_at) VALUES
-(1,'admin','admin','admin@example.com','Admin','Istrator','Hauptstraße','1','33602','Bielefeld','Germany','1980-01-01','MANAGER','1','2025-01-01 08:00:00'),
-(2,'reception1','reception','desk1@example.com','Anna','Desk','Marktweg','12','33604','Bielefeld','Germany','1990-05-12','RECEPTIONIST','1','2025-02-01 09:00:00'),
-(3,'reception2','$2a$10$fakehash1111111111111111111111111111111111111111111111','desk2@example.com','John','Front','Bahnhofstraße','88','33609','Bielefeld','Germany','1992-03-30','RECEPTIONIST','1','2025-03-01 09:30:00'),
-(4,'clerk','clerk','clerk@example.com','Luca','Bianchi','Alte Allee','4A','33615','Bielefeld','Germany','1985-07-07','RECEPTIONIST','0','2025-04-01 10:00:00'),
-(5,'guestuser','guest','guest@example.com','Sofia','Garcia','Wiesenweg','7','33619','Bielefeld','Germany','1995-11-11','GUEST','1','2025-05-01 11:00:00');
+(id, username, password, email, first_name, last_name,
+ street, house_number, postal_code, city, country,
+ birthdate, role, active, created_at) 
+VALUES
+(1,'admin','admin','admin@example.com','Admin','Istrator',
+ 'Hauptstraße','1','33602','Bielefeld','Germany',
+ '1980-01-01','MANAGER','1','2025-01-01 08:00:00'),
 
+(2,'reception1','reception','desk1@example.com','Anna','Desk',
+ 'Marktweg','12','33604','Bielefeld','Germany',
+ '1990-05-12','RECEPTIONIST','1','2025-02-01 09:00:00'),
+
+(3,'reception2','$2a$10$fakehash1111111111111111111111111111111111111111111111',
+ 'desk2@example.com','John','Front',
+ 'Bahnhofstraße','88','33609','Bielefeld','Germany',
+ '1992-03-30','RECEPTIONIST','1','2025-03-01 09:30:00'),
+
+(4,'clerk','clerk','clerk@example.com','Luca','Bianchi',
+ 'Alte Allee','4A','33615','Bielefeld','Germany',
+ '1985-07-07','RECEPTIONIST','0','2025-04-01 10:00:00'),
+
+(5,'guestuser','guest','guest@example.com','Sofia','Garcia',
+ 'Wiesenweg','7','33619','Bielefeld','Germany',
+ '1995-11-11','GUEST','1','2025-05-01 11:00:00');
 -- ---------- RoomCategory (mind. 5 Einträge) ----------
 INSERT IGNORE INTO room_category (category_id, name, description, price_per_night, max_occupancy, active) VALUES
 (1,'Standard','Kleines Doppelzimmer',79.90,2,TRUE),
@@ -62,12 +79,14 @@ UPDATE bookings SET invoice_id = 4 WHERE id = 4;
 UPDATE bookings SET invoice_id = 5 WHERE id = 5;
 
 -- ---------- Room extras (BookingExtra) (mind. 5 Einträge) ----------
-INSERT IGNORE INTO room_extras (BookingExtra_id, name, description, price, extra_type) VALUES
-(1,'Frühstück','Buffetfrühstück inklusive',12.50,'BREAKFAST'),
-(2,'Parkplatz','Tagesparkplatz',8.00,'PARKING'),
-(3,'Zusatzbett','Aufstellbett pro Nacht',25.00,'EXTRA_BED'),
-(4,'WLAN Premium','Highspeed Internet',5.00,'WIFI'),
-(5,'SPA Zugang','Tagespass für SPA',20.00,'SPA');
+-- ---------- Room extras (BookingExtra) (mind. 5 Einträge) ----------
+INSERT INTO room_extras (name, description, price, extra_type) VALUES
+('Frühstück','Buffetfrühstück inklusive',12.50,'BREAKFAST'),
+('Parkplatz','Tagesparkplatz',8.00,'PARKING'),
+('Zusatzbett','Aufstellbett pro Nacht',25.00,'EXTRA_BED'),
+('WLAN Premium','Highspeed Internet',5.00,'WIFI'),
+('SPA Zugang','Tagespass für SPA',20.00,'SPA');
+
 
 -- ---------- booking_extra (Zuordnungen Buchung <-> Extras) ----------
 INSERT IGNORE INTO booking_extra (booking_id, extra_id) VALUES
