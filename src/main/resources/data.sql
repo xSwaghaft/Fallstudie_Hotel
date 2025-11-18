@@ -61,7 +61,7 @@ UPDATE bookings SET invoice_id = 4 WHERE id = 4;
 UPDATE bookings SET invoice_id = 5 WHERE id = 5;
 
 -- ---------- Room extras (BookingExtra) (mind. 5 Einträge) ----------
-INSERT IGNORE INTO room_extras (id, name, description, price, extra_type) VALUES
+INSERT IGNORE INTO room_extras (BookingExtra_id, name, description, price, extra_type) VALUES
 (1,'Frühstück','Buffetfrühstück inklusive',12.50,'BREAKFAST'),
 (2,'Parkplatz','Tagesparkplatz',8.00,'PARKING'),
 (3,'Zusatzbett','Aufstellbett pro Nacht',25.00,'EXTRA_BED'),

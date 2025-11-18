@@ -1,5 +1,7 @@
 package com.hotel.booking.view;
 
+import org.springframework.beans.factory.annotation.Autowired;
+
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
 import com.vaadin.flow.component.UI;
@@ -9,14 +11,18 @@ import com.vaadin.flow.component.avatar.Avatar;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.dialog.Dialog;
-import com.vaadin.flow.component.html.*;
+import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.orderedlayout.*;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.HighlightConditions;
 import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.VaadinSession;
-import org.springframework.beans.factory.annotation.Autowired;
 
 @CssImport("./themes/hotel/styles.css")
 public class MainLayout extends AppLayout {
@@ -108,6 +114,10 @@ public class MainLayout extends AppLayout {
 
         // Subtitle based on role
         UserRole role = sessionService.getCurrentRole();
+        // If no role is available (not logged in), treat as GUEST for drawer rendering
+        if (role == null) {
+            role = UserRole.GUEST;
+        }
         String subtitle = switch (role) {
             case GUEST -> "Guest Portal";
             case RECEPTIONIST -> "Receptionist Portal";

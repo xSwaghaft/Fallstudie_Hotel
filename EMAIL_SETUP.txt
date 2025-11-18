@@ -1,0 +1,159 @@
+Email setup and testing instructions
+==================================
+
+This file contains concise instructions (PowerShell / Windows) to configure and test email sending for the HotelBookingApp.
+
+Overview
+--------
+- For local development we recommend using a mail catcher (MailHog or smtp4dev) so outgoing mails are captured and shown in a web UI.
+- For cloud testing you can use Mailtrap. For production use a real SMTP provider.
+
+Options
+-------
+
+1) MailHog (recommended for local dev) - Docker (simple)
+
+   Steps:
+   - Install Docker Desktop and start it (if not already installed).
+   - Start MailHog:
+     ```powershell
+     docker run -d --name mailhog -p 1025:1025 -p 8025:8025 mailhog/mailhog
+     ```
+   - Open MailHog web UI: http://localhost:8025
+   - SMTP for the app: host=localhost, port=1025
+
+   Useful checks:
+   - Verify container is running:
+     ```powershell
+     docker ps --filter name=mailhog
+     ```
+   - List messages via API:
+     ```powershell
+     Invoke-RestMethod -Uri http://localhost:8025/api/v2/messages -UseBasicParsing
+     ```
+
+2) MailHog (Windows standalone binary)
+
+   - Download the Windows binary from MailHog releases and run MailHog.exe.
+   - Default web UI: http://localhost:8025, SMTP: 1025
+
+3) smtp4dev (Windows native GUI)
+
+   - Install via Chocolatey (if available):
+     ```powershell
+     choco install smtp4dev -y
+     ```
+   - Start `smtp4dev` from Start Menu and use the configured SMTP port in the app (default shown in the UI).
+
+4) Mailtrap (cloud)
+
+   - Create a free Mailtrap account and use the provided SMTP credentials.
+   - Example `application.properties` entries (replace placeholders):
+     ```properties
+     spring.mail.host=smtp.mailtrap.io
+     spring.mail.port=2525
+     spring.mail.username=YOUR_USERNAME
+     spring.mail.password=YOUR_PASSWORD
+     spring.mail.properties.mail.smtp.auth=true
+     spring.mail.properties.mail.smtp.starttls.enable=true
+     app.mail.from=dev@yourdomain.test
+     ```
+
+application.properties examples
+-------------------------------
+
+1) MailHog (local)
+```properties
+spring.mail.host=localhost
+spring.mail.port=1025
+spring.mail.protocol=smtp
+spring.mail.properties.mail.smtp.auth=false
+spring.mail.properties.mail.smtp.starttls.enable=false
+app.mail.from=dev@local.test
+```
+
+2) smtp4dev (if using port 25)
+```properties
+spring.mail.host=localhost
+spring.mail.port=25
+app.mail.from=dev@local.test
+spring.mail.properties.mail.smtp.auth=false
+spring.mail.properties.mail.smtp.starttls.enable=false
+```
+
+Testing the flow
+----------------
+
+1) Start MailHog (or smtp4dev) and the application:
+```powershell
+cd 'C:\Users\vikgo\Desktop\Projekt\repogit\Fallstudie_Hotel\Fallstudie_Hotel'
+mvn -f pom.xml spring-boot:run
+```
+
+2) Use the Vaadin test UI (already added):
+- Open: http://localhost:8080/email-test
+- Fill `To`, `Subject`, `Body` and click `Send test email`.
+- Check MailHog UI at http://localhost:8025
+
+3) Or use the REST endpoint to send a test email:
+```powershell
+Invoke-RestMethod -Uri http://localhost:8080/api/email/test -Method POST -ContentType 'application/json' -Body '{"to":"you@local.test","subject":"Test","body":"Hello"}'
+```
+
+4) If testing Forgot Password:
+- Click "Forgot password?" on the login page and enter the user's email.
+- Mail contains a link like:
+  `http://localhost:8080/reset-password?token=YOUR_TOKEN`
+- Open that link to use the in-app reset page.
+
+Inspecting MailHog via API (PowerShell)
+-------------------------------------
+
+List messages:
+```powershell
+$m = Invoke-RestMethod -Uri http://localhost:8025/api/v2/messages -UseBasicParsing
+$m.items | Select ID, Created
+```
+
+Show body and headers of the first message:
+```powershell
+$m.items[0].Content | Format-List *
+```
+
+Troubleshooting
+---------------
+
+- If you don't see messages in MailHog UI:
+  - Make sure you're using the Web UI port 8025 (not SMTP port 1025).
+  - Hard reload the browser (Ctrl+F5) and disable extensions that block websockets/JS (AdBlock, Privacy addons).
+  - Verify the app is using the configured SMTP host/port (check logs for JavaMail messages).
+  - Check MailHog logs:
+    ```powershell
+    docker logs --tail 200 mailhog
+    ```
+
+- If Maven can't run the app with `spring-boot:run`, run from the module folder or call plugin by its full coordinate:
+  ```powershell
+  cd 'C:\Users\vikgo\Desktop\Projekt\repogit\Fallstudie_Hotel\Fallstudie_Hotel'
+  mvn spring-boot:run
+  # or
+  mvn org.springframework.boot:spring-boot-maven-plugin:3.1.5:run
+  ```
+
+Security & notes
+----------------
+- The current reset‑flow sends a plain text link. For better UX you can send an HTML mail with a button using `EmailService.sendHtmlMessage(...)`.
+- Don't disclose whether an email exists when requesting password resets — that's why the UI shows a neutral message.
+- Tokens expire after 1 hour (configurable in `PasswordResetService`).
+- In production use TLS and an authenticated SMTP provider (and a stronger password hashing algorithm like BCrypt/Argon2).
+
+Optional follow-ups
+-------------------
+- Persist sent emails to the database (Audit) and add a Vaadin view to browse them.
+- Add IMAP/POP3 inbound processing if you want to capture replies.
+
+If you want, I can:
+- Convert the reset email to HTML with a button, and update `PasswordResetService` to send HTML; or
+- Add database persistence for outgoing mails and a `/sent-emails` view.
+
+File created: `EMAIL_SETUP.txt` — open it in the project root for quick copy/paste.
