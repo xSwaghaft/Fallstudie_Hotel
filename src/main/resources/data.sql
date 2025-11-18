@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 -- Cleanup to avoid duplicate PK errors when re-running the script
 SET FOREIGN_KEY_CHECKS = 0;
 DELETE FROM booking_extra;
@@ -45,3 +46,133 @@ INSERT INTO invoices (id, invoice_number, amount, issued_at, paid_at, payment_me
   (1, 'INV-1001', 500.00, '2025-11-15 10:05:00', NULL, 'CARD', 'PAID', 1),
   (2, 'INV-1002', 300.00, '2025-11-11 09:00:00', NULL, 'CASH', 'PENDING', 2),
   (3, 'INV-1003', 1200.00, '2025-11-20 11:00:00', '2025-11-21 12:00:00', 'ONLINE', 'PAID', 3);
+=======
+-- ...existing code...
+USE hotelbooking;
+
+-- Hinweis: Ersetze bei Bedarf die Passwort-Hashes (bcrypt). Für admin kannst du z.B. deinen generierten Hash für "admin123" einsetzen.
+
+-- ---------- Users (mind. 5 Einträge) ----------
+INSERT IGNORE INTO users (id, username, password, email, first_name, last_name, birthdate, role, created_at) VALUES
+(1,'david.manager','$2a$10$$2a$12$cvsztCoyNGCH0bxWkBz81ehVC5xanf8MhGpfo8W1mddG93N2gO/Lu','admin@example.com','Admin','Istrator','1980-01-01','MANAGER','2025-01-01 08:00:00'),
+(2,'sarah.receptionist','$2a$12$/ScEY4pafzw6nK14CWsJWuwthHDMwd9dJDac7ffKlnHWV15CZR9Pe','desk1@example.com','Anna','Desk','1990-05-12','RECEPTIONIST','2025-02-01 09:00:00'),
+(3,'reception2','$2a$10$fakehash1111111111111111111111111111111111111111111111','desk2@example.com','John','Front','1992-03-30','RECEPTIONIST','2025-03-01 09:30:00'),
+(4,'clerk','$2a$10$fakehash2222222222222222222222222222222222222222222222','clerk@example.com','Luca','Bianchi','1985-07-07','RECEPTIONIST','2025-04-01 10:00:00'),
+(5,'john.guest','$2a$12$n/nXTY1sKND6CHjtc/t.zeXqI0hwCufOtCgoY9k3kA7syFlRFalvK','guest@example.com','Sofia','Garcia','1995-11-11','GUEST','2025-05-01 11:00:00');
+
+-- ---------- RoomCategory (mind. 5 Einträge) ----------
+INSERT IGNORE INTO room_category (id, name, description, price_per_night, max_occupancy, active) VALUES
+(1,'Standard','Kleines Doppelzimmer',79.90,2,TRUE),
+(2,'Deluxe','Größeres Zimmer mit Blick',129.90,3,TRUE),
+(3,'Suite','Suite mit Wohnraum',249.00,4,TRUE),
+(4,'Economy','Günstiges Einzelzimmer',49.90,1,TRUE),
+(5,'Family','Familienzimmer mit 2 Betten',159.90,4,TRUE);
+
+-- ---------- Rooms (mind. 6 Einträge) ----------
+INSERT IGNORE INTO rooms (id, room_number, category_id, price, capacity, available, description) VALUES
+(1,'101',1,79.90,2,TRUE,'Zimmer 101 Standard'),
+(2,'102',1,79.90,2,TRUE,'Zimmer 102 Standard'),
+(3,'201',2,129.90,3,TRUE,'Zimmer 201 Deluxe mit Balkon'),
+(4,'301',3,249.00,4,FALSE,'Suite 301 mit Wohnzimmer'),
+(5,'401',5,159.90,4,TRUE,'Familienzimmer 401'),
+(6,'501',4,49.90,1,TRUE,'Einzelzimmer 501 Economy');
+
+-- ---------- Guests (mind. 5 Einträge) ----------
+INSERT IGNORE INTO guests (id, user_id, email, first_name, last_name, address, phone_number, birthdate) VALUES
+(1,5,'anna.mueller@example.com','Anna','Müller','Münchener Str. 1, 80331 München','+491701234567','1990-06-15'),
+(2,3,'john.doe@example.com','John','Doe','Berliner Allee 2, 10115 Berlin','+491601234567','1988-04-10'),
+(3,4,'luca.bianchi@example.com','Luca','Bianchi','Via Roma 4, 00100 Roma','+393491234567','1985-07-07'),
+(4,2,'maria.schmidt@example.com','Maria','Schmidt','Hamburger Weg 3, 20095 Hamburg','+491521234567','1991-12-20'),
+(5,1,'sofia.garcia@example.com','Sofia','Garcia','Calle Mayor 5, 28013 Madrid','+34111234567','1995-11-11');
+
+-- ---------- Bookings (mind. 6 Einträge) ----------
+INSERT IGNORE INTO bookings (id, booking_number, amount, check_in_date, check_out_date, status, total_price, guest_id, room_id, invoice_id, created_at, updated_at) VALUES
+(1,'BKG-20251101-001',2,'2025-11-20','2025-11-22','CONFIRMED',159.80,1,1,NULL,'2025-11-01 11:00:00','2025-11-01 11:00:00'),
+(2,'BKG-20251102-002',1,'2025-11-10','2025-11-12','CANCELLED',129.90,2,3,NULL,'2025-11-02 09:00:00','2025-11-02 09:00:00'),
+(3,'BKG-20251103-003',3,'2025-12-01','2025-12-04','CONFIRMED',479.70,3,5,NULL,'2025-11-21 16:00:00','2025-11-21 16:00:00'),
+(4,'BKG-20251104-004',1,'2025-11-15','2025-11-16','CONFIRMED',249.00,4,4,NULL,'2025-11-14 10:00:00','2025-11-14 10:00:00'),
+(5,'BKG-20251105-005',2,'2025-12-20','2025-12-25','CANCELLED',319.80,5,3,NULL,'2025-11-10 14:00:00','2025-11-10 14:00:00'),
+(6,'BKG-20251106-006',1,'2025-12-05','2025-12-06','PENDING',49.90,1,6,NULL,'2025-11-25 09:00:00','2025-11-25 09:00:00');
+
+-- ---------- Invoices (mind. 5 Einträge) ----------
+INSERT IGNORE INTO invoices (id, invoice_number, amount, issued_at, due_date, paid, paid_at, payment_method, status, booking_id) VALUES
+(1,'INV-20251101-001',159.80,'2025-11-01 11:05:00','2025-11-08',TRUE,'2025-11-01 11:10:00','CARD','PAID',1),
+(2,'INV-20251102-002',129.90,'2025-11-02 09:10:00','2025-11-09',FALSE,NULL,'CARD','PENDING',2),
+(3,'INV-20251103-003',479.70,'2025-11-21 16:25:00','2025-11-28',TRUE,'2025-11-21 16:40:00','TRANSFER','PAID',3),
+(4,'INV-20251104-004',249.00,'2025-11-14 10:15:00','2025-11-21',TRUE,'2025-11-14 10:30:00','CASH','PAID',4),
+(5,'INV-20251105-005',319.80,'2025-11-10 14:35:00','2025-11-17',FALSE,NULL,'CARD','REFUNDED',5);
+
+-- Update bookings: invoice_id (sicherstellen, falls NULL beim Insert)
+UPDATE bookings SET invoice_id = 1 WHERE id = 1;
+UPDATE bookings SET invoice_id = 2 WHERE id = 2;
+UPDATE bookings SET invoice_id = 3 WHERE id = 3;
+UPDATE bookings SET invoice_id = 4 WHERE id = 4;
+UPDATE bookings SET invoice_id = 5 WHERE id = 5;
+
+-- ---------- Room extras (BookingExtra) (mind. 5 Einträge) ----------
+INSERT IGNORE INTO room_extras (id, name, description, price, extra_type) VALUES
+(1,'Frühstück','Buffetfrühstück inklusive',12.50,'BREAKFAST'),
+(2,'Parkplatz','Tagesparkplatz',8.00,'PARKING'),
+(3,'Zusatzbett','Aufstellbett pro Nacht',25.00,'EXTRA_BED'),
+(4,'WLAN Premium','Highspeed Internet',5.00,'WIFI'),
+(5,'SPA Zugang','Tagespass für SPA',20.00,'SPA');
+
+-- ---------- booking_extra (Zuordnungen Buchung <-> Extras) ----------
+INSERT IGNORE INTO booking_extra (booking_id, extra_id) VALUES
+(1,1),
+(1,2),
+(3,3),
+(4,1),
+(5,2),
+(6,4);
+
+-- ---------- room_bookings (ManyToMany Room <-> Booking) ----------
+INSERT IGNORE INTO room_bookings (room_id, booking_id) VALUES
+(1,1),
+(3,2),
+(5,3),
+(4,4),
+(3,5),
+(6,6);
+
+-- ---------- Payments (mind. 6 Einträge) ----------
+INSERT IGNORE INTO payments (id, booking_id, amount, method, status, transaction_ref, paid_at) VALUES
+(1,1,159.80,'CARD','PAID','TXN-1001','2025-11-01 11:00:00'),
+(2,2,50.00,'CARD','PARTIAL','TXN-1002','2025-11-02 09:00:00'),
+(3,3,479.70,'TRANSFER','PAID','TXN-1003','2025-11-21 16:20:00'),
+(4,4,249.00,'CASH','PAID','TXN-1004','2025-11-14 10:10:00'),
+(5,5,0.00,'CARD','REFUNDED','TXN-1005','2025-11-10 14:30:00'),
+(6,6,49.90,'CASH','PENDING','TXN-1006',NULL);
+
+-- ---------- Booking cancellations (mind. 5 Einträge) ----------
+INSERT IGNORE INTO booking_cancellation (id, booking_id, cancelled_at, reason, refunded_amount, handled_by) VALUES
+(1,2,'2025-11-03 09:15:00','Krankheit des Gastes',129.90,2),
+(2,5,'2025-11-10 14:30:00','Reisepläne geändert',319.80,1),
+(3,6,'2025-11-12 08:00:00','Kurzfristig abgesagt',0.00,NULL),
+(4,4,'2025-11-13 10:00:00','Persönlicher Grund',0.00,3),
+(5,1,'2025-11-14 12:00:00','Doppelbuchung',0.00,2);
+
+-- ---------- Booking modifications (mind. 5 Einträge) ----------
+INSERT IGNORE INTO booking_modification (id, booking_id, modified_at, field_changed, old_value, new_value, reason, handled_by) VALUES
+(1,1,'2025-11-05 10:00:00','check_out_date','2025-11-21','2025-11-22','Gast verlängert Aufenthalt',2),
+(2,3,'2025-11-20 12:00:00','room_id','2','5','Upgrade auf Deluxe',3),
+(3,4,'2025-11-10 08:30:00','amount','1','2','Zusatzgast hinzugefügt',2),
+(4,6,'2025-11-25 09:00:00','check_in_date','2025-12-06','2025-12-05','Korrektur Datum',1),
+(5,1,'2025-11-06 09:00:00','note','alt','neu','Interne Notiz',4);
+
+-- ---------- Feedback (mind. 5 Einträge) ----------
+INSERT IGNORE INTO feedback (id, booking_id, guest_id, rating, comment, created_at) VALUES
+(1,1,1,5,'Sehr sauberes Zimmer und freundliches Personal.','2025-11-23 09:00:00'),
+(2,3,3,4,'Guter Aufenthalt, Frühstück könnte besser sein.','2025-12-05 10:00:00'),
+(3,4,4,5,'Perfekte Suite, tolle Aussicht.','2025-11-16 12:00:00'),
+(4,2,2,2,'Stornierung ergab Probleme mit Rückerstattung.','2025-11-04 15:30:00'),
+(5,6,1,4,'Nettes Personal, Zimmer sauber.','2025-12-06 09:30:00');
+
+-- ---------- Reports (mind. 5 Einträge) ----------
+INSERT IGNORE INTO reports (id, title, description, created_at, created_by_user_id) VALUES
+(1,'Auslastung November','Monatliche Auslastung November 2025','2025-11-30 08:00:00',1),
+(2,'Umsatz Dezember','Umsatzübersicht Dezember 2025','2025-12-01 08:00:00',1),
+(3,'Kundenfeedback','Zusammenfassung Feedback November','2025-11-29 09:00:00',2),
+(4,'Wartung','Technische Wartung geplant','2025-11-15 10:00:00',2),
+(5,'Personaleinsatz','Einsatzplan Rezeption','2025-12-01 07:00:00',3);
+>>>>>>> origin/main
