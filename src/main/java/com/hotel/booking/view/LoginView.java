@@ -97,9 +97,9 @@ public class LoginView extends Div implements BeforeEnterObserver {
         Hr sep = new Hr();
 
         H5 demoTitle = new H5("Quick Demo Login:");
-        Button guest = new Button("Login as Guest", e -> quickLogin("john.guest", "guest"));
-        Button reception = new Button("Login as Receptionist", e -> quickLogin("sarah.receptionist", "reception"));
-        Button manager = new Button("Login as Manager", e -> quickLogin("david.manager", "manager"));
+        Button guest = new Button("Login as Guest", e -> quickLogin("guestuser", "guest"));
+        Button reception = new Button("Login as Receptionist", e -> quickLogin("reception1", "reception"));
+        Button manager = new Button("Login as Manager", e -> quickLogin("admin", "admin"));
         guest.addClassName("demo-btn");
         reception.addClassName("demo-btn");
         manager.addClassName("demo-btn");

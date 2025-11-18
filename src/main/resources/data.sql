@@ -12,7 +12,7 @@ INSERT IGNORE INTO users (id, username, password, email, first_name, last_name, 
 (5,'john.guest','$2a$12$n/nXTY1sKND6CHjtc/t.zeXqI0hwCufOtCgoY9k3kA7syFlRFalvK','guest@example.com','Sofia','Garcia','1995-11-11','GUEST','2025-05-01 11:00:00');
 
 -- ---------- RoomCategory (mind. 5 Einträge) ----------
-INSERT IGNORE INTO room_category (id, name, description, price_per_night, max_occupancy, active) VALUES
+INSERT IGNORE INTO room_category (category_id, name, description, price_per_night, max_occupancy, active) VALUES
 (1,'Standard','Kleines Doppelzimmer',79.90,2,TRUE),
 (2,'Deluxe','Größeres Zimmer mit Blick',129.90,3,TRUE),
 (3,'Suite','Suite mit Wohnraum',249.00,4,TRUE),
@@ -20,13 +20,13 @@ INSERT IGNORE INTO room_category (id, name, description, price_per_night, max_oc
 (5,'Family','Familienzimmer mit 2 Betten',159.90,4,TRUE);
 
 -- ---------- Rooms (mind. 6 Einträge) ----------
-INSERT IGNORE INTO rooms (id, room_number, category_id, price, capacity, available, description) VALUES
-(1,'101',1,79.90,2,TRUE,'Zimmer 101 Standard'),
-(2,'102',1,79.90,2,TRUE,'Zimmer 102 Standard'),
-(3,'201',2,129.90,3,TRUE,'Zimmer 201 Deluxe mit Balkon'),
-(4,'301',3,249.00,4,FALSE,'Suite 301 mit Wohnzimmer'),
-(5,'401',5,159.90,4,TRUE,'Familienzimmer 401'),
-(6,'501',4,49.90,1,TRUE,'Einzelzimmer 501 Economy');
+INSERT IGNORE INTO rooms (room_id, room_number, floor, category_id, price, availability, information) VALUES
+(1, '101', 1, 1, 79.90, 'Available', 'Zimmer 101 Standard'),
+(2, '102', 1, 1, 79.90, 'Maintenance', 'Zimmer 102 Standard - Renovierung'),
+(3, '201', 2, 2, 129.90, 'Available', 'Zimmer 201 Deluxe mit Balkon'),
+(4, '301', 3, 3, 249.00, 'Occupied', 'Suite 301 mit Wohnzimmer'),
+(5, '401', 4, 5, 159.90, 'Available', 'Familienzimmer 401'),
+(6, '501', 5, 4, 49.90, 'Available', 'Einzelzimmer 501 Economy');
 
 -- ---------- Guests (mind. 5 Einträge) ----------
 INSERT IGNORE INTO guests (id, user_id, email, first_name, last_name, address, phone_number, birthdate) VALUES
