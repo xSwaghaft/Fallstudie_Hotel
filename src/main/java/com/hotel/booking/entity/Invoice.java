@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -24,6 +26,7 @@ import jakarta.validation.constraints.Size;
  */
 @Entity
 @Table(name = "invoices")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Invoice {
     
     @Id
@@ -52,10 +55,11 @@ public class Invoice {
     
     @NotNull
     @Enumerated(EnumType.STRING)
-    @Column(name = "invoice_status", nullable = false, length = 32)
+    @Column(name = "status", nullable = false, length = 32)
     private PaymentStatus invoiceStatus;
     
     // TODO: Activate when Booking entity
+    @JsonIgnore
     @OneToOne
     @JoinColumn(name = "booking_id", nullable = false)
     private Booking booking;
@@ -175,7 +179,8 @@ public class Invoice {
         CARD,
         CASH,
         ONLINE,
-        INVOICE
+        INVOICE,
+        TRANSFER
     }
     
     public enum PaymentStatus {

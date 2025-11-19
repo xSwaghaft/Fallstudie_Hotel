@@ -3,6 +3,8 @@ package com.hotel.booking.entity;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -16,6 +18,7 @@ import jakarta.persistence.Table;
 //Matthias Lohr
 @Entity
 @Table(name = "room_extras")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class BookingExtra {
 
     @Id
@@ -35,6 +38,7 @@ public class BookingExtra {
     @Column(name = "extra_type", nullable = false)
     private ExtraTypeEnum extraType;
 
+    @JsonIgnore
     @ManyToMany(mappedBy = "extras")
     private List<Booking> bookings = new ArrayList<>();
 

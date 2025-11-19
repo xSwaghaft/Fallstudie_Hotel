@@ -5,6 +5,8 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -25,6 +27,7 @@ import jakarta.validation.constraints.Size;
  */
 @Entity
 @Table(name = "payments")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Payment {
     
     @Id
@@ -55,6 +58,7 @@ public class Payment {
     private LocalDateTime paidAt;
     
     // Activate when Booking entity 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "booking_id", nullable = false)
     private Booking booking;
@@ -169,13 +173,15 @@ public class Payment {
         CARD,
         CASH,
         ONLINE,
-        INVOICE
+        INVOICE,
+        TRANSFER
     }
     
     public enum PaymentStatus {
         PENDING,
         PAID,
         FAILED,
-        REFUNDED
+        REFUNDED,
+        PARTIAL
     }
 }
