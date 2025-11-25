@@ -1,16 +1,11 @@
 package com.hotel.booking.view;
 
 import com.hotel.booking.entity.UserRole;
-import com.hotel.booking.entity.AdressEmbeddable;
 import com.hotel.booking.entity.User;
 import com.hotel.booking.service.UserService;
 import com.hotel.booking.security.SessionService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.checkbox.Checkbox;
-import com.vaadin.flow.component.dependency.CssImport;
-import com.vaadin.flow.component.dialog.Dialog;
-import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.Icon;
@@ -18,17 +13,17 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.*;
 import com.vaadin.flow.component.select.Select;
-import com.vaadin.flow.component.textfield.EmailField;
-import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.router.*;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.vaadin.flow.component.dependency.CssImport;
 
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-//User sollte mehr Attribute und Konstruktors bekommen, damit vollständig erstellt werden kann (active, last login...)
 
 @Route(value = "user-management", layout = MainLayout.class)
 @CssImport("./themes/hotel/styles.css")
@@ -43,7 +38,6 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
     private TextField searchField;
     private Select<String> roleFilter;
 
-    @Autowired
     public UserManagementView(SessionService sessionService, UserService userService) {
         this.sessionService = sessionService;
         this.userService = userService;
@@ -59,6 +53,8 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
         title.getStyle().set("margin", "0");
         
         Paragraph subtitle = new Paragraph("Manage system users and their permissions");
+        
+
         subtitle.getStyle().set("margin", "0");
         
         Div headerLeft = new Div(title, subtitle);
@@ -282,113 +278,33 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
         return actions;
     }
 
+    //Matthias Lohr (Dialog zum Hinzufügen/Bearbeiten von Benutzern)
     private void openUserDialog(User existingUser) {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle(existingUser == null ? "Add New User" : "Edit User");
         dialog.setWidth("600px");
 
-        TextField usernameField = new TextField("Username");
-        usernameField.setValue(existingUser != null ? existingUser.getUsername() : "");
-        usernameField.setRequired(true);
-        usernameField.setWidthFull();
-
-        TextField firstNameField = new TextField("First Name");
-        firstNameField.setValue(existingUser != null ? existingUser.getFirstName() : "");
-        firstNameField.setRequired(true);
-        firstNameField.setWidthFull();
-
-        TextField lastNameField = new TextField("Last Name");
-        lastNameField.setValue(existingUser != null ? existingUser.getLastName() : "");
-        lastNameField.setRequired(true);
-        lastNameField.setWidthFull();
-
-        TextField streetField = new TextField("Street");
-        streetField.setValue(existingUser != null && existingUser.getAddress() != null ? existingUser.getAddress().getStreet() : "");
-        streetField.setWidthFull();
-
-        TextField houseNumberField = new TextField("House Number");
-        houseNumberField.setValue(existingUser != null && existingUser.getAddress() != null ? existingUser.getAddress().getHouseNumber() : "");
-        houseNumberField.setWidth("150px");
-
-        HorizontalLayout streetLayout = new HorizontalLayout(streetField, houseNumberField);
-        streetLayout.setWidthFull();
-        streetLayout.setFlexGrow(1, streetField);
-
-        TextField cityField = new TextField("City");
-        cityField.setValue(existingUser != null && existingUser.getAddress() != null ? existingUser.getAddress().getCity() : "");
-        cityField.setWidthFull();
-
-        TextField postalCodeField = new TextField("Postal Code");
-        postalCodeField.setValue(existingUser != null && existingUser.getAddress() != null ? existingUser.getAddress().getPostalCode() : "");
-        postalCodeField.setWidth("150px");
-
-        TextField countryField = new TextField("Country");
-        countryField.setValue(existingUser != null && existingUser.getAddress() != null ? existingUser.getAddress().getCountry() : "");
-        countryField.setWidth("200px");
-
-        HorizontalLayout cityLayout = new HorizontalLayout(cityField, postalCodeField, countryField);
-        cityLayout.setWidthFull();
-        cityLayout.setFlexGrow(1, cityField);
-
-        PasswordField passwordField = new PasswordField("Password");
-        passwordField.setRequiredIndicatorVisible(true);
-        passwordField.setWidthFull();
-
-        EmailField emailField = new EmailField("Email");
-        emailField.setValue(existingUser != null ? existingUser.getEmail() : "");
-        emailField.setWidthFull();
-
-        Select<UserRole> roleSelect = new Select<>();
-        roleSelect.setLabel("Role");
-        roleSelect.setItems(UserRole.values());
-        roleSelect.setValue(existingUser != null ? existingUser.getRole() : UserRole.GUEST);
-        roleSelect.setRequiredIndicatorVisible(true);
-        roleSelect.setWidthFull();
-
-        Checkbox activeCheckbox = new Checkbox("Active");
-        activeCheckbox.setValue(existingUser != null && existingUser.isActive());
+        AddUserForm form = new AddUserForm(existingUser);
 
         Button saveButton = new Button("Save", e -> {
-            if (usernameField.isEmpty() || passwordField.isEmpty() || roleSelect.isEmpty()) {
-                Notification.show("Please fill in all required fields.", 3000, Notification.Position.MIDDLE);
-                return;
+            try {
+                form.writeBean();
+                userService.save(form.getUser());
+                users.clear();
+                users.addAll(userService.findAll());
+                grid.getDataProvider().refreshAll();
+                dialog.close();
+                Notification.show("User saved successfully.", 3000, Notification.Position.BOTTOM_START);
+            } catch (ValidationException ex) {
+                Notification.show("Please fix validation errors before saving.", 3000, Notification.Position.MIDDLE);
             }
-
-            AdressEmbeddable address = new AdressEmbeddable(
-                streetField.getValue(),
-                houseNumberField.getValue(),
-                postalCodeField.getValue(),
-                cityField.getValue(),
-                countryField.getValue()
-            );
-
-            User user = existingUser != null ? existingUser : new User(
-                usernameField.getValue(),
-                firstNameField.getValue(),
-                lastNameField.getValue(),
-                address,
-                emailField.getValue(),
-                passwordField.getValue(),
-                roleSelect.getValue(),
-                activeCheckbox.getValue()
-            );
-
-            user.setAddress(address);
-            userService.save(user);
-
-            users.clear();
-            users.addAll(userService.findAll());
-            grid.getDataProvider().refreshAll();
-
-            dialog.close();
-            Notification.show("User saved successfully.", 3000, Notification.Position.BOTTOM_START);
         });
 
         Button cancelButton = new Button("Cancel", e -> dialog.close());
         cancelButton.addClassName("primary-button");
 
         HorizontalLayout buttonLayout = new HorizontalLayout(saveButton, cancelButton);
-        dialog.add(usernameField, firstNameField, lastNameField, streetLayout, cityLayout, passwordField, emailField, roleSelect, activeCheckbox, buttonLayout);
+        dialog.add(form, buttonLayout);
 
         dialog.open();
     }
