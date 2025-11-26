@@ -140,6 +140,13 @@ public class AddUserForm extends FormLayout {
 			formUser = existingUser;
 		}
 
+		// Configure password field visibility based on edit mode
+		if (existingUser != null) {
+			passwordField.setVisible(false); // Hide password field when editing
+		} else {
+			passwordField.setVisible(true); // Show password field when creating a new user
+		}
+
 		// Configure password validation depending on new/edit
 		binder.removeBinding(passwordField);
 		if (isNew) {
