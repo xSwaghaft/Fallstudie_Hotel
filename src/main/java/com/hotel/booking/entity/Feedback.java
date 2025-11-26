@@ -2,6 +2,8 @@ package com.hotel.booking.entity;
 
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -22,6 +24,7 @@ import jakarta.validation.constraints.Size;
  */
 @Entity
 @Table(name = "feedback")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Feedback {
     
     @Id
@@ -42,6 +45,7 @@ public class Feedback {
     private LocalDateTime createdAt;
     
     // Activate when Booking entity 
+    @JsonIgnore
     @OneToOne
     @JoinColumn(name = "booking_id")
     private Booking booking;

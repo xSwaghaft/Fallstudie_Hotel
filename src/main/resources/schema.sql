@@ -3,7 +3,9 @@ DROP DATABASE IF EXISTS hotelbooking;
 CREATE DATABASE hotelbooking CHARACTER SET = 'utf8mb4' COLLATE = 'utf8mb4_unicode_ci';
 USE hotelbooking;
 
--- Users
+-- =======================
+-- USERS
+-- =======================
 CREATE TABLE users (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(100) NOT NULL UNIQUE,
@@ -11,18 +13,23 @@ CREATE TABLE users (
   email VARCHAR(150),
   first_name VARCHAR(100),
   last_name VARCHAR(100),
-  address_street VARCHAR(255),
-  address_house_number VARCHAR(50),
-  address_postal_code VARCHAR(20),
-  address_city VARCHAR(150),
-  address_country VARCHAR(100),
+
+  -- 🔁 Anpassung an Hibernate: KEINE address_* mehr, sondern diese:
+  street       VARCHAR(255),
+  house_number VARCHAR(50),
+  postal_code  VARCHAR(20),
+  city         VARCHAR(150),
+  country      VARCHAR(100),
+
   birthdate DATE,
   role VARCHAR(32) NOT NULL,
   active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Guests (verknüpft mit users optional)
+-- =======================
+-- GUESTS (verknüpft mit users optional)
+-- =======================
 CREATE TABLE guests (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   user_id BIGINT UNIQUE,
@@ -35,9 +42,11 @@ CREATE TABLE guests (
   CONSTRAINT fk_guests_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Room categories
+-- =======================
+-- ROOM CATEGORY
+-- =======================
 CREATE TABLE room_category (
-  category_id BIGINT AUTO_INCREMENT PRIMARY KEY,  -- "category_id" statt "id"
+  category_id BIGINT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(150) NOT NULL,
   description TEXT,
   price_per_night DECIMAL(10,2) NOT NULL,
@@ -45,7 +54,9 @@ CREATE TABLE room_category (
   active BOOLEAN NOT NULL DEFAULT TRUE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-  -- Rooms
+-- =======================
+-- ROOMS
+-- =======================
 CREATE TABLE rooms (
   room_id BIGINT AUTO_INCREMENT PRIMARY KEY,
   room_number VARCHAR(64),
@@ -57,7 +68,9 @@ CREATE TABLE rooms (
   CONSTRAINT fk_rooms_category FOREIGN KEY (category_id) REFERENCES room_category(category_id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Password reset tokens (for forgot-password flow)
+-- =======================
+-- PASSWORD RESET TOKENS
+-- =======================
 CREATE TABLE password_reset_tokens (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   token VARCHAR(64) NOT NULL UNIQUE,
@@ -65,7 +78,9 @@ CREATE TABLE password_reset_tokens (
   expires_at TIMESTAMP NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Bookings
+-- =======================
+-- BOOKINGS
+-- =======================
 CREATE TABLE bookings (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   booking_number VARCHAR(64) NOT NULL UNIQUE,
@@ -85,7 +100,9 @@ CREATE TABLE bookings (
 
 CREATE INDEX idx_booking_dates ON bookings(check_in_date, check_out_date);
 
--- Invoices (verweist auf Booking)
+-- =======================
+-- INVOICES
+-- =======================
 CREATE TABLE invoices (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   invoice_number VARCHAR(64) NOT NULL UNIQUE,
@@ -100,38 +117,48 @@ CREATE TABLE invoices (
   CONSTRAINT fk_invoices_booking FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Falls gewünscht: bookings.invoice_id -> invoices.id (optional, bidirektional)
+-- bookings.invoice_id -> invoices.id (optional, bidirektional)
 ALTER TABLE bookings
   ADD CONSTRAINT fk_bookings_invoice FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE SET NULL;
 
--- Room extras (BookingExtra)
+-- =======================
+-- ROOM EXTRAS (BookingExtra)
+-- =======================
+-- 🔁 WICHTIG: Nur EINE AUTO_INCREMENT-Spalte, und zwar die,
+-- die Hibernate sowieso anlegen will (booking_extra_id).
 CREATE TABLE room_extras (
-  BookingExtra_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  booking_extra_id BIGINT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   description TEXT,
   price DECIMAL(10,2) NOT NULL,
   extra_type VARCHAR(64) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Join table bookings <-> extras
+-- =======================
+-- BOOKINGS <-> EXTRAS (Join-Tabelle)
+-- =======================
 CREATE TABLE booking_extra (
   booking_id BIGINT NOT NULL,
   extra_id BIGINT NOT NULL,
   PRIMARY KEY (booking_id, extra_id),
   CONSTRAINT fk_bookingextra_booking FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
-  CONSTRAINT fk_bookingextra_extra FOREIGN KEY (extra_id) REFERENCES room_extras(BookingExtra_id) ON DELETE CASCADE
+  CONSTRAINT fk_bookingextra_extra FOREIGN KEY (extra_id) REFERENCES room_extras(booking_extra_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Many-to-Many Room <-> Booking
+-- =======================
+-- ROOM <-> BOOKING (Many-To-Many)
+-- =======================
 CREATE TABLE room_bookings (
   room_id BIGINT NOT NULL,
   booking_id BIGINT NOT NULL,
   PRIMARY KEY (room_id, booking_id),
-  CONSTRAINT fk_roombookings_room FOREIGN KEY (room_id) REFERENCES rooms(room_id) ON DELETE CASCADE,  -- ✅ room_id
+  CONSTRAINT fk_roombookings_room FOREIGN KEY (room_id) REFERENCES rooms(room_id) ON DELETE CASCADE,
   CONSTRAINT fk_roombookings_booking FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Payments
+-- =======================
+-- PAYMENTS
+-- =======================
 CREATE TABLE payments (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   booking_id BIGINT NOT NULL,
@@ -143,7 +170,9 @@ CREATE TABLE payments (
   CONSTRAINT fk_payments_booking FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Feedback
+-- =======================
+-- FEEDBACK
+-- =======================
 CREATE TABLE feedback (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   booking_id BIGINT,
@@ -155,7 +184,9 @@ CREATE TABLE feedback (
   CONSTRAINT fk_feedback_guest FOREIGN KEY (guest_id) REFERENCES guests(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Booking cancellations
+-- =======================
+-- BOOKING CANCELLATIONS
+-- =======================
 CREATE TABLE booking_cancellation (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   booking_id BIGINT NOT NULL,
@@ -167,7 +198,9 @@ CREATE TABLE booking_cancellation (
   CONSTRAINT fk_cancellation_handled_by FOREIGN KEY (handled_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Booking modifications
+-- =======================
+-- BOOKING MODIFICATIONS
+-- =======================
 CREATE TABLE booking_modification (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   booking_id BIGINT NOT NULL,
@@ -181,7 +214,9 @@ CREATE TABLE booking_modification (
   CONSTRAINT fk_modification_handled_by FOREIGN KEY (handled_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Reports
+-- =======================
+-- REPORTS
+-- =======================
 CREATE TABLE reports (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   title VARCHAR(200) NOT NULL,
@@ -191,10 +226,10 @@ CREATE TABLE reports (
   CONSTRAINT fk_reports_user FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Index-Empfehlungen
+-- =======================
+-- INDEXE
+-- =======================
 CREATE INDEX idx_bookings_guest ON bookings(guest_id);
 CREATE INDEX idx_bookings_room ON bookings(room_id);
 CREATE INDEX idx_payments_booking ON payments(booking_id);
 CREATE INDEX idx_feedback_booking ON feedback(booking_id);
-
--- Ende des Schemas

@@ -1,6 +1,7 @@
 package com.hotel.booking.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.io.Serializable;
 import java.time.LocalDate;
@@ -10,6 +11,7 @@ import java.time.LocalDate;
  * Jeder Guest ist 1:1 mit einem User verknüpft und enthält persönliche Informationen. */
 @Entity
 @Table(name = "guests")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Guest implements Serializable {
 
     private static final long serialVersionUID = 1L;

@@ -2,6 +2,8 @@ package com.hotel.booking.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -11,6 +13,7 @@ import java.util.List;
 /* Artur Derr
  * Entity für Benutzer im Hotelbuchungssystem.
  * Enthält Authentifizierungsdaten, Rolle und persönliche Informationen. */
+//Entity ist gleichzeitig JavaBean FDO für addUserForm (schafft Kopplung zwischen UI und Entity, macht hier aber Sinn)
 @Entity
 @Table(name = "users")
 public class User implements Serializable {
@@ -33,6 +36,7 @@ public class User implements Serializable {
 
     // E-Mail-Adresse des Benutzers
     @Column(length = 100)
+    @Email
     private String email;
 
     // Vorname des Benutzers
@@ -44,7 +48,7 @@ public class User implements Serializable {
     private String lastName;
 
     @Embedded
-    private AdressEmbeddable address;
+    private AdressEmbeddable address = new AdressEmbeddable();
 
     // Geburtsdatum des Benutzers
     @Column

@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -51,6 +52,7 @@ import jakarta.persistence.Table;
         @Index(name = "idx_booking_booking_number", columnList = "booking_number", unique = true),
         @Index(name = "idx_booking_dates", columnList = "check_in_date,check_out_date")
 })
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Booking {
 
     /** Primärschlüssel-ID. */

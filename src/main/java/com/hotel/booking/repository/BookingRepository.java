@@ -18,6 +18,15 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
 
     // --- Basics ---------------------------------------------------------------
 
+    @EntityGraph(attributePaths = {"guest", "room", "invoice", "feedback"})
+    @Override
+    List<Booking> findAll();
+
+    @EntityGraph(attributePaths = {"guest", "room", "invoice", "feedback"})
+    @Override
+    Optional<Booking> findById(Long id);
+
+    @EntityGraph(attributePaths = {"guest", "room", "invoice", "feedback"})
     Optional<Booking> findByBookingNumber(String bookingNumber);
 
     boolean existsByBookingNumber(String bookingNumber);

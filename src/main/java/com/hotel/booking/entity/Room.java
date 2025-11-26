@@ -3,6 +3,8 @@ package com.hotel.booking.entity;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -17,6 +19,7 @@ import jakarta.persistence.Table;
 //Matthias Lohr
 @Entity
 @Table(name = "rooms")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Room {
 
     @Id
@@ -44,6 +47,7 @@ public class Room {
     @Column(name = "information")
     private String information;
 
+    @JsonIgnore
     @ManyToMany
     @JoinTable(
          name = "room_bookings",

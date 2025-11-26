@@ -7,5 +7,6 @@ public enum ExtraTypeEnum {
     SPA,
     WIFI,
     NON_SMOKING,
-    PARKING
+    PARKING,
+    EXTRA_BED
 }
