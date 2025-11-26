@@ -191,11 +191,11 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
             .setHeader("Full Name")
             .setFlexGrow(1);
         
-        grid.addColumn(User::getEmail)
+        grid.addColumn(User::getEmail)  //AddColumn für plain Text
             .setHeader("Email")
             .setFlexGrow(1);
         
-        grid.addComponentColumn(this::createRoleBadge)
+        grid.addComponentColumn(this::createRoleBadge) //Componente für mehr als nur Text
             .setHeader("Role")
             .setAutoWidth(true)
             .setFlexGrow(0);
@@ -284,7 +284,7 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
         dialog.setHeaderTitle(existingUser == null ? "Add New User" : "Edit User");
         dialog.setWidth("600px");
 
-        AddUserForm form = new AddUserForm(existingUser);
+        AddUserForm form = new AddUserForm(existingUser, userService);
 
         Button saveButton = new Button("Save", e -> {
             try {

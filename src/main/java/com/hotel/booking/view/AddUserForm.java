@@ -5,10 +5,12 @@ import com.hotel.booking.entity.User;
 import com.hotel.booking.entity.UserRole;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.formlayout.FormLayout.ResponsiveStep;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
+import com.hotel.booking.service.UserService;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.data.validator.StringLengthValidator;
@@ -20,6 +22,7 @@ public class AddUserForm extends FormLayout {
 
 	private final Binder<User> binder = new Binder<>(User.class);
 	private User formUser;
+	private final UserService userService;
 
     // fields
     private final TextField usernameField = new TextField("Username");
@@ -38,7 +41,9 @@ public class AddUserForm extends FormLayout {
 	private final Checkbox activeCheckbox = new Checkbox("Active");
 
 
-	public AddUserForm(User existingUser) {
+	public AddUserForm(User existingUser, UserService userService) {
+
+		this.userService = userService;
 
 		// Setup role select
 		roleSelect.setLabel("Role");
@@ -49,18 +54,23 @@ public class AddUserForm extends FormLayout {
 		this.add(usernameField, firstNameField, lastNameField,
 			streetField, houseNumberField, cityField, postalCodeField, countryField,
 			passwordField, emailField, roleSelect, activeCheckbox);
-        
-        this.setColspan(houseNumberField, 2);
-        this.setColspan(streetField, 1);
-        this.setColspan(cityField, 1);
-        this.setColspan(postalCodeField, 1);
 
-		// Binder setup
-		binder.forField(usernameField)
-			.asRequired("Username is required")
-			.withValidator(new StringLengthValidator("Username must be at least 3 characters", 3, null))
-			.bind(User::getUsername, User::setUsername);
+		//FormLayout spalten auf basis der Bildschirmbreite hinzufügen
+		this.setResponsiveSteps(
+		    new ResponsiveStep("0", 1), // Single column layout for narrow screens
+		    new ResponsiveStep("500px", 2) // Two columns layout for wider screens
+		);
 
+		// Set column span for fields
+		setColspan(streetField, 1); // Street field spans one column
+		setColspan(houseNumberField, 1); // House number field spans one column
+		setColspan(cityField, 1);
+		setColspan(postalCodeField,1);
+		setColspan(usernameField, 2);
+		setColspan(emailField, 2);
+		setColspan(passwordField, 2);
+
+		// Binder wird konfiguriert
 		binder.forField(firstNameField)
 			.asRequired("First name is required")
 			.bind(User::getFirstName, User::setFirstName);
@@ -70,35 +80,53 @@ public class AddUserForm extends FormLayout {
 			.bind(User::getLastName, User::setLastName);
 
 		binder.forField(emailField)
+			.asRequired("Email is required")
+			.withValidator(
+				email -> isEmailAvailable(email, formUser),
+				"Email already in use")
 			.bind(User::getEmail, User::setEmail);
 
 		binder.forField(roleSelect)
 			.asRequired("Role is required")
 			.bind(User::getRole, User::setRole);
 
+		// Username uniqueness validator (uses userService). On edit allow same username.
+		binder.forField(usernameField)
+			.asRequired("Username is required")
+			.withValidator(new StringLengthValidator("Username must be at least 3 characters", 3, null))
+			.withValidator(
+				username -> isUsernameAvailable(username, formUser),
+			"Username already exists")
+			.bind(User::getUsername, User::setUsername);
+
 		binder.forField(activeCheckbox)
 			.bind(User::isActive, User::setActive);
 
-		// Address bindings via lambdas to handle null embeddable
+		// Address bindings via lambdas
 		binder.forField(streetField)
-			.bind(u -> u.getAddress() != null ? u.getAddress().getStreet() : "",
-				  (u, v) -> { if (u.getAddress() == null) u.setAddress(new AdressEmbeddable()); u.getAddress().setStreet(v); });
+			.asRequired("Street is required")
+			.bind(u -> u.getAddress().getStreet(),
+					(u, v) -> u.getAddress().setStreet(v));
 
 		binder.forField(houseNumberField)
-			.bind(u -> u.getAddress() != null ? u.getAddress().getHouseNumber() : "",
-				  (u, v) -> { if (u.getAddress() == null) u.setAddress(new AdressEmbeddable()); u.getAddress().setHouseNumber(v); });
+			.asRequired("House Number is required")
+			.bind(u -> u.getAddress().getHouseNumber(),
+				  (u, v) -> u.getAddress().setHouseNumber(v));
 
 		binder.forField(postalCodeField)
-			.bind(u -> u.getAddress() != null ? u.getAddress().getPostalCode() : "",
-				  (u, v) -> { if (u.getAddress() == null) u.setAddress(new AdressEmbeddable()); u.getAddress().setPostalCode(v); });
-
+			.asRequired("Postal Code is required")
+			.bind(u -> u.getAddress().getPostalCode(),
+				  (u, v) -> u.getAddress().setPostalCode(v));
+				  
 		binder.forField(cityField)
-			.bind(u -> u.getAddress() != null ? u.getAddress().getCity() : "",
-				  (u, v) -> { if (u.getAddress() == null) u.setAddress(new AdressEmbeddable()); u.getAddress().setCity(v); });
+			.asRequired("City is required")
+			.bind(u -> u.getAddress().getCity(),
+				  (u, v) -> u.getAddress().setCity(v));
 
 		binder.forField(countryField)
-			.bind(u -> u.getAddress() != null ? u.getAddress().getCountry() : "",
-				  (u, v) -> { if (u.getAddress() == null) u.setAddress(new AdressEmbeddable()); u.getAddress().setCountry(v); });
+			.asRequired("Country is required")
+			.bind(u -> u.getAddress().getCountry(),
+				  (u, v) -> u.getAddress().setCountry(v));
 
 		// Initialize form user and bind values
 		setUser(existingUser);
@@ -107,7 +135,7 @@ public class AddUserForm extends FormLayout {
 	public void setUser(User existingUser) {
 		boolean isNew = existingUser == null;
 		if (isNew) {
-			formUser = new User("", "", "", null, "", "", UserRole.GUEST, true);
+			formUser = new User("", "", "", new AdressEmbeddable(), "", "", UserRole.GUEST, true);
 		} else {
 			formUser = existingUser;
 		}
@@ -133,6 +161,30 @@ public class AddUserForm extends FormLayout {
 		roleSelect.setRequiredIndicatorVisible(true);
 
 		binder.readBean(formUser);
+	}
+
+	private boolean isEmailAvailable(String email, User formUser) {
+		if (email == null || email.isEmpty()) {
+			return true; //Wenn es leer ist soll asRequired die Fehlermeldung werfen
+		}
+		// Wenn Bearbeitung: gleiche E-Mail ist erlaubt
+		if (formUser != null && email.equals(formUser.getEmail())) {
+			return true;
+		}
+		// Sonst prüfen, ob die E-Mail frei ista
+		return !userService.existsByEmail(email);
+	}
+
+	private Boolean isUsernameAvailable(String username, User formUser) {
+		if (username == null || username.isEmpty()) {
+			return true; //Wenn es leer ist soll asRequired die Fehlermeldung werfen
+		}
+		// Wenn Bearbeitung: gleicher Username ist erlaubt
+		if (formUser != null && username.equals(formUser.getUsername())) {
+			return true;
+		}
+		// Sonst prüfen, ob der Username frei ist
+		return !userService.existsByUsername(username);
 	}
 
 	public User getUser() {
