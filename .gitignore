@@ -27,5 +27,6 @@ frontend/generated/
 node_modules/
 package-lock.json
 webpack.generated.js
+.copilot-plugin
 
 
