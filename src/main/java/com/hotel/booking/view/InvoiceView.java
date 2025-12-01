@@ -14,7 +14,7 @@ import com.vaadin.flow.component.orderedlayout.*;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.*;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.hotel.booking.service.InvoiceService;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -24,13 +24,13 @@ import java.util.List;
 public class InvoiceView extends VerticalLayout implements BeforeEnterObserver {
 
     private final SessionService sessionService;
-
-    record Invoice(String id, String guest, String bookingId, String issueDate, 
+    private final InvoiceService invoiceService;
+    record InvoiceRow(String id, String guest, String bookingId, String issueDate, 
                   String dueDate, int amount, int paid, int balance, String status) {}
 
-    @Autowired
-    public InvoiceView(SessionService sessionService) {
+    public InvoiceView(SessionService sessionService, InvoiceService invoiceService) {
         this.sessionService = sessionService;
+        this.invoiceService = invoiceService;
         setSpacing(true);
         setPadding(true);
         setSizeFull();
@@ -138,8 +138,8 @@ public class InvoiceView extends VerticalLayout implements BeforeEnterObserver {
         Paragraph subtitle = new Paragraph("Complete list of invoices and their payment status");
         subtitle.getStyle().set("margin", "0 0 1rem 0");
         
-        Grid<Invoice> grid = new Grid<>(Invoice.class, false);
-        grid.addColumn(Invoice::id).setHeader("Invoice ID").setAutoWidth(true).setFlexGrow(0);
+        Grid<InvoiceRow> grid = new Grid<>(InvoiceRow.class, false);
+        grid.addColumn(inv -> inv.id()).setHeader("Invoice ID").setAutoWidth(true).setFlexGrow(0);
         grid.addComponentColumn(inv -> {
             Div container = new Div();
             Div name = new Div(new Span(inv.guest()));
@@ -149,8 +149,8 @@ public class InvoiceView extends VerticalLayout implements BeforeEnterObserver {
             container.add(name, bookingId);
             return container;
         }).setHeader("Guest Name").setFlexGrow(1);
-        grid.addColumn(Invoice::issueDate).setHeader("Issue Date").setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(Invoice::dueDate).setHeader("Due Date").setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(inv -> inv.issueDate()).setHeader("Issue Date").setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(inv -> inv.dueDate()).setHeader("Due Date").setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(inv -> "€" + inv.amount()).setHeader("Amount").setAutoWidth(true).setFlexGrow(0);
         grid.addComponentColumn(inv -> {
             Span span = new Span("€" + inv.paid());
@@ -181,7 +181,7 @@ public class InvoiceView extends VerticalLayout implements BeforeEnterObserver {
             return actions;
         }).setHeader("Actions").setAutoWidth(true).setFlexGrow(0);
         
-        grid.setItems(getMockInvoices());
+        grid.setItems(getInvoices());
         grid.setAllRowsVisible(true);
         grid.setWidthFull();
         
@@ -189,21 +189,28 @@ public class InvoiceView extends VerticalLayout implements BeforeEnterObserver {
         return card;
     }
 
-    private Component createStatusBadge(Invoice invoice) {
+    private Component createStatusBadge(InvoiceRow invoice) {
         Span badge = new Span(invoice.status());
         badge.addClassName("status-badge");
         badge.addClassName("status-" + invoice.status());
         return badge;
     }
 
-    private List<Invoice> getMockInvoices() {
-        return List.of(
-            new Invoice("INV-2025-001", "Emma Wilson", "BK001", "2025-10-28", "2025-11-04", 447, 447, 0, "paid"),
-            new Invoice("INV-2025-002", "Michael Brown", "BK002", "2025-10-30", "2025-11-07", 1196, 0, 1196, "pending"),
-            new Invoice("INV-2025-003", "Sarah Davis", "BK003", "2025-10-25", "2025-11-02", 267, 267, 0, "paid"),
-            new Invoice("INV-2025-004", "James Miller", "BK004", "2025-11-01", "2025-11-09", 745, 300, 445, "partial"),
-            new Invoice("INV-2025-005", "Lisa Anderson", "BK005", "2025-10-29", "2025-11-06", 897, 897, 0, "paid")
-        );
+    // kept for compatibility; views use service-backed data via getInvoices()
+
+    private List<InvoiceRow> getInvoices() {
+        return invoiceService.findAll().stream().map(inv -> {
+            String id = inv.getInvoiceNumber();
+            String guest = inv.getBooking() != null ? inv.getBooking().toString() : "-";
+            String bookingId = inv.getBooking() != null ? String.valueOf(inv.getBooking().getId()) : "-";
+            String issueDate = inv.getIssuedAt() != null ? inv.getIssuedAt().toLocalDate().toString() : "-";
+            String dueDate = inv.getIssuedAt() != null ? inv.getIssuedAt().toLocalDate().plusDays(7).toString() : "-";
+            int amount = inv.getAmount() != null ? inv.getAmount().intValue() : 0;
+            int paid = (inv.getPaidAt() != null) ? amount : 0;
+            int balance = amount - paid;
+            String status = inv.getInvoiceStatus() != null ? inv.getInvoiceStatus().name().toLowerCase() : "pending";
+            return new InvoiceRow(id, guest, bookingId, issueDate, dueDate, amount, paid, balance, status);
+        }).toList();
     }
 
     @Override
