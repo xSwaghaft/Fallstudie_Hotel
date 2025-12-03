@@ -104,7 +104,7 @@ public class RoomService {
         throw new IllegalArgumentException("Room with ID " + roomId + " not found");
     }
 
-    /* Validiert einen Room vor dem Speichern */
+    /* Validiert einen Room vor dem Speichern; Wahrscheinlich unnötig durch binder und Entity validation */
     public void validateRoom(Room room) {
         if (room.getCategory() == null) {
             throw new IllegalArgumentException("Category is required");

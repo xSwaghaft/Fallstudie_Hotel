@@ -6,8 +6,6 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -19,38 +17,21 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
     // --- Basics ---------------------------------------------------------------
 
     @EntityGraph(attributePaths = {"guest", "room", "invoice", "feedback"})
-    @Override
-    List<Booking> findAll();
-
-    @EntityGraph(attributePaths = {"guest", "room", "invoice", "feedback"})
-    @Override
-    Optional<Booking> findById(Long id);
-
-    @EntityGraph(attributePaths = {"guest", "room", "invoice", "feedback"})
     Optional<Booking> findByBookingNumber(String bookingNumber);
 
     boolean existsByBookingNumber(String bookingNumber);
 
     void deleteByBookingNumber(String bookingNumber);
 
-    // --- Room-bezogene Abfragen ----------------------------------------------
+        // --- Room-bezogene Abfragen ----------------------------------------------
 
-    List<Booking> findByRoom_Id(Long roomId);
+        List<Booking> findByRoom_Id(Long roomId);
 
-    Page<Booking> findByRoom_Id(Long roomId, Pageable pageable);
-
-    // Alle Buchungen, die einen Zeitraum überschneiden:
-    // (checkIn <= end) AND (checkOut >= start)
-    List<Booking> findByRoom_IdAndCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(
-            Long roomId,
-            LocalDate endInclusive,
-            LocalDate startInclusive);
-
-    // Gleiche Logik als Exists – nützlich für “ist Zimmer frei?”
-    boolean existsByRoom_IdAndCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(
-            Long roomId,
-            LocalDate endInclusive,
-            LocalDate startInclusive);
+        // Gleiche Logik als Exists – nützlich für “ist Zimmer frei?”
+        boolean existsByRoom_IdAndCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(
+                Long roomId,
+                LocalDate endInclusive,
+                LocalDate startInclusive);
 
     // Gleiche Prüfung, aber eine bestehende Buchung beim Update ignorieren
     @Query("""
@@ -69,7 +50,14 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
 
     // --- Zeitraum-Abfragen ----------------------------------------------------
 
-    Page<Booking> findByCheckInDateBetween(LocalDate from, LocalDate to, Pageable pageable);
+        // Alle heute(in einem Zeitraum) aktiven Buchungen:
+        // (checkIn <= end) AND (checkOut >= start)
+        //Matthias Lohr
+        List<Booking> findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(
+                LocalDate today1,
+                LocalDate today2);
+
+        List<Booking> findByCheckInDateBetween(LocalDate from, LocalDate to);
 
     @Query("""
             SELECT COALESCE(SUM(b.totalPrice), 0)

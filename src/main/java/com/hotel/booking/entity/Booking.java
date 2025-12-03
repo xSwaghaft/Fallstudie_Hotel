@@ -3,7 +3,9 @@ package com.hotel.booking.entity;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.CascadeType;
@@ -88,15 +90,21 @@ public class Booking {
 
     /** Zugehöriger Gast (Eigentümer der Buchung). */
 
-    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @ManyToOne(optional = false, fetch = FetchType.EAGER)
     @JoinColumn(name = "guest_id", nullable = false,
     foreignKey = @ForeignKey(name = "fk_booking_guest"))
-    private Guest guest;
+    private User guest;
 
     /** Gebuchtes Zimmer. */
-    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @ManyToOne(optional = false, fetch = FetchType.EAGER)
     @JoinColumn(name = "room_id", nullable = false, foreignKey = @ForeignKey(name = "fk_booking_room"))
-    private Room room;
+    private Room room = new Room();
+
+    /** Kategorie des Zimmers. */
+    @ManyToOne(optional = false, fetch = FetchType.EAGER)
+    @JoinColumn(name = "room_category_id", nullable = false,
+                foreignKey = @ForeignKey(name = "fk_booking_room_category"))
+    private RoomCategory roomCategory = new RoomCategory();
 
     /**
      * Optionale Rechnung zur Buchung.
@@ -105,7 +113,7 @@ public class Booking {
      * </p>
      */
 
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @JoinColumn(name = "invoice_id",
     foreignKey = @ForeignKey(name = "fk_booking_invoice"))
     private Invoice invoice;
@@ -119,13 +127,13 @@ public class Booking {
 
     /** Zusatzleistungen (Extras) dieser Buchung. */
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
     name = "booking_extra",
     joinColumns = @JoinColumn(name = "booking_id"),
     inverseJoinColumns = @JoinColumn(name = "extra_id")
     )
-    private List<BookingExtra> extras = new ArrayList<>();
+    private Set<BookingExtra> extras = new HashSet<>();
 
     /** Optionales Feedback zur Buchung. */
 
@@ -148,14 +156,14 @@ public class Booking {
     LocalDate checkInDate,
     LocalDate checkOutDate,
     BookingStatus status,
-    Guest guest,
-    Room room) {
+    User guest,
+    RoomCategory roomCategory) {
     this.bookingNumber = bookingNumber;
     this.checkInDate = checkInDate;
     this.checkOutDate = checkOutDate;
     this.status = status;
     this.guest = guest;
-    this.room = room;
+    this.roomCategory = roomCategory;
     }
 
     // ------------------------------------------------------------
@@ -209,8 +217,8 @@ public class Booking {
         this.totalPrice = totalPrice;
     }
 
-    public Guest getGuest() { return guest; }
-    public void setGuest(Guest guest) { this.guest = guest; }
+    public User getGuest() { return guest; }
+    public void setGuest(User user) { this.guest = user; }
 
     public Room getRoom() {
         return room;
@@ -220,14 +228,22 @@ public class Booking {
         this.room = room;
     }
 
+    public RoomCategory getRoomCategory() {
+        return roomCategory;
+    }
+
+    public void setRoomCategory(RoomCategory roomCategory) {
+        this.roomCategory = roomCategory;
+    }
+
     public Invoice getInvoice() { return invoice; }
     public void setInvoice(Invoice invoice) { this.invoice = invoice; }
 
     public List<Payment> getPayments() { return payments; }
     public void setPayments(List<Payment> payments) { this.payments = payments; }
 
-    public List<BookingExtra> getExtras() { return extras; }
-    public void setExtras(List<BookingExtra> extras) { this.extras = extras; }
+    public Set<BookingExtra> getExtras() { return extras; }
+    public void setExtras(Set<BookingExtra> extras) { this.extras = extras; }
 
     public Feedback getFeedback() { return feedback; }
     public void setFeedback(Feedback feedback) { this.feedback = feedback; }

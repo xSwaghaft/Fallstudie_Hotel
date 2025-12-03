@@ -431,6 +431,11 @@ p {
   color: var(--color-warning);
 }
 
+.status-cancelled {
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
+}
+
 /* =========================================================
    BUTTONS & FORMS
    ========================================================= */
