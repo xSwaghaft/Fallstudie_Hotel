@@ -1,7 +1,9 @@
 package com.hotel.booking.service;
 
+import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.Room;
 import com.hotel.booking.entity.RoomCategory;
+import com.hotel.booking.repository.BookingRepository;
 import com.hotel.booking.repository.RoomRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,10 +19,12 @@ import java.util.Optional;
 public class RoomService {
 
     private final RoomRepository roomRepository;
+    private final BookingRepository bookingRepository;
 
     @Autowired
-    public RoomService(RoomRepository roomRepository) {
+    public RoomService(RoomRepository roomRepository, BookingRepository bookingRepository) {
         this.roomRepository = roomRepository;
+        this.bookingRepository = bookingRepository;
     }
 
     // ==================== CRUD-Operationen ====================
@@ -42,7 +46,16 @@ public class RoomService {
 
     /* Löscht einen Room anhand der ID */
     public void deleteRoom(Long id) {
-        roomRepository.deleteById(id);
+        Optional<Room> roomOpt = roomRepository.findById(id);
+        if (roomOpt.isPresent()) {
+            // Zuerst alle Bookings für diesen Room auf NULL setzen (Foreign Key umgehen)
+            List<Booking> bookingsWithRoom = bookingRepository.findByRoom_Id(id);
+            bookingsWithRoom.forEach(booking -> booking.setRoom(null));
+            bookingRepository.saveAll(bookingsWithRoom);
+            
+            // Dann den Room löschen
+            roomRepository.deleteById(id);
+        }
     }
 
     // ==================== Query-Methoden ====================

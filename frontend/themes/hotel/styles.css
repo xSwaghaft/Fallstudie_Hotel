@@ -784,3 +784,69 @@ vaadin-grid-cell-content {
     font-size: var(--font-size-xs);
   }
 }
+
+/* Reduce spacing between form fields in registration */
+.registration-card {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem 2.5rem;
+  max-width: 520px;
+  width: 100%;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.registration-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+  margin: 0 0 0.25rem 0;
+  color: #1f2937;
+}
+
+.registration-subtitle {
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin: 0 0 0.75rem 0;
+}
+
+.registration-separator {
+  margin: 0.75rem 0 0.5rem 0;
+  border: none;
+  border-top: 1px solid #e5e7eb;
+}
+
+.registration-view {
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.back-login-button {
+  color: #D4AF37 !important;
+  background: #f3f4f6 !important;
+  border: none !important;
+  border-radius: 0.5rem;
+  font-weight: 600;
+}
+
+.registration-card vaadin-text-field,
+.registration-card vaadin-password-field {
+  margin: 0 !important;
+  padding: 0 !important;
+  --vaadin-input-field-padding: 0 !important;
+  --vaadin-form-field-default-width: 100% !important;
+}
+
+.registration-card vaadin-text-field::part(label),
+.registration-card vaadin-password-field::part(label) {
+  margin-bottom: 0.5rem !important;
+  padding: 0 !important;
+}
+
+.registration-card vaadin-text-field::part(input-field),
+.registration-card vaadin-password-field::part(input-field) {
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
+}
