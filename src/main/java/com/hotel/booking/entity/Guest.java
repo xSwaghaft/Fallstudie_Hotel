@@ -5,6 +5,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 /* Artur Derr
  * Entity für Gäste im Hotelbuchungssystem.
@@ -23,8 +25,8 @@ public class Guest implements Serializable {
     /* 1:1 Beziehung zum zugehörigen User
      * @JsonIgnore verhindert Endlosschleife (Guest → User → Guest) dto muss benutzt werden */
     @JsonIgnore
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    @OneToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "user_id", nullable = true, unique = true)
     private User user;
 
     // E-Mail-Adresse des Gastes
@@ -50,6 +52,12 @@ public class Guest implements Serializable {
     // Geburtsdatum des Gastes
     @Column
     private LocalDate birthdate;
+
+    // Feedback des Gastes (1:n Beziehung)
+    // Kein cascade, damit Feedback nicht automatisch gelöscht wird
+    @JsonIgnore
+    @OneToMany(mappedBy = "guest", fetch = FetchType.LAZY)
+    private List<Feedback> feedbacks = new ArrayList<>();
 
     // Standard-Konstruktor für JPA
     protected Guest() {}
@@ -125,5 +133,13 @@ public class Guest implements Serializable {
 
     public void setBirthdate(LocalDate birthdate) {
         this.birthdate = birthdate;
+    }
+
+    public List<Feedback> getFeedbacks() {
+        return feedbacks;
+    }
+
+    public void setFeedbacks(List<Feedback> feedbacks) {
+        this.feedbacks = feedbacks;
     }
 }
