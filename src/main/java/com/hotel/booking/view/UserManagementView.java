@@ -288,8 +288,8 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
 
         Button saveButton = new Button("Save", e -> {
             try {
-                form.writeBean();
-                userService.save(form.getUser());
+                form.writeBean(); // Überträgt die Formulardaten in das User-Objekt
+                userService.save(form.getUser()); // Speichert das User-Objekt aus dem Formular in der Datenbank
                 users.clear();
                 users.addAll(userService.findAll());
                 grid.getDataProvider().refreshAll();

@@ -92,10 +92,12 @@ CREATE TABLE bookings (
   guest_id BIGINT NOT NULL,
   room_id BIGINT,
   invoice_id BIGINT NULL,
+  room_category_id BIGINT NOT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_bookings_guest FOREIGN KEY (guest_id) REFERENCES guests(id) ON DELETE RESTRICT,
-  CONSTRAINT fk_bookings_room FOREIGN KEY (room_id) REFERENCES rooms(room_id) ON DELETE SET NULL
+  CONSTRAINT fk_bookings_room FOREIGN KEY (room_id) REFERENCES rooms(room_id) ON DELETE SET NULL,
+  CONSTRAINT fk_booking_room_category FOREIGN KEY (room_category_id) REFERENCES room_category(category_id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE INDEX idx_booking_dates ON bookings(check_in_date, check_out_date);
