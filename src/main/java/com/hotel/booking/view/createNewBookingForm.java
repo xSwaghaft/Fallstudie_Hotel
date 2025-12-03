@@ -154,6 +154,7 @@ public class createNewBookingForm extends FormLayout{
         || sessionService.getCurrentRole() != UserRole.RECEPTIONIST));
     } else {
         formBooking = existingBooking;
+        formBooking.setStatus(BookingStatus.MODIFIED);
         userByEmailField.setVisible(false);
     }
 
