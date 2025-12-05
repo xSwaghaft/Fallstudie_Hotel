@@ -1,6 +1,8 @@
 package com.hotel.booking.repository;
 
 import com.hotel.booking.entity.Booking;
+import com.hotel.booking.entity.BookingStatus;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -50,14 +52,17 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
 
     // --- Zeitraum-Abfragen ----------------------------------------------------
 
-        // Alle heute(in einem Zeitraum) aktiven Buchungen:
+        // Alle Buchungen, in einem Zeitraum erstellt wurden:
         // (checkIn <= end) AND (checkOut >= start)
         //Matthias Lohr
-        List<Booking> findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(
-                LocalDate today1,
-                LocalDate today2);
+        List<Booking> findByCreatedAtLessThanEqualAndCreatedAtGreaterThanEqual(LocalDate endInclusive, LocalDate startInclusive);
 
-        List<Booking> findByCheckInDateBetween(LocalDate from, LocalDate to);
+         //Liefert alle aktiven (cancelled ausschließen) Buchungen im Zeitraum.
+        List<Booking> findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(
+            LocalDate endInclusive,
+            LocalDate startInclusive,
+            BookingStatus statusToExclude
+        );
 
     @Query("""
             SELECT COALESCE(SUM(b.totalPrice), 0)

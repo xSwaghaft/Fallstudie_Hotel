@@ -3,6 +3,7 @@ package com.hotel.booking.service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.hotel.booking.entity.Booking;
+import com.hotel.booking.entity.BookingStatus;
 import com.hotel.booking.entity.Room;
 import com.hotel.booking.entity.RoomCategory;
 import com.hotel.booking.repository.BookingRepository;
@@ -55,7 +57,7 @@ public class BookingService {
 
     //Matthias Lohr
     public List<Booking> getActiveBookings(LocalDate start, LocalDate end) {
-        return bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(start, end);
+        return bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(start, end, BookingStatus.CANCELLED);
     }
 
     //Buchungen der letzten 5 Tage
@@ -71,7 +73,7 @@ public class BookingService {
 
     //Matthias Lohr
     public int getNumberOfGuestsPresent() {
-        List<Booking> todayBookings = bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(LocalDate.now(), LocalDate.now());
+        List<Booking> todayBookings = bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(LocalDate.now(), LocalDate.now(), BookingStatus.CANCELLED);
         return todayBookings.stream()
                 .mapToInt(Booking::getAmount)
                 .sum();
@@ -79,7 +81,7 @@ public class BookingService {
 
     //Matthias Lohr
     public int getNumberOfCheckoutsToday() {
-        List<Booking> todayCheckouts = bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(LocalDate.now(), LocalDate.now());
+        List<Booking> todayCheckouts = bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(LocalDate.now(), LocalDate.now(), BookingStatus.CANCELLED);
         return (int) todayCheckouts.stream()
                 .filter(booking -> booking.getCheckOutDate().isEqual(LocalDate.now()))
                 .count();
@@ -87,7 +89,7 @@ public class BookingService {
 
     //Matthias Lohr
     public int getNumberOfCheckinsToday() {
-        List<Booking> todayCheckins = bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(LocalDate.now(), LocalDate.now());
+        List<Booking> todayCheckins = bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(LocalDate.now(), LocalDate.now(), BookingStatus.CANCELLED);
         return (int) todayCheckins.stream()
                 .filter(booking -> booking.getCheckInDate().isEqual(LocalDate.now()))
                 .count();
@@ -138,6 +140,14 @@ public class BookingService {
             }
         }
         return false; // Kein Zimmer verfügbar
+    }
+
+    //Zählt alle Buchungen in einem Zeitraum - für den Report
+    //Matthias Lohr
+    public int getNumberOfBookingsInPeriod(LocalDate from, LocalDate to){
+        List<Booking> bookings = bookingRepository.findByCreatedAtLessThanEqualAndCreatedAtGreaterThanEqual(from, to);
+        int uniqueBookingsCount = new HashSet<>(bookings).size();
+        return uniqueBookingsCount;
     }
 
     //Hier soll der gesamtpreis berechnet werden - (Preis x Tage) + (Extra + Extra1 ...)
