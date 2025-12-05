@@ -299,9 +299,9 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
                 Notification.show("Please fix validation errors before saving.", 3000, Notification.Position.MIDDLE);
             }
         });
+        saveButton.addClassName("primary-button");
 
         Button cancelButton = new Button("Cancel", e -> dialog.close());
-        cancelButton.addClassName("primary-button");
 
         HorizontalLayout buttonLayout = new HorizontalLayout(saveButton, cancelButton);
         dialog.add(form, buttonLayout);

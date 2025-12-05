@@ -23,7 +23,6 @@ import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.*;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
@@ -44,7 +43,6 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
     // Statistiken-Komponenten für Live-Updates
     private Component statsRow;
 
-    @Autowired
     public RoomManagementView(SessionService sessionService, 
                                RoomService roomService,
                                RoomCategoryService roomCategoryService) {

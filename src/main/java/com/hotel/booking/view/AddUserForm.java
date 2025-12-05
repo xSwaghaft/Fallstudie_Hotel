@@ -5,7 +5,6 @@ import com.hotel.booking.entity.User;
 import com.hotel.booking.entity.UserRole;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.formlayout.FormLayout;
-import com.vaadin.flow.component.formlayout.FormLayout.ResponsiveStep;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.PasswordField;
@@ -57,8 +56,8 @@ public class AddUserForm extends FormLayout {
 
 		//FormLayout spalten auf basis der Bildschirmbreite hinzufügen
 		this.setResponsiveSteps(
-		    new ResponsiveStep("0", 1), // Single column layout for narrow screens
-		    new ResponsiveStep("500px", 2) // Two columns layout for wider screens
+		    new ResponsiveStep("0", 1), // Single column layout for narrow screens (handy)
+		    new ResponsiveStep("500px", 2) // Two columns layout for wider screens (PC, Tablet)
 		);
 
 		// Set column span for fields

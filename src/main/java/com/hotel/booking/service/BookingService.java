@@ -1,18 +1,17 @@
 package com.hotel.booking.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import com.hotel.booking.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.Room;
 import com.hotel.booking.entity.RoomCategory;
-import com.hotel.booking.entity.User;
 import com.hotel.booking.repository.BookingRepository;
 import com.hotel.booking.repository.RoomRepository;
 
@@ -20,16 +19,13 @@ import com.hotel.booking.repository.RoomRepository;
 @Transactional
 public class BookingService {
 
-    private final UserRepository userRepository;
-
     private final BookingRepository bookingRepository;
     private final RoomRepository roomRepository;
 
 
-    public BookingService(BookingRepository bookingRepository, RoomRepository roomRepository, UserRepository userRepository) {
+    public BookingService(BookingRepository bookingRepository, RoomRepository roomRepository) {
         this.bookingRepository = bookingRepository;
         this.roomRepository = roomRepository;
-        this.userRepository = userRepository;
     }
 
     public List<Booking> findAll() {
@@ -44,6 +40,8 @@ public class BookingService {
         return bookingRepository.findByBookingNumber(bookingNumber);
     }
 
+    //Der gesamtbetrag sollte hier auch mit gespeichert werden - Methode folgt
+    //Matthias Lohr
     public Booking save(Booking booking) {
         booking.setBookingNumber(generateBookingNumber());
         booking.setRoom(assignRoom(booking));
@@ -60,15 +58,15 @@ public class BookingService {
         return bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(start, end);
     }
 
-    //Buchungen der letzten 7 Tage
+    //Buchungen der letzten 5 Tage
     //Matthias Lohr
     public List<Booking> getRecentBookings() {
         LocalDate today = LocalDate.now();
-        LocalDate sevenDaysAgo = today.minusDays(7);
-        return bookingRepository.findAll();
-        // .stream()
-        //         .filter(booking -> !booking.created_at().isBefore(sevenDaysAgo))
-        //         .toList();
+        LocalDate fiveDaysAgo = today.minusDays(5);
+        return bookingRepository.findAll()
+        .stream()
+                .filter(booking -> !booking.getCreatedAt().isBefore(fiveDaysAgo))
+                .toList();
     }
 
     //Matthias Lohr
@@ -142,9 +140,8 @@ public class BookingService {
         return false; // Kein Zimmer verfügbar
     }
 
-    //In diesem Service, da die Methode so nur fürs Booking verwendet wird
-    //Matthias Lohr
-    public User findUserByEmail(String email) {
-        return userRepository.findByEmail(email).orElse(null); //orElse da ein Optional<> zurückkommt
+    //Hier soll der gesamtpreis berechnet werden - (Preis x Tage) + (Extra + Extra1 ...)
+    private BigDecimal calculateTotalPrice() {
+        return null;
     }
 }

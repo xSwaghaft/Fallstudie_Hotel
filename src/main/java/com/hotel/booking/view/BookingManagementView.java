@@ -3,9 +3,8 @@ package com.hotel.booking.view;
 import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
-import com.hotel.booking.service.BookingExtraService;
+import com.hotel.booking.service.BookingFormService;
 import com.hotel.booking.service.BookingService;
-import com.hotel.booking.service.RoomCategoryService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.datepicker.DatePicker;
@@ -23,11 +22,9 @@ import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.router.*;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 
 @Route(value = "bookings", layout = MainLayout.class)
 @CssImport("./themes/hotel/styles.css")
@@ -35,16 +32,17 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
 
     private final SessionService sessionService;
     private final BookingService bookingService;
-    private final BookingExtraService bookingExtraService;
-    private final RoomCategoryService roomCategoryService;
+    private final BookingFormService formService;
+
     private static final DateTimeFormatter GERMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
-    @Autowired
-    public BookingManagementView(SessionService sessionService, BookingService bookingService, BookingExtraService bookingExtraService, RoomCategoryService roomCategoryService) {
+    Grid<Booking> grid = new Grid<>(Booking.class, false);
+
+    public BookingManagementView(SessionService sessionService, BookingService bookingService, BookingFormService formService) {
         this.sessionService = sessionService;
         this.bookingService = bookingService;
-        this.bookingExtraService = bookingExtraService;
-        this.roomCategoryService = roomCategoryService;
+        this.formService = formService;
+
         setSpacing(true);
         setPadding(true);
         setSizeFull();
@@ -80,21 +78,22 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         dialog.setHeaderTitle(existingBooking != null ? "Edit Booking" : "New Booking");
         dialog.setWidth("600px");
 
-        createNewBookingForm form = new createNewBookingForm(sessionService.getCurrentUser(), sessionService, existingBooking, bookingService, bookingExtraService, roomCategoryService);
+        createNewBookingForm form = new createNewBookingForm(sessionService.getCurrentUser(), sessionService, existingBooking, formService);
 
         Button saveButton = new Button("Save", e -> {
             try {
                 form.writeBean(); // Überträgt die Formulardaten in das User-Objekt
                 bookingService.save(form.getBooking()); // Speichert das User-Objekt aus dem Formular in der Datenbank
                 dialog.close();
+                grid.setItems(bookingService.findAll());
                 Notification.show("Booking saved successfully.", 3000, Notification.Position.BOTTOM_START);
             } catch (ValidationException ex) {
                 Notification.show("Please fix validation errors before saving.", 3000, Notification.Position.MIDDLE);
             }
         });
+        saveButton.addClassName("primary-button");
 
         Button cancelButton = new Button("Cancel", e -> dialog.close());
-        cancelButton.addClassName("primary-button");
 
         HorizontalLayout buttonLayout = new HorizontalLayout(saveButton, cancelButton);
 
@@ -141,6 +140,7 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         return card;
     }
 
+    //Matthias Lohr
     private Component createBookingsCard() {
         Div card = new Div();
         card.addClassName("card");
@@ -148,22 +148,24 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         
         H3 title = new H3("All Bookings");
         title.getStyle().set("margin", "0 0 1rem 0");
-
-        //Matthias Lohr
-        Grid<Booking> grid = new Grid<>(Booking.class, false);
         
         grid.addColumn(Booking::getBookingNumber)
             .setHeader("Booking ID")
-            .setWidth("120px")
+            .setWidth("130px")
             .setFlexGrow(0);
         
         grid.addColumn(Booking::getAmount)
-            .setHeader("Guest Name")
+            .setHeader("People")
+            .setWidth("20px")
             .setFlexGrow(2);
         
         grid.addColumn(booking -> booking.getRoom().getRoomNumber())
             .setHeader("Room")
             .setFlexGrow(2);
+
+        grid.addColumn(booking -> booking.getGuest().getFullName())
+            .setHeader("Guest Name")
+            .setFlexGrow(1);
         
         // Check-in mit deutschem Datumsformat
         grid.addColumn(booking -> booking.getCheckInDate().format(GERMAN_DATE_FORMAT))
@@ -175,10 +177,6 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         //     .setHeader("ID")
         //     .setAutoWidth(true)
         //     .setFlexGrow(0);
-        
-        grid.addColumn(booking -> booking.getGuest().getFullName())
-            .setHeader("Guest")
-            .setFlexGrow(1);
         
         // Check-out mit deutschem Datumsformat
         grid.addColumn(booking -> booking.getCheckOutDate().format(GERMAN_DATE_FORMAT))
@@ -207,8 +205,8 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
             .setAutoWidth(true)
             .setFlexGrow(0);
 
-        grid.setItems(bookingService.getRecentBookings());
-        grid.setAllRowsVisible(true);
+        grid.setItems(bookingService.findAll());
+        // grid.setAllRowsVisible(true);
         grid.setWidthFull();
 
         card.add(title, grid);

@@ -3,9 +3,8 @@ package com.hotel.booking.view;
 import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
-import com.hotel.booking.service.BookingExtraService;
+import com.hotel.booking.service.BookingFormService;
 import com.hotel.booking.service.BookingService;
-import com.hotel.booking.service.RoomCategoryService;
 import com.hotel.booking.service.RoomService;
 import com.hotel.booking.service.RoomService.RoomStatistics;
 import com.vaadin.flow.component.Component;
@@ -21,10 +20,8 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.*;
 import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.router.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 
 @Route(value = "dashboard", layout = MainLayout.class)
 @CssImport("./themes/hotel/styles.css")
@@ -33,19 +30,18 @@ public class DashboardView extends VerticalLayout implements BeforeEnterObserver
     private final SessionService sessionService;
     private final RoomService roomService;
     private final BookingService bookingService;
-    private final BookingExtraService bookingExtraService;
-    private final RoomCategoryService roomCategoryService;
+    private final BookingFormService formService;
+
     private static final DateTimeFormatter GERMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
     private Grid<Booking> grid = new Grid<>(Booking.class, false);
 
-    @Autowired
-    public DashboardView(SessionService sessionService, RoomService service, BookingService bookingService, BookingExtraService bookingExtraService, RoomCategoryService roomCategoryService) {
+    public DashboardView(SessionService sessionService, RoomService service, BookingService bookingService, BookingFormService formService) {
         this.sessionService = sessionService;
         this.roomService = service; 
         this.bookingService = bookingService;
-        this.bookingExtraService = bookingExtraService;
-        this.roomCategoryService = roomCategoryService;
+        this.formService = formService;
+
         setSpacing(true);
         setPadding(true);
         setSizeFull();
@@ -108,7 +104,7 @@ public class DashboardView extends VerticalLayout implements BeforeEnterObserver
         dialog.setHeaderTitle(existingBooking != null ? "Edit Booking" : "New Booking");
         dialog.setWidth("600px");
 
-        createNewBookingForm form = new createNewBookingForm(sessionService.getCurrentUser(), sessionService, existingBooking, bookingService, bookingExtraService, roomCategoryService);
+        createNewBookingForm form = new createNewBookingForm(sessionService.getCurrentUser(), sessionService, existingBooking, formService);
 
         Button saveButton = new Button("Save", e -> {
             try {
@@ -121,9 +117,9 @@ public class DashboardView extends VerticalLayout implements BeforeEnterObserver
                 Notification.show("Please fix validation errors before saving.", 3000, Notification.Position.MIDDLE);
             }
         });
+        saveButton.addClassName("primary-button");
 
         Button cancelButton = new Button("Cancel", e -> dialog.close());
-        cancelButton.addClassName("primary-button");
 
         HorizontalLayout buttonLayout = new HorizontalLayout(saveButton, cancelButton);
 

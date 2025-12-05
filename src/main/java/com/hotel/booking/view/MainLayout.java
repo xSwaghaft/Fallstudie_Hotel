@@ -29,7 +29,6 @@ public class MainLayout extends AppLayout {
 
     private final SessionService sessionService;
 
-    @Autowired
     public MainLayout(SessionService sessionService) {
         this.sessionService = sessionService;
 
