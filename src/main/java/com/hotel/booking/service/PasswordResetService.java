@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.hotel.booking.entity.PasswordResetToken;
 import com.hotel.booking.entity.User;
 import com.hotel.booking.repository.PasswordResetTokenRepository;
+import com.hotel.booking.security.BcryptPasswordEncoder;
 
 @Service
 @Transactional
@@ -23,12 +24,12 @@ public class PasswordResetService {
     private final UserService userService;
     private final PasswordResetTokenRepository tokenRepository;
     private final EmailService emailService;
-    private final com.hotel.booking.security.PasswordEncoder passwordEncoder;
+    private final BcryptPasswordEncoder passwordEncoder;
 
     public PasswordResetService(UserService userService,
                                 PasswordResetTokenRepository tokenRepository,
                                 EmailService emailService,
-                                com.hotel.booking.security.PasswordEncoder passwordEncoder) {
+                                BcryptPasswordEncoder passwordEncoder) {
         this.userService = userService;
         this.tokenRepository = tokenRepository;
         this.emailService = emailService;
