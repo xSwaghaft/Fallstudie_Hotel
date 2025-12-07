@@ -72,13 +72,13 @@ INSERT IGNORE INTO guests (id, user_id, email, first_name, last_name, address, p
 (5,1,'sofia.garcia@example.com','Sofia','Garcia','Calle Mayor 5, 28013 Madrid','+34111234567','1995-11-11');
 
 -- ---------- Bookings (mind. 6 Einträge) ----------
-INSERT IGNORE INTO bookings (id, booking_number, amount, check_in_date, check_out_date, status, total_price, guest_id, room_id, invoice_id) VALUES
-(1,'BKG-20251101-001',2,'2025-11-20','2025-11-22','CONFIRMED',159.80,1,1,NULL),
-(2,'BKG-20251102-002',1,'2025-11-10','2025-11-12','CANCELLED',129.90,2,3,NULL),
-(3,'BKG-20251103-003',3,'2025-12-01','2025-12-04','CONFIRMED',479.70,3,5,NULL),
-(4,'BKG-20251104-004',1,'2025-11-15','2025-11-16','CONFIRMED',249.00,4,4,NULL),
-(5,'BKG-20251105-005',2,'2025-12-20','2025-12-25','CANCELLED',319.80,5,3,NULL),
-(6,'BKG-20251106-006',1,'2025-12-05','2025-12-06','PENDING',49.90,1,6,NULL);
+INSERT IGNORE INTO bookings (id, booking_number, amount, check_in_date, check_out_date, status, total_price, guest_id, room_id, invoice_id, room_category_id) VALUES
+(1,'BKG-20251101-001',2,'2025-11-20','2025-11-22','CONFIRMED',159.80,1,1,NULL,1),
+(2,'BKG-20251102-002',1,'2025-11-10','2025-11-12','CANCELLED',129.90,2,3,NULL,2),
+(3,'BKG-20251103-003',3,'2025-12-01','2025-12-04','CONFIRMED',479.70,3,5,NULL,5),
+(4,'BKG-20251104-004',1,'2025-11-15','2025-11-16','CONFIRMED',249.00,4,4,NULL,3),
+(5,'BKG-20251105-005',2,'2025-12-20','2025-12-25','CANCELLED',319.80,5,3,NULL,2),
+(6,'BKG-20251106-006',1,'2025-12-05','2025-12-06','PENDING',49.90,1,6,NULL,4);
 
 -- ---------- Invoices (mind. 5 Einträge) ----------
 INSERT IGNORE INTO invoices (id, invoice_number, amount, issued_at, payment_method, status, booking_id) VALUES
