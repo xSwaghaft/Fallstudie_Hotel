@@ -3,6 +3,8 @@ package com.hotel.booking.repository;
 import com.hotel.booking.entity.Invoice;
 import com.hotel.booking.entity.Invoice.PaymentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -30,6 +32,10 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     
     // Find unpaid invoices
     List<Invoice> findByInvoiceStatusAndPaidAtIsNull(PaymentStatus status);
+    
+    // Find all invoices for a specific room (via booking)
+    @Query("SELECT i FROM Invoice i WHERE i.booking.room.room_id = :roomId")
+    List<Invoice> findByBookingRoomId(@Param("roomId") Long roomId);
     
     // TODO: Activate when Booking entity is created
     // Optional<Invoice> findByBooking(Booking booking);

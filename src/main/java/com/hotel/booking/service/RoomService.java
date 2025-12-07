@@ -3,6 +3,7 @@ package com.hotel.booking.service;
 import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.Room;
 import com.hotel.booking.entity.RoomCategory;
+import com.hotel.booking.entity.RoomStatus;
 import com.hotel.booking.repository.BookingRepository;
 import com.hotel.booking.repository.RoomRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,25 +45,101 @@ public class RoomService {
         return roomRepository.save(room);
     }
 
-    /* Löscht einen Room anhand der ID */
+    /* Löscht einen Room oder setzt ihn auf Inactive */
     public void deleteRoom(Long id) {
         Optional<Room> roomOpt = roomRepository.findById(id);
         if (roomOpt.isPresent()) {
-            // Zuerst alle Bookings für diesen Room auf NULL setzen (Foreign Key umgehen)
-            List<Booking> bookingsWithRoom = bookingRepository.findByRoom_Id(id);
-            bookingsWithRoom.forEach(booking -> booking.setRoom(null));
-            bookingRepository.saveAll(bookingsWithRoom);
+            Room room = roomOpt.get();
             
-            // Dann den Room löschen
-            roomRepository.deleteById(id);
+            // Prüfe ob es Bookings für diesen Room gibt
+            List<Booking> bookings = bookingRepository.findByRoom_Id(id);
+            
+            if (bookings.isEmpty()) {
+                // Keine Bookings -> echtes Löschen
+                roomRepository.deleteById(id);
+            } else {
+                // Bookings vorhanden -> setze auf Inactive
+                if (!RoomStatus.INACTIVE.equals(room.getStatus())) {
+                    room.setStatus(RoomStatus.INACTIVE);
+                    room.setActive(false);
+                    roomRepository.save(room);
+                }
+            }
+        }
+    }
+
+    /* Gibt zurück, ob ein Room gelöscht oder auf Inactive gesetzt werden soll */
+    public DeleteAction getDeletionAction(Long roomId) {
+        Optional<Room> roomOpt = roomRepository.findById(roomId);
+        if (roomOpt.isPresent()) {
+            List<Booking> bookings = bookingRepository.findByRoom_Id(roomId);
+            
+            // Wenn keine Bookings -> echtes Löschen möglich
+            if (bookings.isEmpty()) {
+                return DeleteAction.PERMANENT_DELETE;
+            } else {
+                // Bookings vorhanden -> nur auf Inactive setzen
+                return DeleteAction.SET_INACTIVE;
+            }
+        }
+        throw new IllegalArgumentException("Room mit ID " + roomId + " nicht gefunden");
+    }
+
+    /* Enum für Deletions-Aktion */
+    public enum DeleteAction {
+        SET_INACTIVE("Deactivate Room", "Set to INACTIVE", 
+            "Set Room {roomNumber} to INACTIVE? It will no longer be available for bookings.",
+            "Room set to INACTIVE!",
+            "This room has existing bookings.\n\n" +
+            "Rooms with bookings cannot be deleted permanently to maintain historical records.\n\n" +
+            "Please deactivate the room first by setting its status to INACTIVE. " +
+            "The room will remain in the system for reference purposes."),
+        PERMANENT_DELETE("Delete Room", "Delete", 
+            "Delete Room {roomNumber} permanently?",
+            "Room deleted successfully!",
+            null);
+
+        private final String dialogTitle;
+        private final String buttonLabel;
+        private final String messageTemplate;
+        private final String successMessage;
+        private final String explanation;
+
+        DeleteAction(String dialogTitle, String buttonLabel, String messageTemplate, 
+                    String successMessage, String explanation) {
+            this.dialogTitle = dialogTitle;
+            this.buttonLabel = buttonLabel;
+            this.messageTemplate = messageTemplate;
+            this.successMessage = successMessage;
+            this.explanation = explanation;
+        }
+
+        public String getDialogTitle() {
+            return dialogTitle;
+        }
+
+        public String getButtonLabel() {
+            return buttonLabel;
+        }
+
+        public String getMessageTemplate() {
+            return messageTemplate;
+        }
+
+        public String getSuccessMessage() {
+            return successMessage;
+        }
+
+        public String getExplanation() {
+            return explanation;
         }
     }
 
     // ==================== Query-Methoden ====================
 
-    /* Findet Rooms nach Verfügbarkeit */
-    public List<Room> findByAvailability(String availability) {
-        return roomRepository.findByAvailability(availability);
+    /* Findet Rooms nach Status */
+    public List<Room> findByStatus(RoomStatus status) {
+        return roomRepository.findByStatus(status);
     }
 
     /* Findet Rooms nach Kategorie */
@@ -70,16 +147,9 @@ public class RoomService {
         return roomRepository.findByCategory(category);
     }
 
-    /* Findet Rooms nach Preisbereich */
-    public List<Room> findByPriceBetween(Double minPrice, Double maxPrice) {
-        return roomRepository.findByPriceBetween(minPrice, maxPrice);
-    }
-
     /* Findet alle verfügbaren Rooms */
     public List<Room> getAvailableRooms() {
-        return roomRepository.findAll().stream()
-            .filter(room -> "Available".equals(room.getAvailability()))
-            .toList();
+        return roomRepository.findByStatus(RoomStatus.AVAILABLE);
     }
 
     // ==================== Business-Logik ====================
@@ -92,26 +162,26 @@ public class RoomService {
         long totalRooms = allRooms.size();
         
         long availableRooms = allRooms.stream()
-            .filter(room -> "Available".equals(room.getAvailability()))
+            .filter(room -> RoomStatus.AVAILABLE.equals(room.getStatus()))
             .count();
         
         long occupiedRooms = allRooms.stream()
-            .filter(room -> "Occupied".equals(room.getAvailability()))
+            .filter(room -> RoomStatus.OCCUPIED.equals(room.getStatus()))
             .count();
         
-        long maintenanceRooms = allRooms.stream()
-            .filter(room -> "Maintenance".equals(room.getAvailability()))
+        long cleaningRooms = allRooms.stream()
+            .filter(room -> RoomStatus.CLEANING.equals(room.getStatus()))
             .count();
         
-        return new RoomStatistics(totalRooms, availableRooms, occupiedRooms, maintenanceRooms);
+        return new RoomStatistics(totalRooms, availableRooms, occupiedRooms, cleaningRooms);
     }
 
-    /* Ändert die Verfügbarkeit eines Rooms */
-    public Room changeAvailability(Long roomId, String availability) {
+    /* Ändert den Status eines Rooms */
+    public Room changeStatus(Long roomId, RoomStatus status) {
         Optional<Room> roomOpt = roomRepository.findById(roomId);
         if (roomOpt.isPresent()) {
             Room room = roomOpt.get();
-            room.setAvailability(availability);
+            room.setStatus(status);
             return roomRepository.save(room);
         }
         throw new IllegalArgumentException("Room with ID " + roomId + " not found");
@@ -127,12 +197,12 @@ public class RoomService {
             throw new IllegalArgumentException("Room number is required");
         }
         
-        if (room.getPrice() == null || room.getPrice() < 0) {
-            throw new IllegalArgumentException("Price must be greater than or equal to 0");
+        if (room.getCategory() != null && room.getCategory().getPricePerNight() == null) {
+            throw new IllegalArgumentException("Category price must be set");
         }
         
-        if (room.getAvailability() == null) {
-            throw new IllegalArgumentException("Availability status is required");
+        if (room.getStatus() == null) {
+            throw new IllegalArgumentException("Status is required");
         }
     }
 
@@ -159,13 +229,13 @@ public class RoomService {
         private final long totalRooms;
         private final long availableRooms;
         private final long occupiedRooms;
-        private final long maintenanceRooms;
+        private final long cleaningRooms;
 
-        public RoomStatistics(long totalRooms, long availableRooms, long occupiedRooms, long maintenanceRooms) {
+        public RoomStatistics(long totalRooms, long availableRooms, long occupiedRooms, long cleaningRooms) {
             this.totalRooms = totalRooms;
             this.availableRooms = availableRooms;
             this.occupiedRooms = occupiedRooms;
-            this.maintenanceRooms = maintenanceRooms;
+            this.cleaningRooms = cleaningRooms;
         }
 
         public long getTotalRooms() {
@@ -180,8 +250,8 @@ public class RoomService {
             return occupiedRooms;
         }
 
-        public long getMaintenanceRooms() {
-            return maintenanceRooms;
+        public long getCleaningRooms() {
+            return cleaningRooms;
         }
 
         public double getOccupancyRate() {
@@ -194,7 +264,7 @@ public class RoomService {
                     "totalRooms=" + totalRooms +
                     ", availableRooms=" + availableRooms +
                     ", occupiedRooms=" + occupiedRooms +
-                    ", maintenanceRooms=" + maintenanceRooms +
+                    ", cleaningRooms=" + cleaningRooms +
                     ", occupancyRate=" + String.format("%.2f%%", getOccupancyRate()) +
                     '}';
         }

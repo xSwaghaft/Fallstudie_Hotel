@@ -1,0 +1,109 @@
+/* =========================================================
+   CARD FACTORY COMPONENTS
+   Wiederverwendbare Card-Komponenten für alle Views
+   ========================================================= */
+
+/* Stat Cards */
+.stat-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+}
+
+.stat-card-label {
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: var(--font-size-sm);
+}
+
+.stat-card-value {
+  margin: 0;
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+}
+
+/* Content Cards */
+.content-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+  flex-grow: 1;
+}
+
+.content-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: var(--spacing-md);
+}
+
+.content-card-title {
+  margin: 0;
+}
+
+.content-card-subtitle {
+  margin: var(--spacing-xs) 0 0 0;
+  font-size: var(--font-size-sm);
+}
+
+.content-card-button {
+  flex-shrink: 0;
+}
+
+/* Stats Row */
+.stats-row {
+  display: flex;
+  gap: var(--spacing-md);
+  width: 100%;
+}
+
+.stats-row .stat-card {
+  flex: 1;
+}
+
+/* KPI Cards */
+.kpi-card {
+  background: var(--color-bg-white);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+  min-width: 200px;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.kpi-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.kpi-card-title {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  margin: 0;
+}
+
+.kpi-card-icon {
+  width: 24px;
+  height: 24px;
+  color: var(--color-primary);
+}
+
+.kpi-card h2 {
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}

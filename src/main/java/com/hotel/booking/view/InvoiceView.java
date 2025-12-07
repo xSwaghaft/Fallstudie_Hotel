@@ -14,21 +14,21 @@ import com.vaadin.flow.component.orderedlayout.*;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.*;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
 import java.util.List;
 
 @Route(value = "invoices", layout = MainLayout.class)
+@PageTitle("Invoice Management")
 @CssImport("./themes/hotel/styles.css")
+@CssImport("./themes/hotel/views/invoice.css")
 public class InvoiceView extends VerticalLayout implements BeforeEnterObserver {
 
     private final SessionService sessionService;
 
-    record Invoice(String id, String guest, String bookingId, String issueDate, 
+    record Invoice(String id, String guest, String bookingId, String issueDate,
                   String dueDate, int amount, int paid, int balance, String status) {}
 
-    @Autowired
     public InvoiceView(SessionService sessionService) {
         this.sessionService = sessionService;
         setSpacing(true);
@@ -40,10 +40,8 @@ public class InvoiceView extends VerticalLayout implements BeforeEnterObserver {
 
     private Component createHeader() {
         H1 title = new H1("Invoice Management");
-        title.getStyle().set("margin", "0");
         
         Paragraph subtitle = new Paragraph("Track and manage guest invoices");
-        subtitle.getStyle().set("margin", "0");
         
         Div headerLeft = new Div(title, subtitle);
         
@@ -88,7 +86,6 @@ public class InvoiceView extends VerticalLayout implements BeforeEnterObserver {
         titleSpan.addClassName("kpi-card-title");
         
         H2 valueHeading = new H2(value);
-        valueHeading.getStyle().set("margin", "0");
         if (color != null) {
             valueHeading.getStyle().set("color", color);
         }
@@ -103,7 +100,6 @@ public class InvoiceView extends VerticalLayout implements BeforeEnterObserver {
         card.setWidthFull(); // WICHTIG: Card nutzt volle Breite
         
         H3 title = new H3("Search & Filter");
-        title.getStyle().set("margin", "0 0 1rem 0");
         
         TextField search = new TextField("Search");
         search.setPlaceholder("Invoice ID, Guest name...");
@@ -133,19 +129,17 @@ public class InvoiceView extends VerticalLayout implements BeforeEnterObserver {
         card.setWidthFull(); // WICHTIG: Card nutzt volle Breite
         
         H3 title = new H3("All Invoices");
-        title.getStyle().set("margin", "0 0 0.5rem 0");
         
         Paragraph subtitle = new Paragraph("Complete list of invoices and their payment status");
-        subtitle.getStyle().set("margin", "0 0 1rem 0");
         
         Grid<Invoice> grid = new Grid<>(Invoice.class, false);
         grid.addColumn(Invoice::id).setHeader("Invoice ID").setAutoWidth(true).setFlexGrow(0);
         grid.addComponentColumn(inv -> {
             Div container = new Div();
             Div name = new Div(new Span(inv.guest()));
-            name.getStyle().set("font-weight", "600");
+            name.addClassName("invoice-guest-name");
             Div bookingId = new Div(new Span(inv.bookingId()));
-            bookingId.getStyle().set("font-size", "0.85rem").set("color", "var(--color-text-secondary)");
+            bookingId.addClassName("invoice-booking-id");
             container.add(name, bookingId);
             return container;
         }).setHeader("Guest Name").setFlexGrow(1);
@@ -154,13 +148,12 @@ public class InvoiceView extends VerticalLayout implements BeforeEnterObserver {
         grid.addColumn(inv -> "€" + inv.amount()).setHeader("Amount").setAutoWidth(true).setFlexGrow(0);
         grid.addComponentColumn(inv -> {
             Span span = new Span("€" + inv.paid());
-            span.getStyle().set("color", "#10b981").set("font-weight", "600");
+            span.addClassName("invoice-paid-amount");
             return span;
         }).setHeader("Paid").setAutoWidth(true).setFlexGrow(0);
         grid.addComponentColumn(inv -> {
             Span span = new Span("€" + inv.balance());
-            span.getStyle().set("color", inv.balance() > 0 ? "#ef4444" : "#10b981")
-                          .set("font-weight", "600");
+            span.addClassName(inv.balance() > 0 ? "invoice-balance-negative" : "invoice-balance-positive");
             return span;
         }).setHeader("Balance").setAutoWidth(true).setFlexGrow(0);
         grid.addComponentColumn(this::createStatusBadge).setHeader("Status").setAutoWidth(true).setFlexGrow(0);
@@ -171,7 +164,7 @@ public class InvoiceView extends VerticalLayout implements BeforeEnterObserver {
             
             if ("pending".equals(inv.status()) || "partial".equals(inv.status())) {
                 Button confirm = new Button(VaadinIcon.CHECK.create());
-                confirm.getStyle().set("color", "#10b981");
+                confirm.addClassName("invoice-button-success");
                 actions.add(view, download, confirm);
             } else {
                 actions.add(view, download);

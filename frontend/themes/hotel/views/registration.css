@@ -1,0 +1,83 @@
+/* =========================================================
+   REGISTRATION VIEW
+   Styles für die Registrierungsseite
+   ========================================================= */
+
+.registration-view {
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* Registration Card */
+.registration-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: 1.5rem 2.5rem;
+  max-width: 520px;
+  width: 100%;
+  box-shadow: var(--shadow-lg);
+}
+
+.registration-title {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  text-align: center;
+  margin: 0 0 var(--spacing-xs) 0;
+  color: var(--color-text-primary);
+}
+
+.registration-subtitle {
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  margin: 0 0 0.75rem 0;
+}
+
+.registration-separator {
+  margin: 0.75rem 0 0.5rem 0;
+  border: none;
+  border-top: 1px solid var(--color-border);
+}
+
+/* Back to Login Button */
+.back-login-button {
+  color: var(--color-primary);
+  background: var(--color-bg-light);
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+}
+
+/* Form Fields */
+.registration-card vaadin-text-field,
+.registration-card vaadin-password-field {
+  margin: 0 !important;
+  padding: 0 !important;
+  --vaadin-input-field-padding: 0 !important;
+  --vaadin-form-field-default-width: 100% !important;
+}
+
+.registration-card vaadin-text-field::part(label),
+.registration-card vaadin-password-field::part(label) {
+  margin-bottom: 0.5rem !important;
+  padding: 0 !important;
+}
+
+.registration-card vaadin-text-field::part(input-field),
+.registration-card vaadin-password-field::part(input-field) {
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
+}
+
+/* Success Dialog Styles */
+.success-dialog-icon {
+  font-size: 3rem;
+  color: #10b981;
+}
+
+.success-dialog-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+}

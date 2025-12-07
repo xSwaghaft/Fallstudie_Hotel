@@ -18,14 +18,15 @@ import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.*;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Route(value = "bookings", layout = MainLayout.class)
+@PageTitle("Booking Management")
 @CssImport("./themes/hotel/styles.css")
+@CssImport("./themes/hotel/views/booking-management.css")
 public class BookingManagementView extends VerticalLayout implements BeforeEnterObserver {
 
     private final SessionService sessionService;
@@ -40,7 +41,6 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
 
     private Grid<Booking> grid;
 
-    @Autowired
     public BookingManagementView(SessionService sessionService) {
         this.sessionService = sessionService;
         setSpacing(true);
@@ -52,10 +52,9 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
 
     private Component createHeader() {
         H1 title = new H1("Booking Management");
-        title.getStyle().set("margin", "0");
         
         Paragraph subtitle = new Paragraph("Manage all hotel bookings and reservations");
-        subtitle.getStyle().set("margin", "0");
+        subtitle.addClassName("booking-subtitle");
         
         Div headerLeft = new Div(title, subtitle);
         
@@ -77,10 +76,10 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         card.setWidthFull(); // WICHTIG: Card nutzt volle Breite
         
         H3 title = new H3("Search & Filter");
-        title.getStyle().set("margin", "0 0 0.5rem 0");
+        title.addClassName("booking-section-title");
         
         Paragraph subtitle = new Paragraph("Find specific bookings quickly");
-        subtitle.getStyle().set("margin", "0 0 1rem 0");
+        subtitle.addClassName("booking-subtitle");
 
         TextField search = new TextField("Search");
         search.setPlaceholder("Booking ID, Guest name...");
@@ -116,7 +115,7 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         card.setWidthFull();
         
         H3 title = new H3("All Bookings");
-        title.getStyle().set("margin", "0 0 1rem 0");
+        title.addClassName("booking-section-title");
 
         grid = new Grid<>(Booking.class, false);
         
@@ -260,7 +259,7 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         Div extras = new Div(new Paragraph("No additional services requested"));
 
         Div pages = new Div(details, payments, history, extras);
-        pages.getStyle().set("minHeight", "200px");
+        pages.addClassName("booking-details-container");
         payments.setVisible(false); 
         history.setVisible(false); 
         extras.setVisible(false);

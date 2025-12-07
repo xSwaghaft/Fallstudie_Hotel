@@ -13,17 +13,17 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.*;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.router.*;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
 
 @Route(value = "reports", layout = MainLayout.class)
+@PageTitle("Reports & Analytics")
 @CssImport("./themes/hotel/styles.css")
+@CssImport("./themes/hotel/views/reports.css")
 public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
 
     private final SessionService sessionService;
 
-    @Autowired
     public ReportsView(SessionService sessionService) {
         this.sessionService = sessionService;
         setSpacing(true);
@@ -35,10 +35,10 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
 
     private Component createHeader() {
         H1 title = new H1("Reports & Analytics");
-        title.getStyle().set("margin", "0");
+        title.addClassName("reports-header-title");
         
         Paragraph subtitle = new Paragraph("Comprehensive insights and performance metrics");
-        subtitle.getStyle().set("margin", "0");
+        subtitle.addClassName("reports-header-subtitle");
         
         Div headerLeft = new Div(title, subtitle);
         
@@ -51,9 +51,8 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
         buttons.add(exportPdf, exportCsv);
         
         HorizontalLayout header = new HorizontalLayout(headerLeft, buttons);
+        header.addClassName("reports-header");
         header.setWidthFull();
-        header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-        header.setAlignItems(FlexComponent.Alignment.CENTER);
         
         return header;
     }
@@ -64,10 +63,10 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
         card.setWidthFull();
         
         H3 title = new H3("Report Filters");
-        title.getStyle().set("margin", "0 0 0.5rem 0");
+        title.addClassName("reports-filters-title");
         
         Paragraph subtitle = new Paragraph("Select date range and report parameters");
-        subtitle.getStyle().set("margin", "0 0 1rem 0");
+        subtitle.addClassName("reports-filters-subtitle");
 
         DatePicker startDate = new DatePicker("Start Date");
         startDate.setValue(LocalDate.of(2025, 1, 1));
@@ -88,7 +87,7 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
 
         Button generateBtn = new Button("Generate Report");
         generateBtn.addClassName("primary-button");
-        generateBtn.getStyle().set("margin-top", "1rem");
+        generateBtn.addClassName("reports-filter-button");
 
         card.add(title, subtitle, form, generateBtn);
         return card;
@@ -127,19 +126,21 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
         icon.getStyle().set("color", color);
         
         HorizontalLayout cardHeader = new HorizontalLayout(titleSpan, icon);
+        cardHeader.addClassName("kpi-card-header");
         cardHeader.setWidthFull();
-        cardHeader.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
         
         // Value
         H2 valueHeading = new H2(value);
-        valueHeading.getStyle().set("margin", "0.5rem 0");
+        valueHeading.addClassName("kpi-card-value");
         
         // Trend
         Span trendSpan = new Span(trend);
-        trendSpan.getStyle()
-            .set("font-size", "0.875rem")
-            .set("color", isPositive ? "#10b981" : "#6b7280")
-            .set("font-weight", "500");
+        trendSpan.addClassName("kpi-card-trend");
+        if (isPositive) {
+            trendSpan.addClassName("positive");
+        } else {
+            trendSpan.addClassName("neutral");
+        }
         
         card.add(cardHeader, valueHeading, trendSpan);
         return card;
@@ -177,39 +178,27 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
         card.setWidthFull();
         
         H3 title = new H3("Revenue & Bookings Trend");
-        title.getStyle().set("margin", "0 0 0.5rem 0");
+        title.addClassName("reports-filters-title");
         
         Paragraph subtitle = new Paragraph("Monthly revenue and booking count over time");
-        subtitle.getStyle().set("margin", "0 0 1rem 0");
+        subtitle.addClassName("reports-filters-subtitle");
 
         Div chartPlaceholder = new Div();
-        chartPlaceholder.getStyle()
-            .set("height", "350px")
-            .set("background", "linear-gradient(180deg, #f9fafb 0%, #ffffff 100%)")
-            .set("border-radius", "0.5rem")
-            .set("display", "flex")
-            .set("align-items", "center")
-            .set("justify-content", "center")
-            .set("border", "2px dashed #e5e7eb");
+        chartPlaceholder.addClassName("chart-placeholder");
+        chartPlaceholder.addClassName("revenue-chart-placeholder");
         
         Div content = new Div();
-        content.getStyle().set("text-align", "center");
+        content.addClassName("chart-placeholder-content");
         
         Icon chartIcon = VaadinIcon.LINE_CHART.create();
         chartIcon.setSize("48px");
-        chartIcon.getStyle().set("color", "#9ca3af");
+        chartIcon.addClassName("revenue-chart-icon");
         
         Paragraph text = new Paragraph("Revenue & Bookings Trend Chart");
-        text.getStyle()
-            .set("margin", "1rem 0 0 0")
-            .set("color", "#6b7280")
-            .set("font-weight", "500");
+        text.addClassName("chart-placeholder-icon");
         
         Paragraph info = new Paragraph("Monthly data visualization showing revenue (€) and booking trends");
-        info.getStyle()
-            .set("margin", "0.5rem 0 0 0")
-            .set("color", "#9ca3af")
-            .set("font-size", "0.875rem");
+        info.addClassName("chart-placeholder-info");
         
         content.add(chartIcon, text, info);
         chartPlaceholder.add(content);
@@ -224,33 +213,24 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
         card.setWidthFull();
         
         H3 title = new H3("Room Occupancy (Last 7 Days)");
-        title.getStyle().set("margin", "0 0 0.5rem 0");
+        title.addClassName("reports-filters-title");
         
         Paragraph subtitle = new Paragraph("Daily breakdown of occupied vs available rooms");
-        subtitle.getStyle().set("margin", "0 0 1rem 0");
+        subtitle.addClassName("reports-filters-subtitle");
 
         Div chartPlaceholder = new Div();
-        chartPlaceholder.getStyle()
-            .set("height", "300px")
-            .set("background", "linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%)")
-            .set("border-radius", "0.5rem")
-            .set("display", "flex")
-            .set("align-items", "center")
-            .set("justify-content", "center")
-            .set("border", "2px dashed #d1fae5");
+        chartPlaceholder.addClassName("chart-placeholder");
+        chartPlaceholder.addClassName("occupancy-chart-placeholder");
         
         Div content = new Div();
-        content.getStyle().set("text-align", "center");
+        content.addClassName("chart-placeholder-content");
         
         Icon chartIcon = VaadinIcon.BAR_CHART.create();
         chartIcon.setSize("48px");
-        chartIcon.getStyle().set("color", "#10b981");
+        chartIcon.addClassName("occupancy-chart-icon");
         
         Paragraph text = new Paragraph("Room Occupancy Chart");
-        text.getStyle()
-            .set("margin", "1rem 0 0 0")
-            .set("color", "#6b7280")
-            .set("font-weight", "500");
+        text.addClassName("chart-placeholder-icon");
         
         content.add(chartIcon, text);
         chartPlaceholder.add(content);
@@ -265,33 +245,24 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
         card.setWidthFull();
         
         H3 title = new H3("Bookings by Room Type");
-        title.getStyle().set("margin", "0 0 0.5rem 0");
+        title.addClassName("reports-filters-title");
         
         Paragraph subtitle = new Paragraph("Distribution of bookings across room categories");
-        subtitle.getStyle().set("margin", "0 0 1rem 0");
+        subtitle.addClassName("reports-filters-subtitle");
 
         Div chartPlaceholder = new Div();
-        chartPlaceholder.getStyle()
-            .set("height", "300px")
-            .set("background", "linear-gradient(180deg, #fef3c7 0%, #ffffff 100%)")
-            .set("border-radius", "0.5rem")
-            .set("display", "flex")
-            .set("align-items", "center")
-            .set("justify-content", "center")
-            .set("border", "2px dashed #fde68a");
+        chartPlaceholder.addClassName("chart-placeholder");
+        chartPlaceholder.addClassName("room-type-chart-placeholder");
         
         Div content = new Div();
-        content.getStyle().set("text-align", "center");
+        content.addClassName("chart-placeholder-content");
         
         Icon chartIcon = VaadinIcon.PIE_CHART.create();
         chartIcon.setSize("48px");
-        chartIcon.getStyle().set("color", "#D4AF37");
+        chartIcon.addClassName("room-type-chart-icon");
         
         Paragraph text = new Paragraph("Room Type Distribution");
-        text.getStyle()
-            .set("margin", "1rem 0 0 0")
-            .set("color", "#6b7280")
-            .set("font-weight", "500");
+        text.addClassName("chart-placeholder-icon");
         
         content.add(chartIcon, text);
         chartPlaceholder.add(content);
@@ -306,39 +277,27 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
         card.setWidthFull();
         
         H3 title = new H3("Weekly Booking Trends");
-        title.getStyle().set("margin", "0 0 0.5rem 0");
+        title.addClassName("reports-filters-title");
         
         Paragraph subtitle = new Paragraph("New bookings vs cancellations by day of week");
-        subtitle.getStyle().set("margin", "0 0 1rem 0");
+        subtitle.addClassName("reports-filters-subtitle");
 
         Div chartPlaceholder = new Div();
-        chartPlaceholder.getStyle()
-            .set("height", "350px")
-            .set("background", "linear-gradient(180deg, #dbeafe 0%, #ffffff 100%)")
-            .set("border-radius", "0.5rem")
-            .set("display", "flex")
-            .set("align-items", "center")
-            .set("justify-content", "center")
-            .set("border", "2px dashed #bfdbfe");
+        chartPlaceholder.addClassName("chart-placeholder");
+        chartPlaceholder.addClassName("weekly-booking-chart-placeholder");
         
         Div content = new Div();
-        content.getStyle().set("text-align", "center");
+        content.addClassName("chart-placeholder-content");
         
         Icon chartIcon = VaadinIcon.BAR_CHART_V.create();
         chartIcon.setSize("48px");
-        chartIcon.getStyle().set("color", "#3b82f6");
+        chartIcon.addClassName("weekly-booking-chart-icon");
         
         Paragraph text = new Paragraph("Weekly Booking Trends");
-        text.getStyle()
-            .set("margin", "1rem 0 0 0")
-            .set("color", "#6b7280")
-            .set("font-weight", "500");
+        text.addClassName("chart-placeholder-icon");
         
         Paragraph info = new Paragraph("Comparison of new bookings and cancellations");
-        info.getStyle()
-            .set("margin", "0.5rem 0 0 0")
-            .set("color", "#9ca3af")
-            .set("font-size", "0.875rem");
+        info.addClassName("chart-placeholder-info");
         
         content.add(chartIcon, text, info);
         chartPlaceholder.add(content);

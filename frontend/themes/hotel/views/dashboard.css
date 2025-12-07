@@ -1,0 +1,24 @@
+/* =========================================================
+   DASHBOARD VIEW - STYLES
+   ========================================================= */
+
+.kpi-card-header {
+  margin-bottom: 0.5rem;
+}
+
+.recent-bookings-header {
+  margin-bottom: 1rem;
+}
+
+.view-all-button {
+  color: var(--color-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  padding: 0;
+}
+
+.view-all-button:hover {
+  color: var(--color-primary-hover);
+}

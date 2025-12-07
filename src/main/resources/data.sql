@@ -54,14 +54,31 @@ INSERT IGNORE INTO room_category (category_id, name, description, price_per_nigh
 (4,'Economy','Günstiges Einzelzimmer',49.90,1,TRUE),
 (5,'Family','Familienzimmer mit 2 Betten',159.90,4,TRUE);
 
+-- ---------- Room amenities ----------
+INSERT IGNORE INTO room_category_amenities (category_id, amenity) VALUES
+(1,'SHOWER'),
+(1,'BATHTUB'),
+(2,'SHOWER'),
+(2,'BATHTUB'),
+(2,'BALCONY'),
+(3,'SHOWER'),
+(3,'BATHTUB'),
+(3,'BALCONY'),
+(3,'AIRCONDITIONING'),
+(3,'MINIBAR'),
+(4,'SHOWER'),
+(5,'SHOWER'),
+(5,'BATHTUB'),
+(5,'AIRCONDITIONING');
+
 -- ---------- Rooms (mind. 6 Einträge) ----------
-INSERT IGNORE INTO rooms (room_id, room_number, floor, category_id, price, availability, information) VALUES
-(1, '101', 1, 1, 79.90, 'Available', 'Zimmer 101 Standard'),
-(2, '102', 1, 1, 79.90, 'Maintenance', 'Zimmer 102 Standard - Renovierung'),
-(3, '201', 2, 2, 129.90, 'Available', 'Zimmer 201 Deluxe mit Balkon'),
-(4, '301', 3, 3, 249.00, 'Occupied', 'Suite 301 mit Wohnzimmer'),
-(5, '401', 4, 5, 159.90, 'Available', 'Familienzimmer 401'),
-(6, '501', 5, 4, 49.90, 'Available', 'Einzelzimmer 501 Economy');
+INSERT IGNORE INTO rooms (room_id, room_number, floor, category_id, status, active, information) VALUES
+(1, '101', 1, 1, 'AVAILABLE', TRUE, 'Zimmer 101 Standard'),
+(2, '102', 1, 1, 'CLEANING', TRUE, 'Zimmer 102 Standard - Renovierung'),
+(3, '201', 2, 2, 'AVAILABLE', TRUE, 'Zimmer 201 Deluxe mit Balkon'),
+(4, '301', 3, 3, 'OCCUPIED', TRUE, 'Suite 301 mit Wohnzimmer'),
+(5, '401', 4, 5, 'AVAILABLE', TRUE, 'Familienzimmer 401'),
+(6, '501', 5, 4, 'AVAILABLE', TRUE, 'Einzelzimmer 501 Economy');
 
 -- ---------- Guests (mind. 5 Einträge) ----------
 INSERT IGNORE INTO guests (id, user_id, email, first_name, last_name, address, phone_number, birthdate) VALUES
