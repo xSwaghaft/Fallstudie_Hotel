@@ -48,6 +48,7 @@ public class BookingService {
         booking.setBookingNumber(generateBookingNumber());
         booking.setRoom(assignRoom(booking));
         booking.validateDates(); // nutzt deine Validierung in der Entity
+        booking.setTotalPrice(calculateTotalPrice());
         return bookingRepository.save(booking);
     }
 
@@ -145,13 +146,18 @@ public class BookingService {
     //Zählt alle Buchungen in einem Zeitraum - für den Report
     //Matthias Lohr
     public int getNumberOfBookingsInPeriod(LocalDate from, LocalDate to){
-        List<Booking> bookings = bookingRepository.findByCreatedAtLessThanEqualAndCreatedAtGreaterThanEqual(from, to);
+        List<Booking> bookings = bookingRepository.findByCreatedAtLessThanEqualAndCreatedAtGreaterThanEqual(to, from);
         int uniqueBookingsCount = new HashSet<>(bookings).size();
         return uniqueBookingsCount;
     }
 
-    //Hier soll der gesamtpreis berechnet werden - (Preis x Tage) + (Extra + Extra1 ...)
+    //Matthias Lohr
+    public List<Booking> getAllBookingsInPeriod (LocalDate from, LocalDate to) {
+        return bookingRepository.findByCreatedAtLessThanEqualAndCreatedAtGreaterThanEqual(to, from);
+    }
+
+    //Hier soll der gesamtpreis berechnet werden - (Preis x Tage) + (Extra + Extra1 ...) - Vorübergehend 100€
     private BigDecimal calculateTotalPrice() {
-        return null;
+        return new BigDecimal(100.00);
     }
 }

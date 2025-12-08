@@ -3,6 +3,7 @@ package com.hotel.booking.view;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.BookingService;
+import com.hotel.booking.service.ReportService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.datepicker.DatePicker;
@@ -26,27 +27,32 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
 
     private final SessionService sessionService;
     private final BookingService bookingService;
+    private final ReportService reportService;
 
     DatePicker startDate = new DatePicker("Start Date");
     DatePicker endDate = new DatePicker("End Date");
 
-    public ReportsView(SessionService sessionService, BookingService bookingService) {
+    private final VerticalLayout kpiArea = new VerticalLayout();
+
+    public ReportsView(SessionService sessionService, BookingService bookingService, ReportService reportService) {
         this.sessionService = sessionService;
 
         this.bookingService = bookingService;
+        this.reportService = reportService;
 
         setSpacing(true);
         setPadding(true);
         setSizeFull();
 
-        add(createHeader(), createFilters(), createKpiRow());
+        add(createHeader(), createFilters(), kpiArea);
+        kpiArea.add(createKpiArea());
     }
 
     private Component createHeader() {
         H1 title = new H1("Reports & Analytics");
         title.getStyle().set("margin", "0");
         
-        Paragraph subtitle = new Paragraph("Comprehensive insights and performance metrics");
+        Paragraph subtitle = new Paragraph("Month-over-Month KPI Insights");
         subtitle.getStyle().set("margin", "0");
         
         Div headerLeft = new Div(title, subtitle);
@@ -68,7 +74,7 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
         H3 title = new H3("Report Filters");
         title.getStyle().set("margin", "0 0 0.5rem 0");
         
-        Paragraph subtitle = new Paragraph("Select date range and report parameters");
+        Paragraph subtitle = new Paragraph("Select date range - Current Period vs. Previous Month");
         subtitle.getStyle().set("margin", "0 0 1rem 0");
 
         startDate.setValue(LocalDate.now());
@@ -82,7 +88,7 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
         );
 
         Button generateBtn = new Button("Generate Report");
-        generateBtn.addClickListener(e -> createKpiRow());
+        generateBtn.addClickListener(e -> refreshKpiArea());
         generateBtn.addClassName("primary-button");
         generateBtn.getStyle().set("margin-top", "1rem");
 
@@ -91,30 +97,63 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
     }
 
     //Matthias Lohr
-    private Component createKpiRow() {
-        HorizontalLayout row = new HorizontalLayout();
-        row.setWidthFull();
-        row.setSpacing(true);
+    private Component createKpiArea() {
+        VerticalLayout wrapper = new VerticalLayout();
+        wrapper.setSpacing(true);
+        wrapper.setPadding(false);
+        wrapper.setWidthFull();
 
-        boolean bookingTrend = getBookingTrend() > 0;
+        // erste Reihe
+        HorizontalLayout row1 = new HorizontalLayout();
+        row1.setWidthFull();
+        row1.setSpacing(true);
 
-        Component card1 = createKpiCard("Total Revenue", "€589,000", 
-            VaadinIcon.DOLLAR, "#D4AF37", "+12.5% from last period", true);
-        Component card2 = createKpiCard("Avg Occupancy", "78.3%", 
-            VaadinIcon.TRENDING_UP, "#3b82f6", "+5.2% from last period", true);
-        Component card3 = createKpiCard("Total Bookings", Integer.toString(
-            bookingService.getNumberOfBookingsInPeriod(endDate.getValue(), startDate.getValue())),
-            VaadinIcon.CALENDAR, "#10b981", getBookingTrendString(), bookingTrend);
-        Component card4 = createKpiCard("Avg Stay Duration", "3.2 days", 
-            VaadinIcon.CLOCK, "#8b5cf6", "Consistent with last period", false);
-        Component card5 = createKpiCard("Most popular Extra", "Wifi", 
-            VaadinIcon.STAR, "#8b5cf6", "Consistent with last period", true);
+        Component card1 = createKpiCard("Total Revenue", 
+                reportService.getTotalRevenueInPeriod(startDate.getValue(), endDate.getValue()),
+                VaadinIcon.DOLLAR, "#D4AF37",
+                "+12.5% from last period", true);
 
-        row.add(card1, card2, card3, card4);
-        row.expand(card1, card2, card3, card4);
+        Component card2 = createKpiCard("Avg Occupancy", "78.3%",
+                VaadinIcon.TRENDING_UP, "#3b82f6",
+                "+5.2% from last period", true);
 
-        return row;
+        Component card3 = createKpiCard("Total Bookings",
+                Integer.toString(bookingService.getNumberOfBookingsInPeriod(
+                        startDate.getValue(), endDate.getValue())),
+                VaadinIcon.CALENDAR, "#10b981",
+                reportService.getBookingTrendString(startDate.getValue(), endDate.getValue()),
+                reportService.getBookingTrend(startDate.getValue(), endDate.getValue()) > 0);
+
+        row1.add(card1, card2, card3);
+        row1.expand(card1, card2, card3);
+
+        // Zweite Reihe
+        HorizontalLayout row2 = new HorizontalLayout();
+        row2.setWidthFull();
+        row2.setSpacing(true);
+
+        Component card4 = createKpiCard("Avg Stay Duration", "3.2 days",
+                VaadinIcon.CLOCK, "#8b5cf6",
+                "Consistent with last period", false);
+
+        Component card5 = createKpiCard("Most popular Extra",
+                reportService.getMostPopularExtraInPeriod(startDate.getValue(), endDate.getValue()),
+                VaadinIcon.STAR, "#8b5cf6",
+                "Consistent with last period", true);
+
+        Component card6 = createKpiCard("Revenue per Guest", 
+                "150.00€ test",
+                VaadinIcon.USERS, "#6366f1",
+                "", false);
+
+        row2.add(card4, card5, card6);
+        row2.expand(card4, card5, card6);
+
+        wrapper.add(row1, row2);
+
+        return wrapper;
     }
+
 
     //Matthias Lohr
     private Component createKpiCard(String title, String value, VaadinIcon iconType, 
@@ -148,47 +187,9 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
         return card;
     }
 
-    //Matthias Lohr
-    private double getBookingTrend() {
-        int thisPeriod = bookingService.getNumberOfBookingsInPeriod(endDate.getValue(), startDate.getValue());
-        int comparisonPeriod = bookingService.getNumberOfBookingsInPeriod(
-            endDate.getValue().minusMonths(1), startDate.getValue().minusMonths(1));
-        double trendPercent = ((thisPeriod - comparisonPeriod)/ comparisonPeriod) * 100;
-
-        return trendPercent;
-    }
-
-    //Matthias Lohr
-    private String getBookingTrendString() {
-        int thisPeriod = bookingService.getNumberOfBookingsInPeriod(endDate.getValue(), startDate.getValue());
-        int comparisonPeriod = bookingService.getNumberOfBookingsInPeriod(
-            endDate.getValue().minusMonths(1), startDate.getValue().minusMonths(1));
-        String trendString;
-    
-        // Keine Buchungen in dieser, oder Vergleichsperiode
-        if (comparisonPeriod == 0) {
-            if (thisPeriod > 0) {
-                trendString = "No Bookings in comparison period";
-            } else {
-                trendString = "0% from last period"; 
-            }
-        } else {
-            // Berechne die prozentuale Veränderung (TypeCast zu double - sollte unproblematisch sein)
-            double difference = thisPeriod - comparisonPeriod;
-            double percentage = (difference / comparisonPeriod) * 100;
-            
-            // DecimalFormat für die Formatierung
-            // Setze DecimalFormatSymbols auf US, für Punkt als Dezimaltrennzeichen
-            DecimalFormatSymbols symbol = new DecimalFormatSymbols(Locale.US);
-            // Definiert die Vorzeichen, '0.0' für eine Nachkommastelle
-            DecimalFormat df = new DecimalFormat("+#0.0;-#0.0", symbol);
-            
-            // Formatiere den Wert und füge den Rest des Strings hinzu
-            String formattedPercentage = df.format(percentage);
-            trendString = formattedPercentage + "% from last period";
-        }
-
-        return trendString;
+    private void refreshKpiArea() {
+        kpiArea.removeAll();
+        kpiArea.add(createKpiArea());
     }
 
     @Override
