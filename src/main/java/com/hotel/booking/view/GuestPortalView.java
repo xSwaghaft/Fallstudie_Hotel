@@ -21,10 +21,6 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import java.time.LocalDate;
-import java.util.List;
 
 @Route(value = "guest-portal", layout = MainLayout.class)
 @CssImport("./themes/hotel/styles.css")
@@ -32,7 +28,6 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
 
     private final SessionService sessionService;
 
-    private record Room(int id, String name, String desc, int price, int available, double rating, String image) {}
 
     @Autowired
     public GuestPortalView(SessionService sessionService) {
