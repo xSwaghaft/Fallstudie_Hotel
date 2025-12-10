@@ -13,6 +13,7 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -178,5 +179,42 @@ public class ReportService {
                 .max(Map.Entry.comparingByValue())
                 .map(Map.Entry::getKey)
                 .orElse("None");
+    }
+
+    //Berechnet durchschnittliche Buchungsdauer in einem Zeitraum 
+    // (ChronoUnit ist ein Enum, das Zeiteinheiten Repräsentiert und Methode between liefert)
+    //Matthias Lohr
+public String getAvgStayDurationInPeriod(LocalDate from, LocalDate to) {
+    List<Booking> bookings = bookingService.getAllBookingsInPeriod(from, to);
+
+    if (bookings.isEmpty()) {
+        return "0.00";
+    }
+    double avg = bookings.stream()
+        .mapToLong(b -> ChronoUnit.DAYS.between(b.getCheckInDate(), b.getCheckOutDate()))
+        .average()
+        .orElse(0.0);
+
+    return String.format("%.2f days", avg);
+}
+
+
+    //Gibt die meistgebuchte Kategorie in einem Zeitraum als String zurück
+    //Matthias Lohr
+    public String getTopCategoryInPeriod(LocalDate from, LocalDate to) {
+        List<Booking> bookings = bookingService.getAllBookingsInPeriod(from, to);
+        if (bookings.isEmpty()) {
+            return "None";
+        }
+        // Map<Categorie-Name, Anzahl> wird mittels stream in die Map gespeichert
+        Map<String, Long> countMap = bookings.stream()
+            .filter(b -> b.getRoomCategory() != null) //Kann es null sein?
+            .map(b -> b.getRoomCategory().getName())
+            .collect(
+                Collectors.groupingBy(name -> name, Collectors.counting())); //Gruppiert die Einträge nach Name mit Anzahl als Value
+        return countMap.entrySet().stream()
+            .max(Map.Entry.comparingByValue()) //Holt den Eintrag mit der höchsten Zahl als Value
+            .map(Map.Entry::getKey) //Holt den dazugehörigen Katgorie-Namen oder "None" da max Optional ist
+            .orElse("None");
     }
 }

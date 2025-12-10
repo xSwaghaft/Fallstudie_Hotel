@@ -113,8 +113,9 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
                 VaadinIcon.DOLLAR, "#D4AF37",
                 "+12.5% from last period", true);
 
-        Component card2 = createKpiCard("Avg Occupancy", "78.3%",
-                VaadinIcon.TRENDING_UP, "#3b82f6",
+        Component card2 = createKpiCard("Top performing Category",
+         reportService.getTopCategoryInPeriod(startDate.getValue(), endDate.getValue()),
+                VaadinIcon.STAR, "#3b82f6",
                 "+5.2% from last period", true);
 
         Component card3 = createKpiCard("Total Bookings",
@@ -132,7 +133,8 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
         row2.setWidthFull();
         row2.setSpacing(true);
 
-        Component card4 = createKpiCard("Avg Stay Duration", "3.2 days",
+        Component card4 = createKpiCard("Avg Stay Duration", 
+                reportService.getAvgStayDurationInPeriod(startDate.getValue(), endDate.getValue()),
                 VaadinIcon.CLOCK, "#8b5cf6",
                 "Consistent with last period", false);
 
@@ -143,7 +145,7 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
 
         Component card6 = createKpiCard("Revenue per Guest", 
                 "150.00€ test",
-                VaadinIcon.USERS, "#6366f1",
+                VaadinIcon.DOLLAR, "#6366f1",
                 "", false);
 
         row2.add(card4, card5, card6);
