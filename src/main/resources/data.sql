@@ -89,13 +89,13 @@ INSERT IGNORE INTO guests (id, user_id, email, first_name, last_name, address, p
 (5,1,'sofia.garcia@example.com','Sofia','Garcia','Calle Mayor 5, 28013 Madrid','+34111234567','1995-11-11');
 
 -- ---------- Bookings (mind. 6 Einträge) ----------
-INSERT IGNORE INTO bookings (id, booking_number, amount, check_in_date, check_out_date, status, total_price, guest_id, room_id, invoice_id, room_category_id) VALUES
-(1,'20251120-A1B2C3D4',2,'2025-11-20','2025-11-22','CONFIRMED',159.80,1,1,NULL,1),
-(2,'20251110-E5F6G7H8',1,'2025-11-10','2025-11-12','CANCELLED',129.90,2,3,NULL,2),
-(3,'20251201-I9J0K1L2',3,'2025-12-01','2025-12-04','CONFIRMED',479.70,3,5,NULL,5),
-(4,'20251115-M3N4O5P6',1,'2025-11-15','2025-11-16','CONFIRMED',249.00,4,4,NULL,3),
-(5,'20251220-Q7R8S9T0',2,'2025-12-20','2025-12-25','CANCELLED',319.80,5,3,NULL,2),
-(6,'20251205-U1V2W3X4',1,'2025-12-05','2025-12-06','PENDING',49.90,1,6,NULL,4);
+INSERT IGNORE INTO bookings (id, booking_number, amount, check_in_date, check_out_date, status, total_price, guest_id, room_id, invoice_id, room_category_id, created_at) VALUES
+(1,'20251120-A1B2C3D4',2,'2025-11-20','2025-11-22','CONFIRMED',159.80,1,1,NULL,1,'2025-11-01'),
+(2,'20251110-E5F6G7H8',1,'2025-11-10','2025-11-12','CANCELLED',129.90,2,3,NULL,2,'2025-11-02'),
+(3,'20251201-I9J0K1L2',3,'2025-12-01','2025-12-04','CONFIRMED',479.70,3,5,NULL,5,'2025-11-21'),
+(4,'20251115-M3N4O5P6',1,'2025-11-15','2025-11-16','CONFIRMED',249.00,4,4,NULL,3,'2025-11-14'),
+(5,'20251220-Q7R8S9T0',2,'2025-12-20','2025-12-25','CANCELLED',319.80,5,3,NULL,2,'2025-11-10'),
+(6,'20251205-U1V2W3X4',1,'2025-12-05','2025-12-06','PENDING',49.90,1,6,NULL,4,'2025-11-25');
 
 -- ---------- Invoices (mind. 5 Einträge) ----------
 INSERT IGNORE INTO invoices (id, invoice_number, amount, issued_at, payment_method, status, booking_id) VALUES
