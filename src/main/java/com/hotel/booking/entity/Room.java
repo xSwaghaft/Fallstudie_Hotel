@@ -33,7 +33,7 @@ public class Room {
     private Integer floor;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "category_id", nullable = false) // DB-Spaltenname
+    @JoinColumn(name = "category_id", nullable = true) // Kann NULL sein wenn Kategorie gelöscht wird
     @JsonBackReference
     private RoomCategory category;
 

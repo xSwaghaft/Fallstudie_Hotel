@@ -264,6 +264,9 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
         HorizontalLayout actions = new HorizontalLayout();
         actions.setSpacing(true);
         
+        User currentUser = sessionService.getCurrentUser();
+        boolean isCurrentUser = currentUser != null && currentUser.getId().equals(user.getId());
+        
         Button viewBtn = new Button(VaadinIcon.EYE.create());
         viewBtn.addClickListener(e -> openUserDetailsDialog(user));
         
@@ -272,6 +275,7 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
         
         Button deleteBtn = new Button(VaadinIcon.TRASH.create());
         deleteBtn.getStyle().set("color", "#ef4444");
+        deleteBtn.setEnabled(!isCurrentUser); // Deaktiviere Button wenn aktueller User
         deleteBtn.addClickListener(e -> confirmDelete(user));
         
         actions.add(viewBtn, editBtn, deleteBtn);
@@ -354,6 +358,13 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
     }
 
     private void confirmDelete(User user) {
+        // Prüfe, ob der aktuelle User versucht, sich selbst zu löschen
+        User currentUser = sessionService.getCurrentUser();
+        if (currentUser != null && currentUser.getId().equals(user.getId())) {
+            Notification.show("You cannot delete your own account while logged in", 3000, Notification.Position.TOP_CENTER);
+            return;
+        }
+
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle("Confirm Delete");
         dialog.setWidth("400px");
@@ -364,11 +375,16 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
         Button confirmBtn = new Button("Yes, Delete");
         confirmBtn.addClassName("logout-btn-header");
         confirmBtn.addClickListener(e -> {
-            userService.delete(user); // Use the service to delete the user from the database
-            users.remove(user);
-            grid.getDataProvider().refreshAll();
-            dialog.close();
-            Notification.show("User deleted successfully");
+            try {
+                userService.delete(user); // Use the service to delete the user from the database
+                users.remove(user);
+                grid.getDataProvider().refreshAll();
+                dialog.close();
+                Notification.show("User deleted successfully");
+            } catch (Exception ex) {
+                Notification.show("Error deleting user: " + ex.getMessage(), 5000, Notification.Position.TOP_CENTER);
+                ex.printStackTrace();
+            }
         });
 
         Button cancelBtn = new Button("Cancel");

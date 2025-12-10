@@ -1,7 +1,11 @@
 package com.hotel.booking.service;
 
 import com.hotel.booking.entity.RoomCategory;
+import com.hotel.booking.entity.Room;
 import com.hotel.booking.repository.RoomCategoryRepository;
+import com.hotel.booking.repository.RoomRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,11 +19,15 @@ import java.util.Optional;
 @Transactional
 public class RoomCategoryService {
 
+    private static final Logger log = LoggerFactory.getLogger(RoomCategoryService.class);
+
     private final RoomCategoryRepository roomCategoryRepository;
+    private final RoomRepository roomRepository;
 
     @Autowired
-    public RoomCategoryService(RoomCategoryRepository roomCategoryRepository) {
+    public RoomCategoryService(RoomCategoryRepository roomCategoryRepository, RoomRepository roomRepository) {
         this.roomCategoryRepository = roomCategoryRepository;
+        this.roomRepository = roomRepository;
     }
 
     // ==================== CRUD-Operationen ====================
@@ -41,7 +49,27 @@ public class RoomCategoryService {
 
     /* Löscht eine Room Category anhand der ID */
     public void deleteRoomCategory(Long id) {
-        roomCategoryRepository.deleteById(id);
+        Optional<RoomCategory> categoryOpt = roomCategoryRepository.findById(id);
+        
+        if (categoryOpt.isPresent()) {
+            RoomCategory category = categoryOpt.get();
+            
+            // Entkopple alle Rooms von dieser Category (setze category auf NULL)
+            List<Room> affectedRooms = category.getRooms();
+            if (affectedRooms != null && !affectedRooms.isEmpty()) {
+                for (Room room : affectedRooms) {
+                    room.setCategory(null);
+                    roomRepository.save(room);
+                }
+                log.info("Entkoppelt {} Rooms von Category {} ({})", affectedRooms.size(), category.getName(), id);
+            }
+            
+            // Lösche die Category
+            roomCategoryRepository.delete(category);
+            log.info("Gelöschte RoomCategory: {} (ID: {})", category.getName(), id);
+        } else {
+            throw new IllegalArgumentException("RoomCategory mit ID " + id + " nicht gefunden");
+        }
     }
 
     // ==================== Query-Methoden ====================
