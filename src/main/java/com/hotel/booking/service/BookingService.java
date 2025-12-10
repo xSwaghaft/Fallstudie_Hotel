@@ -1,8 +1,10 @@
 package com.hotel.booking.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -11,10 +13,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.hotel.booking.entity.Booking;
+import com.hotel.booking.entity.BookingExtra;
 import com.hotel.booking.entity.BookingStatus;
 import com.hotel.booking.entity.Room;
 import com.hotel.booking.entity.RoomCategory;
 import com.hotel.booking.repository.BookingRepository;
+import com.hotel.booking.repository.RoomCategoryRepository;
 import com.hotel.booking.repository.RoomRepository;
 
 @Service
@@ -23,11 +27,14 @@ public class BookingService {
 
     private final BookingRepository bookingRepository;
     private final RoomRepository roomRepository;
+    private final RoomCategoryRepository roomCategoryRepository;
+    
 
 
-    public BookingService(BookingRepository bookingRepository, RoomRepository roomRepository) {
+    public BookingService(BookingRepository bookingRepository, RoomRepository roomRepository, RoomCategoryRepository roomCategoryRepository) {
         this.bookingRepository = bookingRepository;
         this.roomRepository = roomRepository;
+        this.roomCategoryRepository = roomCategoryRepository;
     }
 
     public List<Booking> findAll() {
@@ -143,7 +150,38 @@ public class BookingService {
         return false; // Kein Zimmer verfügbar
     }
 
-    //Zählt alle Buchungen in einem Zeitraum - für den Report
+
+    //wahrscheinlich weg Viktor Götting Sucht die verfügbaren räume nach Kategorie inder gesuchten Zeit und sortiert alle aus die mehr gäste brauchen als MaxOccupancy zulässt
+    public List<Room> availableRoomsSearch(LocalDate checkIn, LocalDate checkOut , int oppacity, String category ){
+
+        List<Room> searchedRooms ;
+        RoomCategory roomCategory;
+        List<Room> available = new ArrayList<>();
+
+        if(category == null || category.equals("All Types")){
+            searchedRooms = roomRepository.findAll();
+        }else{
+            roomCategory = roomCategoryRepository.findByName(category);
+            searchedRooms = roomRepository.findByCategory(roomCategory);
+        }
+        for (Room room : searchedRooms) {
+            boolean overlaps = bookingRepository.existsByRoom_IdAndCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(
+                room.getId(),
+                checkOut,
+                checkIn
+            );
+            if (!overlaps) {
+                if(oppacity <= room.getCategory().getMaxOccupancy())
+                 available.add(room);
+            }
+        }
+
+        return available;
+        
+    }
+    
+
+    //In diesem Service, da die Methode so nur fürs Booking verwendet wird
     //Matthias Lohr
     public int getNumberOfBookingsInPeriod(LocalDate from, LocalDate to){
         List<Booking> bookings = bookingRepository.findByCreatedAtLessThanEqualAndCreatedAtGreaterThanEqual(to, from);
@@ -160,4 +198,59 @@ public class BookingService {
     private BigDecimal calculateTotalPrice() {
         return new BigDecimal(100.00);
     }
+
+
+    //Viktor Götting Sucht alle vergangenen CONFIRMED Buchungen für einen Gast
+    public List<Booking> findPastBookingsForGuest(Long guestId) {
+        if (guestId == null) {
+            return List.of();
+        }
+        return bookingRepository.findByGuest_IdAndCheckOutDateBeforeAndStatus(
+                guestId,
+                LocalDate.now(),
+                com.hotel.booking.entity.BookingStatus.CONFIRMED
+        );
+    }
+
+    public List<Booking> findAllBookingsForGuest(Long guestId) {
+        if (guestId == null) {
+            return List.of();
+        }
+        return bookingRepository.findByGuest_Id(guestId);
+    }
+
+    //Viktor Götting berechnet den Gesamtpreis der Buchung
+    public void calculateBookingPrice(Booking booking) {
+        if (booking.getCheckInDate() == null || booking.getCheckOutDate() == null) {
+            booking.setTotalPrice(BigDecimal.ZERO);
+            return;
+        }
+
+        long nights = booking.getCheckOutDate().toEpochDay() - booking.getCheckInDate().toEpochDay();
+        if (nights <= 0) {
+            booking.setTotalPrice(BigDecimal.ZERO);
+            return;
+        }
+
+        BigDecimal total = BigDecimal.ZERO;
+
+        // Preis pro Nacht
+        if (booking.getRoomCategory() != null && booking.getRoomCategory().getPricePerNight() != null) {
+            BigDecimal pricePerNight = booking.getRoomCategory().getPricePerNight();
+            total = total.add(pricePerNight.multiply(BigDecimal.valueOf(nights)));
+        }
+
+        // Extras pro Gast
+        if (booking.getExtras() != null && booking.getAmount() != null) {
+            for (BookingExtra extra : booking.getExtras()) {
+                if (extra != null && extra.getPrice() != null) {
+                    BigDecimal extraPrice = BigDecimal.valueOf(extra.getPrice());
+                    total = total.add(extraPrice.multiply(BigDecimal.valueOf(booking.getAmount())));
+                }
+            }
+        }
+
+        booking.setTotalPrice(total.setScale(2, RoundingMode.HALF_UP));
+    }
+
 }

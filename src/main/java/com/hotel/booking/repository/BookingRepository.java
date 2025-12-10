@@ -30,7 +30,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
         List<Booking> findByRoom_Id(Long roomId);
 
         // --- RoomCategory-bezogene Abfragen ----------------------------------
-        
+
         @Query("SELECT b FROM Booking b WHERE b.roomCategory.category_id = :categoryId")
         List<Booking> findByRoomCategoryId(@Param("categoryId") Long categoryId);
 
@@ -77,12 +77,24 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
             """)
     BigDecimal revenueBetween(@Param("from") LocalDate from, @Param("to") LocalDate to);
 
-    // --- Sperre für “Jetzt-buchen”-Flow (verhindert Rennbedingungen) ---------
+    // --- Sperre für "Jetzt-buchen"-Flow (verhindert Rennbedingungen) ---------
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT b FROM Booking b WHERE b.id = :id")
     Optional<Booking> lockById(@Param("id") Long id);
 
-    // --- Guest-bezogene Abfragen ----------------------------------------
+    // --- Gast-bezogene Abfragen ----------------------------------------------
+    
+    @EntityGraph(attributePaths = {"feedback", "roomCategory", "room"})
+    @Query("""
+            SELECT b FROM Booking b 
+            WHERE b.guest.id = :guestId 
+              AND b.checkOutDate < :beforeDate 
+              AND b.status = :status
+            """)
+    List<Booking> findByGuest_IdAndCheckOutDateBeforeAndStatus(
+            @Param("guestId") Long guestId,
+            @Param("beforeDate") LocalDate beforeDate,
+            @Param("status") com.hotel.booking.entity.BookingStatus status);
     
     List<Booking> findByGuest_Id(Long guestId);
 }

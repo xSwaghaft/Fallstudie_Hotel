@@ -78,6 +78,51 @@ public class createNewBookingForm extends FormLayout{
         }
     }
 
+    //Konstruktor für RoomGrid - Kategorie, CheckIn und CheckOut können übergeben werden
+    public createNewBookingForm(User user, SessionService sessionService, Booking existingBooking, BookingFormService formService, 
+                                 RoomCategory category, LocalDate checkIn, LocalDate checkOut) {
+        this.user = user;
+        this.sessionService = sessionService;
+        this.formService = formService;
+        this.formBooking = existingBooking;
+
+        this.configureFields();
+        this.configureBinder();
+        this.setBooking(existingBooking);
+
+        this.add(displayCategoryField, userByEmailField, roomCategorySelect, checkInDate, checkOutDate, guestNumber, extras);
+
+        // Wenn eine feste Kategorie übergeben wurde, zeige sie im Feld an
+        if (category != null) {
+            roomCategorySelect.setVisible(false);
+            displayCategoryField.setVisible(true);
+            displayCategoryField.setReadOnly(true);
+            displayCategoryField.setValue(category.getName());
+            if (formBooking != null) {
+                formBooking.setRoomCategory(category);
+            }
+        }
+
+        // Setze CheckIn und CheckOut direkt in den DatePickern
+        if (checkIn != null) {
+            checkInDate.setValue(checkIn);
+            if (formBooking != null) {
+                formBooking.setCheckInDate(checkIn);
+            }
+        }
+        if (checkOut != null) {
+            checkOutDate.setValue(checkOut);
+            if (formBooking != null) {
+                formBooking.setCheckOutDate(checkOut);
+            }
+        }
+        
+        // Aktualisiere das Booking-Objekt im Binder
+        if (formBooking != null) {
+            binder.readBean(formBooking);
+        }
+    }
+
     private void configureFields() {
         //Anzeigefeld, wenn die Kategorie nicht änderbar ist
         displayCategoryField.setVisible(false);

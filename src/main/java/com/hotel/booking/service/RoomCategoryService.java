@@ -1,9 +1,11 @@
 package com.hotel.booking.service;
 
 import com.hotel.booking.entity.RoomCategory;
+import com.hotel.booking.entity.RoomImage;
 import com.hotel.booking.entity.Room;
 import com.hotel.booking.entity.Booking;
 import com.hotel.booking.repository.RoomCategoryRepository;
+import com.hotel.booking.repository.RoomImageRepository;
 import com.hotel.booking.repository.RoomRepository;
 import com.hotel.booking.repository.InvoiceRepository;
 import com.hotel.booking.repository.BookingRepository;
@@ -26,16 +28,19 @@ public class RoomCategoryService {
     private static final Logger log = LoggerFactory.getLogger(RoomCategoryService.class);
 
     private final RoomCategoryRepository roomCategoryRepository;
+    private final RoomImageRepository roomImageRepository;
     private final RoomRepository roomRepository;
     private final InvoiceRepository invoiceRepository;
     private final BookingRepository bookingRepository;
 
     @Autowired
-    public RoomCategoryService(RoomCategoryRepository roomCategoryRepository, 
+    public RoomCategoryService(RoomCategoryRepository roomCategoryRepository,
+                                RoomImageRepository roomImageRepository,
                                 RoomRepository roomRepository,
                                 InvoiceRepository invoiceRepository,
                                 BookingRepository bookingRepository) {
         this.roomCategoryRepository = roomCategoryRepository;
+        this.roomImageRepository = roomImageRepository;
         this.roomRepository = roomRepository;
         this.invoiceRepository = invoiceRepository;
         this.bookingRepository = bookingRepository;
@@ -333,5 +338,27 @@ public class RoomCategoryService {
                     ", inactiveCategories=" + getInactiveCategories() +
                     '}';
         }
+    }
+
+
+    //Viktor Götting Gibt alle bilder einer Kategorie zurück
+
+    public List<RoomImage> getAllRoomImages(Room room){
+        if (room == null || room.getCategory() == null) {
+            return List.of();
+        }
+        
+        List<RoomImage> images = roomImageRepository.findByCategoryOrderByDisplayOrderAsc(room.getCategory());
+        return images != null ? images : List.of();
+    }
+    
+    /* Überladene Methode: Gibt alle Bilder einer Kategorie direkt zurück */
+    public List<RoomImage> getAllRoomImages(RoomCategory category) {
+        if (category == null) {
+            return List.of();
+        }
+        
+        List<RoomImage> images = roomImageRepository.findByCategoryOrderByDisplayOrderAsc(category);
+        return images != null ? images : List.of();
     }
 }

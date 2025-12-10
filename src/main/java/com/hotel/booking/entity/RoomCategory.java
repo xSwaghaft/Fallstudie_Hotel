@@ -7,18 +7,20 @@ import java.util.List;
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 //Matthias Lohr
 @Entity
@@ -53,6 +55,11 @@ public class RoomCategory {
     @OneToMany(mappedBy = "category")
     @JsonManagedReference
     private List<Room> rooms = new ArrayList<>();
+
+    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OrderBy("displayOrder ASC, isPrimary DESC")
+    @JsonManagedReference
+    private List<RoomImage> images = new ArrayList<>();
 
 
     // Default constructor
@@ -125,6 +132,31 @@ public class RoomCategory {
 
     public void setRooms(List<Room> rooms) {
         this.rooms = rooms;
+    }
+
+    public List<RoomImage> getImages() {
+        return images;
+    }
+
+    public void setImages(List<RoomImage> images) {
+        this.images = images;
+    }
+
+    public void addImage(RoomImage image) {
+        images.add(image);
+        image.setCategory(this);
+    }
+
+    public void removeImage(RoomImage image) {
+        images.remove(image);
+        image.setCategory(null);
+    }
+
+    public RoomImage getPrimaryImage() {
+        return images.stream()
+                .filter(RoomImage::getIsPrimary)
+                .findFirst()
+                .orElse(images.isEmpty() ? null : images.get(0));
     }
 
     public Set<Amenities> getAmenities() {
