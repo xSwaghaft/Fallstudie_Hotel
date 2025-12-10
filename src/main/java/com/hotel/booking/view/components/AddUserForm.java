@@ -56,8 +56,8 @@ public class AddUserForm extends FormLayout {
 
 		//FormLayout spalten auf basis der Bildschirmbreite hinzufügen
 		this.setResponsiveSteps(
-		    new ResponsiveStep("0", 1), // Single column layout for narrow screens
-		    new ResponsiveStep("500px", 2) // Two columns layout for wider screens
+		    new ResponsiveStep("0", 1), // Single column layout for narrow screens (handy)
+		    new ResponsiveStep("500px", 2) // Two columns layout for wider screens (PC, Tablet)
 		);
 
 		// Set column span for fields

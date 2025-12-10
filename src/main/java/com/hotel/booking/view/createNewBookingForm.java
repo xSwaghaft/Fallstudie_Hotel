@@ -3,27 +3,23 @@ package com.hotel.booking.view;
 import java.time.LocalDate;
 import java.util.HashSet;
 
-import com.hotel.booking.entity.AdressEmbeddable;
 import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.BookingExtra;
 import com.hotel.booking.entity.BookingStatus;
-import com.hotel.booking.entity.Room;
 import com.hotel.booking.entity.RoomCategory;
 import com.hotel.booking.entity.User;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
-import com.hotel.booking.service.BookingExtraService;
-import com.hotel.booking.service.BookingService;
-import com.hotel.booking.service.RoomCategoryService;
+import com.hotel.booking.service.BookingFormService;
 import com.vaadin.flow.component.checkbox.CheckboxGroup;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.IntegerField;
+import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
-import com.vaadin.flow.data.converter.StringToIntegerConverter;
 
 //Matthias Lohr
 public class createNewBookingForm extends FormLayout{
@@ -33,10 +29,9 @@ public class createNewBookingForm extends FormLayout{
     private final User user;
 
     private final SessionService sessionService;
-    private final BookingService bookingService;
-    private final BookingExtraService bookingExtraService;
-    private final RoomCategoryService roomCategoryService;
+    private final BookingFormService formService;
 
+    private TextField displayCategoryField = new TextField("Room Category");
     private EmailField userByEmailField = new EmailField("E-Mail");
     private Select<RoomCategory> roomCategorySelect = new Select<>();
     private IntegerField guestNumber = new IntegerField ("How many guests?");
@@ -44,26 +39,52 @@ public class createNewBookingForm extends FormLayout{
     private DatePicker checkOutDate = new DatePicker("Check-Out Date");
     private CheckboxGroup<BookingExtra> extras = new CheckboxGroup<>();
 
-    public createNewBookingForm(User user, SessionService sessionService, Booking existingBooking, BookingService bookingService, BookingExtraService bookingExtraService, RoomCategoryService roomCategoryService) {
+    public createNewBookingForm(User user, SessionService sessionService, Booking existingBooking, BookingFormService formService) {
 
-    this.user = user;
-    this.sessionService = sessionService;
-    this.bookingService = bookingService;
-    this.bookingExtraService = bookingExtraService;
-    this.roomCategoryService = roomCategoryService;
+        this.user = user;
+        this.sessionService = sessionService;
+        this.formService = formService;
+        this.formBooking = existingBooking;
 
-    this.configureFields();
-    this.configureBinder();
-    this.setBooking(existingBooking);
+        this.configureFields();
+        this.configureBinder();
+        this.setBooking(existingBooking);
 
-    this.add(userByEmailField, roomCategorySelect, checkInDate, checkOutDate, guestNumber, extras);
-}
+        this.add(displayCategoryField, userByEmailField, roomCategorySelect, checkInDate, checkOutDate, guestNumber, extras);
+    }
+
+    //Konstruktor für die GuestView - Kategorie kann übergeben werden
+    public createNewBookingForm(User user, SessionService sessionService, Booking existingBooking, BookingFormService formService, RoomCategory category) {
+        this.user = user;
+        this.sessionService = sessionService;
+        this.formService = formService;
+        this.formBooking = existingBooking;
+
+        this.configureFields();
+        this.configureBinder();
+        this.setBooking(existingBooking);
+
+        this.add(displayCategoryField, userByEmailField, roomCategorySelect, checkInDate, checkOutDate, guestNumber, extras);
+
+        // Wenn eine feste Kategorie übergeben wurde, zeige sie im Feld an
+        if (category != null) {
+            roomCategorySelect.setVisible(false);
+            displayCategoryField.setVisible(true);
+            displayCategoryField.setReadOnly(true);
+            displayCategoryField.setValue(category.getName());
+            if (formBooking != null) {
+                formBooking.setRoomCategory(category);
+            }
+        }
+    }
 
     private void configureFields() {
+        //Anzeigefeld, wenn die Kategorie nicht änderbar ist
+        displayCategoryField.setVisible(false);
 
         //Select Category
         roomCategorySelect.setLabel("Room Category");
-        roomCategorySelect.setItems(roomCategoryService.getAllRoomCategories());
+        roomCategorySelect.setItems(formService.getAllRoomCategories());
         roomCategorySelect.setItemLabelGenerator(RoomCategory::getName);
 
         // Gästezahl
@@ -73,7 +94,7 @@ public class createNewBookingForm extends FormLayout{
 
         // Extras
         extras.setLabel("Extras");
-        extras.setItems(bookingExtraService.getAllBookingExtras());
+        extras.setItems(formService.getAllBookingExtras());
         extras.setItemLabelGenerator(BookingExtra::getName);
 
         // ValueChangeListener für Verfügbarkeitsprüfung an die Datepicker, damit auch
@@ -104,7 +125,7 @@ public class createNewBookingForm extends FormLayout{
                     if (date == null || checkOut == null || category == null)
                         return true; // noch nicht prüfbar
 
-                    return bookingService.isRoomAvailable(category, date, checkOut);
+                    return formService.isRoomAvailable(category, date, checkOut);
                 }, "No Room available for selected dates")
                 .bind(Booking::getCheckInDate, Booking::setCheckInDate);
 
@@ -123,7 +144,7 @@ public class createNewBookingForm extends FormLayout{
                     if (checkIn == null || date == null || category == null)
                         return true; // noch nicht prüfbar
 
-                    return bookingService.isRoomAvailable(category, checkIn, date);
+                    return formService.isRoomAvailable(category, checkIn, date);
                 }, "No Room available for selected dates")
                 .bind(Booking::getCheckOutDate, Booking::setCheckOutDate);
 
@@ -154,6 +175,10 @@ public class createNewBookingForm extends FormLayout{
         || sessionService.getCurrentRole() == UserRole.RECEPTIONIST));
     } else {
         formBooking = existingBooking;
+        roomCategorySelect.setVisible(false);
+        displayCategoryField.setVisible(true);
+        displayCategoryField.setReadOnly(true);
+        displayCategoryField.setValue(formBooking.getRoomCategory().getName());
         formBooking.setStatus(BookingStatus.MODIFIED);
         userByEmailField.setVisible(false);
     }
@@ -168,12 +193,11 @@ public class createNewBookingForm extends FormLayout{
 
     public void writeBean() throws ValidationException {
         if (userByEmailField.isVisible()) {
-            String email = userByEmailField.getValue();
-            if (email != null && !email.isBlank()) {
-                User foundUser = bookingService.findUserByEmail(email);
-                formBooking.setGuest(foundUser);
-            }
-        }
+        String email = userByEmailField.getValue();
+        if (email != null && !email.isBlank()) {
+            User foundUser = formService.findUserByEmail(email);
+            formBooking.setGuest(foundUser);
+            }}
         binder.writeBean(formBooking);
         
         // Stelle sicher, dass der Gast immer gesetzt ist

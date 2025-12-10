@@ -103,6 +103,12 @@ public class UserService {
         return userRepository.findByEmail(email);
     }
 
+    //Methode für Booking, gibt User statt Optional zurück
+    //Matthias Lohr
+    public User findUserByEmail(String email) {
+        return userRepository.findByEmail(email).orElse(null); //orElse da ein Optional<> zurückkommt
+    }
+
     /* Gibt alle Users zurück */
     public List<User> findAll() {
         return userRepository.findAll();

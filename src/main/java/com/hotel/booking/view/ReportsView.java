@@ -2,6 +2,8 @@ package com.hotel.booking.view;
 
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
+import com.hotel.booking.service.BookingService;
+import com.hotel.booking.service.ReportService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.datepicker.DatePicker;
@@ -14,7 +16,10 @@ import com.vaadin.flow.component.orderedlayout.*;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.router.*;
 
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
+import java.util.Locale;
 
 @Route(value = "reports", layout = MainLayout.class)
 @PageTitle("Reports & Analytics")
@@ -23,35 +28,39 @@ import java.time.LocalDate;
 public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
 
     private final SessionService sessionService;
+    private final BookingService bookingService;
+    private final ReportService reportService;
 
-    public ReportsView(SessionService sessionService) {
+    DatePicker startDate = new DatePicker("Start Date");
+    DatePicker endDate = new DatePicker("End Date");
+
+    private final VerticalLayout kpiArea = new VerticalLayout();
+
+    public ReportsView(SessionService sessionService, BookingService bookingService, ReportService reportService) {
         this.sessionService = sessionService;
+
+        this.bookingService = bookingService;
+        this.reportService = reportService;
+
         setSpacing(true);
         setPadding(true);
         setSizeFull();
 
-        add(createHeader(), createFilters(), createKpiRow(), createChartsPlaceholder());
+        add(createHeader(), createFilters(), kpiArea);
+        kpiArea.add(createKpiArea());
     }
 
     private Component createHeader() {
         H1 title = new H1("Reports & Analytics");
         title.addClassName("reports-header-title");
         
-        Paragraph subtitle = new Paragraph("Comprehensive insights and performance metrics");
-        subtitle.addClassName("reports-header-subtitle");
+        Paragraph subtitle = new Paragraph("Month-over-Month KPI Insights");
+        subtitle.getStyle().set("margin", "0");
         
         Div headerLeft = new Div(title, subtitle);
         
-        HorizontalLayout buttons = new HorizontalLayout();
-        buttons.setSpacing(true);
         
-        Button exportPdf = new Button("Export PDF", VaadinIcon.DOWNLOAD.create());
-        Button exportCsv = new Button("Export CSV", VaadinIcon.DOWNLOAD.create());
-        
-        buttons.add(exportPdf, exportCsv);
-        
-        HorizontalLayout header = new HorizontalLayout(headerLeft, buttons);
-        header.addClassName("reports-header");
+        HorizontalLayout header = new HorizontalLayout(headerLeft);
         header.setWidthFull();
         
         return header;
@@ -65,27 +74,21 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
         H3 title = new H3("Report Filters");
         title.addClassName("reports-filters-title");
         
-        Paragraph subtitle = new Paragraph("Select date range and report parameters");
-        subtitle.addClassName("reports-filters-subtitle");
+        Paragraph subtitle = new Paragraph("Select date range - Current Period vs. Previous Month");
+        subtitle.getStyle().set("margin", "0 0 1rem 0");
 
-        DatePicker startDate = new DatePicker("Start Date");
-        startDate.setValue(LocalDate.of(2025, 1, 1));
+        startDate.setValue(LocalDate.now());
         
-        DatePicker endDate = new DatePicker("End Date");
-        endDate.setValue(LocalDate.of(2025, 10, 31));
-        
-        Select<String> reportType = new Select<>();
-        reportType.setLabel("Report Type");
-        reportType.setItems("Overview", "Revenue", "Occupancy", "Bookings");
-        reportType.setValue("Overview");
+        endDate.setValue(LocalDate.now().plusDays(7));
 
-        FormLayout form = new FormLayout(startDate, endDate, reportType);
+        FormLayout form = new FormLayout(startDate, endDate);
         form.setResponsiveSteps(
             new FormLayout.ResponsiveStep("0", 1),
             new FormLayout.ResponsiveStep("600px", 3)
         );
 
         Button generateBtn = new Button("Generate Report");
+        generateBtn.addClickListener(e -> refreshKpiArea());
         generateBtn.addClassName("primary-button");
         generateBtn.addClassName("reports-filter-button");
 
@@ -93,26 +96,68 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
         return card;
     }
 
-    private Component createKpiRow() {
-        HorizontalLayout row = new HorizontalLayout();
-        row.setWidthFull();
-        row.setSpacing(true);
+    //Matthias Lohr
+    private Component createKpiArea() {
+        VerticalLayout wrapper = new VerticalLayout();
+        wrapper.setSpacing(true);
+        wrapper.setPadding(false);
+        wrapper.setWidthFull();
 
-        Component card1 = createKpiCard("Total Revenue", "€589,000", 
-            VaadinIcon.DOLLAR, "#D4AF37", "+12.5% from last period", true);
-        Component card2 = createKpiCard("Avg Occupancy", "78.3%", 
-            VaadinIcon.TRENDING_UP, "#3b82f6", "+5.2% from last period", true);
-        Component card3 = createKpiCard("Total Bookings", "1,507", 
-            VaadinIcon.CALENDAR, "#10b981", "+8.7% from last period", true);
-        Component card4 = createKpiCard("Avg Stay Duration", "3.2 days", 
-            VaadinIcon.CLOCK, "#8b5cf6", "Consistent with last period", false);
+        // erste Reihe
+        HorizontalLayout row1 = new HorizontalLayout();
+        row1.setWidthFull();
+        row1.setSpacing(true);
 
-        row.add(card1, card2, card3, card4);
-        row.expand(card1, card2, card3, card4);
+        Component card1 = createKpiCard("Total Revenue", 
+                reportService.getTotalRevenueInPeriod(startDate.getValue(), endDate.getValue()),
+                VaadinIcon.DOLLAR, "#D4AF37",
+                "+12.5% from last period", true);
 
-        return row;
+        Component card2 = createKpiCard("Top performing Category",
+         reportService.getTopCategoryInPeriod(startDate.getValue(), endDate.getValue()),
+                VaadinIcon.STAR, "#3b82f6",
+                "+5.2% from last period", true);
+
+        Component card3 = createKpiCard("Total Bookings",
+                Integer.toString(bookingService.getNumberOfBookingsInPeriod(
+                        startDate.getValue(), endDate.getValue())),
+                VaadinIcon.CALENDAR, "#10b981",
+                reportService.getBookingTrendString(startDate.getValue(), endDate.getValue()),
+                reportService.getBookingTrend(startDate.getValue(), endDate.getValue()) > 0);
+
+        row1.add(card1, card2, card3);
+        row1.expand(card1, card2, card3);
+
+        // Zweite Reihe
+        HorizontalLayout row2 = new HorizontalLayout();
+        row2.setWidthFull();
+        row2.setSpacing(true);
+
+        Component card4 = createKpiCard("Avg Stay Duration", 
+                reportService.getAvgStayDurationInPeriod(startDate.getValue(), endDate.getValue()),
+                VaadinIcon.CLOCK, "#8b5cf6",
+                "Consistent with last period", false);
+
+        Component card5 = createKpiCard("Most popular Extra",
+                reportService.getMostPopularExtraInPeriod(startDate.getValue(), endDate.getValue()),
+                VaadinIcon.STAR, "#8b5cf6",
+                "Consistent with last period", true);
+
+        Component card6 = createKpiCard("Revenue per Guest", 
+                "150.00€ test",
+                VaadinIcon.DOLLAR, "#6366f1",
+                "", false);
+
+        row2.add(card4, card5, card6);
+        row2.expand(card4, card5, card6);
+
+        wrapper.add(row1, row2);
+
+        return wrapper;
     }
 
+
+    //Matthias Lohr
     private Component createKpiCard(String title, String value, VaadinIcon iconType, 
                                    String color, String trend, boolean isPositive) {
         Div card = new Div();
@@ -146,164 +191,9 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
         return card;
     }
 
-    private Component createChartsPlaceholder() {
-        VerticalLayout section = new VerticalLayout();
-        section.setSpacing(true);
-        section.setPadding(false);
-        section.setWidthFull();
-
-        // Chart placeholders with sample data visualization
-        section.add(createRevenueChartPlaceholder());
-
-        HorizontalLayout twoColumnRow = new HorizontalLayout();
-        twoColumnRow.setWidthFull();
-        twoColumnRow.setSpacing(true);
-        
-        Component occupancyChart = createOccupancyChartPlaceholder();
-        Component roomTypeChart = createRoomTypeChartPlaceholder();
-        
-        twoColumnRow.add(occupancyChart, roomTypeChart);
-        twoColumnRow.expand(occupancyChart, roomTypeChart);
-        
-        section.add(twoColumnRow);
-
-        section.add(createWeeklyBookingChartPlaceholder());
-
-        return section;
-    }
-
-    private Component createRevenueChartPlaceholder() {
-        Div card = new Div();
-        card.addClassName("card");
-        card.setWidthFull();
-        
-        H3 title = new H3("Revenue & Bookings Trend");
-        title.addClassName("reports-filters-title");
-        
-        Paragraph subtitle = new Paragraph("Monthly revenue and booking count over time");
-        subtitle.addClassName("reports-filters-subtitle");
-
-        Div chartPlaceholder = new Div();
-        chartPlaceholder.addClassName("chart-placeholder");
-        chartPlaceholder.addClassName("revenue-chart-placeholder");
-        
-        Div content = new Div();
-        content.addClassName("chart-placeholder-content");
-        
-        Icon chartIcon = VaadinIcon.LINE_CHART.create();
-        chartIcon.setSize("48px");
-        chartIcon.addClassName("revenue-chart-icon");
-        
-        Paragraph text = new Paragraph("Revenue & Bookings Trend Chart");
-        text.addClassName("chart-placeholder-icon");
-        
-        Paragraph info = new Paragraph("Monthly data visualization showing revenue (€) and booking trends");
-        info.addClassName("chart-placeholder-info");
-        
-        content.add(chartIcon, text, info);
-        chartPlaceholder.add(content);
-        
-        card.add(title, subtitle, chartPlaceholder);
-        return card;
-    }
-
-    private Component createOccupancyChartPlaceholder() {
-        Div card = new Div();
-        card.addClassName("card");
-        card.setWidthFull();
-        
-        H3 title = new H3("Room Occupancy (Last 7 Days)");
-        title.addClassName("reports-filters-title");
-        
-        Paragraph subtitle = new Paragraph("Daily breakdown of occupied vs available rooms");
-        subtitle.addClassName("reports-filters-subtitle");
-
-        Div chartPlaceholder = new Div();
-        chartPlaceholder.addClassName("chart-placeholder");
-        chartPlaceholder.addClassName("occupancy-chart-placeholder");
-        
-        Div content = new Div();
-        content.addClassName("chart-placeholder-content");
-        
-        Icon chartIcon = VaadinIcon.BAR_CHART.create();
-        chartIcon.setSize("48px");
-        chartIcon.addClassName("occupancy-chart-icon");
-        
-        Paragraph text = new Paragraph("Room Occupancy Chart");
-        text.addClassName("chart-placeholder-icon");
-        
-        content.add(chartIcon, text);
-        chartPlaceholder.add(content);
-        
-        card.add(title, subtitle, chartPlaceholder);
-        return card;
-    }
-
-    private Component createRoomTypeChartPlaceholder() {
-        Div card = new Div();
-        card.addClassName("card");
-        card.setWidthFull();
-        
-        H3 title = new H3("Bookings by Room Type");
-        title.addClassName("reports-filters-title");
-        
-        Paragraph subtitle = new Paragraph("Distribution of bookings across room categories");
-        subtitle.addClassName("reports-filters-subtitle");
-
-        Div chartPlaceholder = new Div();
-        chartPlaceholder.addClassName("chart-placeholder");
-        chartPlaceholder.addClassName("room-type-chart-placeholder");
-        
-        Div content = new Div();
-        content.addClassName("chart-placeholder-content");
-        
-        Icon chartIcon = VaadinIcon.PIE_CHART.create();
-        chartIcon.setSize("48px");
-        chartIcon.addClassName("room-type-chart-icon");
-        
-        Paragraph text = new Paragraph("Room Type Distribution");
-        text.addClassName("chart-placeholder-icon");
-        
-        content.add(chartIcon, text);
-        chartPlaceholder.add(content);
-        
-        card.add(title, subtitle, chartPlaceholder);
-        return card;
-    }
-
-    private Component createWeeklyBookingChartPlaceholder() {
-        Div card = new Div();
-        card.addClassName("card");
-        card.setWidthFull();
-        
-        H3 title = new H3("Weekly Booking Trends");
-        title.addClassName("reports-filters-title");
-        
-        Paragraph subtitle = new Paragraph("New bookings vs cancellations by day of week");
-        subtitle.addClassName("reports-filters-subtitle");
-
-        Div chartPlaceholder = new Div();
-        chartPlaceholder.addClassName("chart-placeholder");
-        chartPlaceholder.addClassName("weekly-booking-chart-placeholder");
-        
-        Div content = new Div();
-        content.addClassName("chart-placeholder-content");
-        
-        Icon chartIcon = VaadinIcon.BAR_CHART_V.create();
-        chartIcon.setSize("48px");
-        chartIcon.addClassName("weekly-booking-chart-icon");
-        
-        Paragraph text = new Paragraph("Weekly Booking Trends");
-        text.addClassName("chart-placeholder-icon");
-        
-        Paragraph info = new Paragraph("Comparison of new bookings and cancellations");
-        info.addClassName("chart-placeholder-info");
-        
-        content.add(chartIcon, text, info);
-        chartPlaceholder.add(content);
-        
-        card.add(title, subtitle, chartPlaceholder);
-        return card;
+    private void refreshKpiArea() {
+        kpiArea.removeAll();
+        kpiArea.add(createKpiArea());
     }
 
     @Override
