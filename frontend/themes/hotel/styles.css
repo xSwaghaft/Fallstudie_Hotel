@@ -1,6 +1,6 @@
 /* =========================================================
    HOTELIUM - HOTEL MANAGEMENT SYSTEM
-   Modern, Clean Design with Light/Dark Theme Support
+   Modern, Clean Design
    ========================================================= */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -179,13 +179,13 @@ p {
 
 /* Header Logout Button (rot umrandet, rote Schrift) */
 .logout-btn-header {
-  background: transparent !important;
-  border: 1px solid #ef4444 !important;
+  background: transparent;
+  border: 1px solid #ef4444;
   border-radius: var(--radius-md);
   padding: var(--spacing-sm) var(--spacing-md);
   cursor: pointer;
   transition: all var(--transition-base);
-  color: #ef4444 !important;
+  color: #ef4444;
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -193,20 +193,20 @@ p {
 }
 
 .logout-btn-header:hover {
-  background-color: #fef2f2 !important;
-  border-color: #dc2626 !important;
-  color: #dc2626 !important;
+  background-color: #fef2f2;
+  border-color: #dc2626;
+  color: #dc2626;
 }
 
 /* Sidebar Logout Button (roter Hintergrund) */
 .sidebar-logout-btn {
-  background: #ef4444 !important;
-  border: none !important;
+  background: #ef4444;
+  border: none;
   border-radius: var(--radius-md);
   padding: var(--spacing-md);
   cursor: pointer;
   transition: all var(--transition-base);
-  color: white !important;
+  color: white;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -215,11 +215,11 @@ p {
 }
 
 .sidebar-logout-btn:hover {
-  background: #dc2626 !important;
+  background: #dc2626;
 }
 
 .sidebar-logout-btn vaadin-icon {
-  color: white !important;
+  color: white;
 }
 
 .theme-icon {
@@ -248,14 +248,14 @@ p {
 .drawer-logo {
   font-size: var(--font-size-xl);
   font-weight: 700;
-  color: #ffffff !important;
+  color: #ffffff;
   margin: 0 0 var(--spacing-xs) 0;
   letter-spacing: -0.02em;
 }
 
 .drawer-subtitle {
   font-size: var(--font-size-sm);
-  color: var(--color-text-muted) !important;
+  color: var(--color-text-muted);
   margin: 0;
   font-weight: 400;
 }
@@ -353,49 +353,6 @@ p {
   margin: 0 0 var(--spacing-md) 0;
 }
 
-/* KPI Cards */
-.kpi-card {
-  background: var(--color-bg-white);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--color-border);
-  transition: transform var(--transition-base), box-shadow var(--transition-base);
-  min-width: 200px;
-}
-
-.kpi-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-.kpi-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-md);
-}
-
-.kpi-card-title {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  font-weight: 500;
-  margin: 0;
-}
-
-.kpi-card-icon {
-  width: 24px;
-  height: 24px;
-  color: var(--color-primary);
-}
-
-.kpi-card h2 {
-  font-size: var(--font-size-3xl);
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin: 0;
-}
-
 /* Status Badges */
 .status-badge {
   display: inline-block;
@@ -431,6 +388,92 @@ p {
   color: var(--color-warning);
 }
 
+/* Room Status Badges */
+.room-status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.room-status-available {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.room-status-occupied {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.room-status-cleaning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.room-status-renovating {
+  background: #fce7f3;
+  color: #db2777;
+}
+
+.room-status-out-of-service {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.room-status-default {
+  background: var(--color-bg-light);
+  color: var(--color-text-muted);
+}
+
+/* Category Status Badge */
+.category-status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.category-status-active {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.category-status-inactive {
+  background: var(--color-bg-light);
+  color: var(--color-text-muted);
+}
+
+/* User Role Badges */
+.user-role-badge,
+.role-badge-base {
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.user-role-manager,
+.role-badge-manager {
+  background: #fef3c7;
+  color: #f59e0b;
+}
+
+.user-role-receptionist,
+.role-badge-receptionist {
+  background: var(--color-info-bg);
+  color: #3b82f6;
+}
+
+.user-role-guest,
+.role-badge-guest {
+  background: #f3e8ff;
+  color: #5c065f;
+}
+
+
 .status-cancelled {
   background-color: var(--color-error-bg);
   color: var(--color-error);
@@ -460,6 +503,23 @@ vaadin-button[theme~="primary"]:hover,
   background-color: var(--color-primary-hover) !important;
 }
 
+/* Gold Button - Alias for Primary Button */
+.gold-button {
+  width: 100%;
+  background: var(--color-primary) !important;
+  color: white !important;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--transition-base);
+}
+
+.gold-button:hover {
+  background: var(--color-primary-hover) !important;
+}
+
 vaadin-text-field,
 vaadin-password-field,
 vaadin-email-field,
@@ -486,278 +546,6 @@ vaadin-grid {
 
 vaadin-grid-cell-content {
   padding: var(--spacing-md);
-}
-
-/* =========================================================
-   LOGIN PAGE
-   ========================================================= */
-.login-left {
-  flex: 1;
-  background-image: url('/images/HotelLoginView.jpg');
-  background-size: cover;
-  background-position: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  position: relative;
-}
-
-.login-overlay {
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
-  border-radius: var(--radius-xl);
-  padding: var(--spacing-xl) 3rem;
-  max-width: 500px;
-  color: white;
-  box-shadow: var(--shadow-lg);
-}
-
-.login-overlay h1 {
-  font-size: var(--font-size-3xl);
-  font-weight: 700;
-  margin: 0 0 var(--spacing-md) 0;
-  color: white !important;
-}
-
-.login-overlay p {
-  font-size: var(--font-size-base);
-  line-height: 1.6;
-  margin: 0;
-  color: rgba(255, 255, 255, 0.9) !important;
-}
-
-.login-right {
-  flex: 1;
-  background: var(--color-bg-light);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: var(--spacing-xl);
-}
-
-.login-card {
-  background: white;
-  border-radius: var(--radius-xl);
-  padding: 3rem;
-  max-width: 440px;
-  width: 100%;
-  box-shadow: var(--shadow-lg);
-}
-
-.login-card h2 {
-  font-size: var(--font-size-2xl);
-  font-weight: 700;
-  text-align: center;
-  margin: 0 0 var(--spacing-sm) 0;
-  color: var(--color-text-primary);
-}
-
-.gold-button {
-  width: 100%;
-  background: var(--color-primary);
-  color: white;
-  border: none;
-  border-radius: var(--radius-md);
-  padding: var(--spacing-md);
-  font-weight: 600;
-  font-size: var(--font-size-base);
-  cursor: pointer;
-  transition: background-color var(--transition-base);
-}
-
-.gold-button:hover {
-  background: var(--color-primary-hover);
-}
-
-.demo-btn {
-  width: 100%;
-  background: white;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-md);
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--transition-base);
-}
-
-.demo-btn:hover {
-  background: var(--color-bg-light);
-  border-color: var(--color-primary);
-}
-
-.forgot-link {
-  color: var(--color-primary);
-  text-decoration: none;
-  font-size: var(--font-size-sm);
-}
-
-.forgot-link:hover {
-  text-decoration: underline;
-}
-
-.sign-up-hint {
-  text-align: center;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  margin-top: var(--spacing-lg);
-}
-
-.sign-up-hint a {
-  color: var(--color-primary);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.sign-up-hint a:hover {
-  text-decoration: underline;
-}
-
-.theme-toggle {
-  position: fixed;
-  bottom: var(--spacing-xl);
-  right: var(--spacing-xl);
-  width: 48px;
-  height: 48px;
-  background: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow-lg);
-  cursor: pointer;
-  transition: all var(--transition-base);
-  z-index: 1000;
-}
-
-.theme-toggle:hover {
-  transform: scale(1.1);
-}
-
-/* =========================================================
-   DARK THEME - KRITISCH FÜR LESBARKEIT!
-   ========================================================= */
-.dark-theme {
-  --color-bg-light: #111827;
-  --color-bg-white: #1f2937;
-  --color-text-primary: #f9fafb;
-  --color-text-secondary: #d1d5db;
-  --color-text-muted: #9ca3af;
-  --color-border: #374151;
-  --color-header-bg: #1f2937;
-  --color-header-border: #374151;
-  --color-sidebar-bg: #111827;
-}
-
-/* WICHTIG: Dark Theme Überschriften müssen weiß sein! */
-.dark-theme h1,
-.dark-theme h2,
-.dark-theme h3,
-.dark-theme h4,
-.dark-theme h5,
-.dark-theme h6 {
-  color: #f9fafb !important;
-}
-
-.dark-theme p {
-  color: #d1d5db;
-}
-
-.dark-theme .main-header {
-  background-color: var(--color-header-bg);
-  border-bottom-color: var(--color-header-border);
-}
-
-.dark-theme .card,
-.dark-theme .kpi-card,
-.dark-theme .login-card {
-  background-color: var(--color-bg-white);
-  border-color: var(--color-border);
-}
-
-/* Login Form Dark Mode Support */
-.dark-theme .login-form-card,
-.dark-theme .login-card {
-  background-color: #1f2937 !important;
-  border: 1px solid #374151;
-}
-
-.dark-theme .login-title,
-.dark-theme .login-section-title {
-  color: #f9fafb !important;
-}
-
-.dark-theme .login-subtitle,
-.dark-theme .login-section-subtitle,
-.dark-theme .demo-title,
-.dark-theme .signup-hint {
-  color: #d1d5db !important;
-}
-
-.dark-theme .login-inner-card {
-  background-color: #111827 !important;
-}
-
-.dark-theme .demo-button,
-.dark-theme .demo-btn {
-  background-color: #374151 !important;
-  border-color: #4b5563 !important;
-  color: #f9fafb !important;
-}
-
-.dark-theme .demo-button:hover,
-.dark-theme .demo-btn:hover {
-  background-color: #4b5563 !important;
-}
-
-/* WICHTIG: Input-Felder im Dark Mode */
-.dark-theme .login-input,
-.dark-theme vaadin-text-field,
-.dark-theme vaadin-password-field {
-  --vaadin-input-field-background: #374151;
-  --vaadin-input-field-border-color: #4b5563;
-  --vaadin-input-field-label-color: #d1d5db;
-  --vaadin-input-field-value-color: #f9fafb;
-  --vaadin-input-field-placeholder-color: #9ca3af;
-}
-
-/* Checkbox im Dark Mode */
-.dark-theme .login-checkbox,
-.dark-theme vaadin-checkbox {
-  --vaadin-checkbox-label-color: #d1d5db;
-}
-
-.dark-theme vaadin-checkbox::part(label) {
-  color: #d1d5db !important;
-}
-
-.dark-theme .theme-toggle-btn,
-.dark-theme .logout-btn {
-  border-color: var(--color-border);
-  color: var(--color-text-primary);
-}
-
-.dark-theme .theme-toggle-btn:hover,
-.dark-theme .logout-btn:hover {
-  background-color: var(--color-sidebar-bg);
-}
-
-.dark-theme vaadin-grid {
-  border-color: var(--color-border);
-  --lumo-base-color: var(--color-bg-white);
-  --lumo-body-text-color: var(--color-text-primary);
-}
-
-.dark-theme .welcome-text,
-.dark-theme .username-text,
-.dark-theme .kpi-card-title {
-  color: var(--color-text-secondary);
-}
-
-.dark-theme .username-text {
-  color: var(--color-text-primary) !important;
-  font-weight: 600;
 }
 
 /* =========================================================
@@ -793,70 +581,4 @@ vaadin-grid-cell-content {
   .welcome-text {
     font-size: var(--font-size-xs);
   }
-}
-
-/* Reduce spacing between form fields in registration */
-.registration-card {
-  background: white;
-  border-radius: 1rem;
-  padding: 1.5rem 2.5rem;
-  max-width: 520px;
-  width: 100%;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-}
-
-.registration-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  text-align: center;
-  margin: 0 0 0.25rem 0;
-  color: #1f2937;
-}
-
-.registration-subtitle {
-  text-align: center;
-  color: #6b7280;
-  font-size: 0.875rem;
-  margin: 0 0 0.75rem 0;
-}
-
-.registration-separator {
-  margin: 0.75rem 0 0.5rem 0;
-  border: none;
-  border-top: 1px solid #e5e7eb;
-}
-
-.registration-view {
-  display: flex;
-  flex-direction: row;
-  min-height: 100vh;
-  overflow: hidden;
-}
-
-.back-login-button {
-  color: #D4AF37 !important;
-  background: #f3f4f6 !important;
-  border: none !important;
-  border-radius: 0.5rem;
-  font-weight: 600;
-}
-
-.registration-card vaadin-text-field,
-.registration-card vaadin-password-field {
-  margin: 0 !important;
-  padding: 0 !important;
-  --vaadin-input-field-padding: 0 !important;
-  --vaadin-form-field-default-width: 100% !important;
-}
-
-.registration-card vaadin-text-field::part(label),
-.registration-card vaadin-password-field::part(label) {
-  margin-bottom: 0.5rem !important;
-  padding: 0 !important;
-}
-
-.registration-card vaadin-text-field::part(input-field),
-.registration-card vaadin-password-field::part(input-field) {
-  padding-top: 2px !important;
-  padding-bottom: 2px !important;
 }

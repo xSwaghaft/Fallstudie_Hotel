@@ -30,7 +30,9 @@ import java.util.stream.Collectors;
 
 // Uses InvoiceFDO for form binding
 @Route(value = "invoices", layout = MainLayout.class)
+@PageTitle("Invoice Management")
 @CssImport("./themes/hotel/styles.css")
+@CssImport("./themes/hotel/views/invoice.css")
 public class InvoiceView extends VerticalLayout implements BeforeEnterObserver {
 
     private final SessionService sessionService;

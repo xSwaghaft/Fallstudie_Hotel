@@ -150,8 +150,8 @@ public class createNewBookingForm extends FormLayout{
         formBooking = new Booking("", LocalDate.now(), LocalDate.now().plusDays(1), BookingStatus.PENDING, user, null);
         //Feld nur für Manager oder Receptionist sichtbar, nur beim neu anlegen
         userByEmailField.setVisible(
-        (sessionService.getCurrentRole() != UserRole.MANAGER 
-        || sessionService.getCurrentRole() != UserRole.RECEPTIONIST));
+        (sessionService.getCurrentRole() == UserRole.MANAGER 
+        || sessionService.getCurrentRole() == UserRole.RECEPTIONIST));
     } else {
         formBooking = existingBooking;
         formBooking.setStatus(BookingStatus.MODIFIED);
@@ -168,12 +168,18 @@ public class createNewBookingForm extends FormLayout{
 
     public void writeBean() throws ValidationException {
         if (userByEmailField.isVisible()) {
-        String email = userByEmailField.getValue();
-        if (email != null && !email.isBlank()) {
-            User foundUser = bookingService.findUserByEmail(email);
-            formBooking.setGuest(foundUser);
-            }}
+            String email = userByEmailField.getValue();
+            if (email != null && !email.isBlank()) {
+                User foundUser = bookingService.findUserByEmail(email);
+                formBooking.setGuest(foundUser);
+            }
+        }
         binder.writeBean(formBooking);
+        
+        // Stelle sicher, dass der Gast immer gesetzt ist
+        if (formBooking.getGuest() == null) {
+            formBooking.setGuest(user);
+        }
     }
     
 }

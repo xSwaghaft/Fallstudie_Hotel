@@ -1,0 +1,136 @@
+/* =========================================================
+   LOGIN VIEW
+   Styles für die Login-Seite
+   ========================================================= */
+
+.login-left {
+  flex: 1;
+  background-image: url('/images/HotelLoginView.jpg');
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  position: relative;
+}
+
+.login-overlay {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-xl) 3rem;
+  max-width: 500px;
+  color: white;
+  box-shadow: var(--shadow-lg);
+}
+
+.login-overlay h1 {
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  margin: 0 0 var(--spacing-md) 0;
+  color: white;
+}
+
+.login-overlay p {
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.login-right {
+  flex: 1;
+  background: var(--color-bg-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--spacing-xl);
+}
+
+/* .login-card - View-specific style */
+.login-card {
+  background: white;
+  border-radius: var(--radius-xl);
+  padding: 3rem;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: var(--shadow-lg);
+}
+
+.login-card h2 {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  text-align: center;
+  margin: 0 0 var(--spacing-sm) 0;
+  color: var(--color-text-primary);
+}
+
+.forgot-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+}
+
+.forgot-link:hover {
+  text-decoration: underline;
+}
+
+.sign-up-hint {
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-top: var(--spacing-lg);
+}
+
+.sign-up-hint a {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.sign-up-hint a:hover {
+  text-decoration: underline;
+}
+
+.theme-toggle {
+  position: fixed;
+  bottom: var(--spacing-xl);
+  right: var(--spacing-xl);
+  width: 48px;
+  height: 48px;
+  background: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  z-index: 1000;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.1);
+}
+
+/* Responsive Design - Mobile */
+@media (max-width: 768px) {
+  .login-left {
+    display: none;
+  }
+  
+  .login-right {
+    flex: 1;
+    width: 100%;
+  }
+}
+
+/* Ensure desktop layout for larger screens */
+@media (min-width: 769px) {
+  body {
+    display: flex;
+  }
+}
+

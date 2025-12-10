@@ -1,14 +1,23 @@
 package com.hotel.booking.entity;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 //Matthias Lohr
@@ -27,13 +36,19 @@ public class RoomCategory {
     private String description;
 
     @Column(name = "price_per_night", nullable = false)
-    private Double pricePerNight;
+    private BigDecimal pricePerNight;
 
     @Column(name = "max_occupancy", nullable = false)
     private Integer maxOccupancy;
 
     @Column(name = "active", nullable = false)
     private Boolean active;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @Enumerated(EnumType.STRING)
+    @JoinTable(name = "room_category_amenities", joinColumns = @JoinColumn(name = "category_id"))
+    @Column(name = "amenity")
+    private Set<Amenities> amenities = new HashSet<>();
 
     @OneToMany(mappedBy = "category")
     @JsonManagedReference
@@ -45,7 +60,7 @@ public class RoomCategory {
     }
 
     // Parameterized constructor
-    public RoomCategory(Long category_id, String name, String description, Double pricePerNight, Integer maxOccupancy, Boolean active, List<Room> rooms) {
+    public RoomCategory(Long category_id, String name, String description, BigDecimal pricePerNight, Integer maxOccupancy, Boolean active, List<Room> rooms) {
         this.category_id = category_id;
         this.name = name;
         this.description = description;
@@ -80,11 +95,11 @@ public class RoomCategory {
         this.description = description;
     }
 
-    public Double getPricePerNight() {
+    public BigDecimal getPricePerNight() {
         return pricePerNight;
     }
 
-    public void setPricePerNight(Double pricePerNight) {
+    public void setPricePerNight(BigDecimal pricePerNight) {
         this.pricePerNight = pricePerNight;
     }
 
@@ -110,5 +125,13 @@ public class RoomCategory {
 
     public void setRooms(List<Room> rooms) {
         this.rooms = rooms;
+    }
+
+    public Set<Amenities> getAmenities() {
+        return amenities;
+    }
+
+    public void setAmenities(Set<Amenities> amenities) {
+        this.amenities = amenities;
     }
 }

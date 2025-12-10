@@ -1,0 +1,43 @@
+/* =========================================================
+   ROOM MANAGEMENT VIEW
+   Styles für die Verwaltung von Zimmern und Kategorien
+   ========================================================= */
+
+/* Header */
+.room-management-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.room-management-header-title,
+.room-management-header-subtitle {
+  margin: 0;
+}
+
+.room-management-header-subtitle {
+  color: var(--color-text-secondary);
+}
+/* Delete Button */
+.delete-btn {
+  color: var(--color-error);
+}
+
+/* Dialog Message */
+.dialog-message {
+  margin: 0 !important;
+}
+
+/* Confirm Delete Button */
+.confirm-delete-btn {
+  background: var(--color-error);
+  color: white;
+}
+
+/* Warning Text */
+.delete-warning {
+  margin: 0.5rem 0 0 0;
+  color: var(--color-error);
+  font-weight: 600;
+}
+

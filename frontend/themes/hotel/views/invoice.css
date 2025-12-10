@@ -1,0 +1,20 @@
+/* =========================================================
+   INVOICE VIEW - STYLES
+   ========================================================= */
+
+.invoice-balance-positive,
+.invoice-balance-negative {
+  font-weight: 600;
+}
+
+.invoice-balance-positive {
+  color: #10b981;
+}
+
+.invoice-balance-negative {
+  color: #ef4444;
+}
+
+.invoice-button-success {
+  color: #10b981;
+}

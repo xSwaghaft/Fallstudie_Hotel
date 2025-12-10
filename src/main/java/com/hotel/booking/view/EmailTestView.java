@@ -13,6 +13,7 @@ import com.vaadin.flow.router.Route;
 @PageTitle("Email Test")
 public class EmailTestView extends VerticalLayout {
 
+    @SuppressWarnings("unused")
     private final EmailService emailService;
 
     public EmailTestView(EmailService emailService) {

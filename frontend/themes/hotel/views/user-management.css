@@ -1,0 +1,98 @@
+/* =========================================================
+   USER MANAGEMENT VIEW
+   Styles für die Verwaltung von Benutzern
+   ========================================================= */
+
+/* Header */
+.user-management-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.user-management-header-title,
+.user-management-header-subtitle {
+  margin: 0 !important;
+}
+
+.user-management-header-subtitle {
+  color: var(--color-text-secondary) !important;
+}
+
+/* Filter Card */
+.user-management-filter-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+  width: 100%;
+}
+
+.user-management-filter-card h3 {
+  margin: 0 0 var(--spacing-sm) 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+}
+
+.user-management-filter-card p {
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+/* User Actions */
+.user-delete-btn {
+  color: var(--color-error);
+}
+
+/* Dialog Message */
+.user-dialog-message {
+  margin: 0 !important;
+}
+
+/* Confirm Delete Button */
+.user-confirm-delete-btn {
+  background: var(--color-error) !important;
+  color: white !important;
+}
+
+/* Role Badge Styles - defined in styles.css */
+/* User role badges (.user-role-*) and (.role-badge-*) defined in styles.css */
+
+/* Filter Section Title */
+.user-filter-title {
+  margin: 0 0 0.5rem 0 !important;
+}
+
+/* Filter Section Subtitle */
+.user-filter-subtitle {
+  margin: 0 0 1rem 0 !important;
+}
+
+/* Users Card Title */
+.user-card-title {
+  margin: 0 0 1rem 0 !important;
+}
+
+/* Delete Button */
+.user-delete-action-btn {
+  color: #ef4444;
+}
+
+/* Detail Row */
+.detail-row {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.detail-row-label {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.detail-row-value {
+  color: var(--color-text-primary);
+}
+

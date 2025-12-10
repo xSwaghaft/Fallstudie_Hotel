@@ -2,7 +2,6 @@ package com.hotel.booking.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
 
 import java.io.Serializable;
 import java.time.LocalDate;
@@ -36,7 +35,6 @@ public class User implements Serializable {
 
     // E-Mail-Adresse des Benutzers
     @Column(length = 100)
-    @Email
     private String email;
 
     // Vorname des Benutzers

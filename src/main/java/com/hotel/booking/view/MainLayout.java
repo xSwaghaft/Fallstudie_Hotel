@@ -1,7 +1,5 @@
 package com.hotel.booking.view;
 
-import org.springframework.beans.factory.annotation.Autowired;
-
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
 import com.vaadin.flow.component.UI;
@@ -22,28 +20,18 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.HighlightConditions;
 import com.vaadin.flow.router.RouterLink;
-import com.vaadin.flow.server.VaadinSession;
 
 @CssImport("./themes/hotel/styles.css")
 public class MainLayout extends AppLayout {
 
     private final SessionService sessionService;
 
-    @Autowired
     public MainLayout(SessionService sessionService) {
         this.sessionService = sessionService;
 
         setPrimarySection(Section.DRAWER);
         createHeader();
         createDrawer();
-
-        // Theme restoration on page load
-        UI.getCurrent().getPage().executeJs(
-            "const theme = localStorage.getItem('theme');" +
-            "if(theme === 'dark') {" +
-            "  document.documentElement.classList.add('dark-theme');" +
-            "}"
-        );
     }
 
     /* =========================================================
@@ -77,18 +65,12 @@ public class MainLayout extends AppLayout {
         Avatar avatar = new Avatar(username);
         avatar.addClassName("user-avatar");
 
-        Icon themeIcon = VaadinIcon.MOON.create();
-        themeIcon.addClassName("theme-icon");
-        Button themeToggle = new Button(themeIcon);
-        themeToggle.addClassName("theme-toggle-btn");
-        themeToggle.addClickListener(e -> toggleTheme());
-
         Icon logoutIcon = VaadinIcon.SIGN_OUT.create();
         Button logoutButton = new Button("Logout", logoutIcon);
         logoutButton.addClassName("logout-btn-header");
         logoutButton.addClickListener(e -> showLogoutDialog());
 
-        HorizontalLayout headerRight = new HorizontalLayout(avatar, themeToggle, logoutButton);
+        HorizontalLayout headerRight = new HorizontalLayout(avatar, logoutButton);
         headerRight.setAlignItems(FlexComponent.Alignment.CENTER);
         headerRight.addClassName("header-right");
 
@@ -154,8 +136,7 @@ public class MainLayout extends AppLayout {
                 createNavLink("Room Management", RoomManagementView.class, VaadinIcon.BED),
                 createNavLink("User Management", UserManagementView.class, VaadinIcon.USERS),
                 createNavLink("Invoices", InvoiceView.class, VaadinIcon.FILE_TEXT),
-                createNavLink("Reports & Analytics", ReportsView.class, VaadinIcon.CHART),
-                createNavLink("Settings", SettingsView.class, VaadinIcon.COG)
+                createNavLink("Reports & Analytics", ReportsView.class, VaadinIcon.CHART)
             );
         }
 
@@ -218,20 +199,5 @@ public class MainLayout extends AppLayout {
         dialog.add(content);
         dialog.getFooter().add(buttons);
         dialog.open();
-    }
-
-    private void toggleTheme() {
-        UI ui = UI.getCurrent();
-        boolean isDark = ui.getElement().getClassList().contains("dark-theme");
-        
-        if (isDark) {
-            ui.getElement().getClassList().remove("dark-theme");
-            VaadinSession.getCurrent().setAttribute("darkMode", false);
-            ui.getPage().executeJs("localStorage.setItem('theme', 'light'); document.documentElement.classList.remove('dark-theme');");
-        } else {
-            ui.getElement().getClassList().add("dark-theme");
-            VaadinSession.getCurrent().setAttribute("darkMode", true);
-            ui.getPage().executeJs("localStorage.setItem('theme', 'dark'); document.documentElement.classList.add('dark-theme');");
-        }
     }
 }

@@ -23,11 +23,16 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
 
     void deleteByBookingNumber(String bookingNumber);
 
-        // --- Room-bezogene Abfragen ----------------------------------------------
+    // --- Room-bezogene Abfragen ----------------------------------------------
 
         List<Booking> findByRoom_Id(Long roomId);
 
-        // Gleiche Logik als Exists – nützlich für “ist Zimmer frei?”
+        // --- RoomCategory-bezogene Abfragen ----------------------------------
+        
+        @Query("SELECT b FROM Booking b WHERE b.roomCategory.category_id = :categoryId")
+        List<Booking> findByRoomCategoryId(@Param("categoryId") Long categoryId);
+
+        // Gleiche Logik als Exists – nützlich für "ist Zimmer frei?"
         boolean existsByRoom_IdAndCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(
                 Long roomId,
                 LocalDate endInclusive,
@@ -71,4 +76,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT b FROM Booking b WHERE b.id = :id")
     Optional<Booking> lockById(@Param("id") Long id);
+
+    // --- Guest-bezogene Abfragen ----------------------------------------
+    
+    List<Booking> findByGuest_Id(Long guestId);
 }
