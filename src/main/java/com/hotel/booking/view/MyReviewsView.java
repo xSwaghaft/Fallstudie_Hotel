@@ -28,6 +28,7 @@ import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
+import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -39,6 +40,7 @@ import java.util.stream.Collectors;
 // @Route: registriert die View unter /my-reviews im MainLayout.
 // @CssImport: bindet globale und Guest-spezifische Styles ein.
 @Route(value = "my-reviews", layout = MainLayout.class)
+@PageTitle("My Reviews")
 @CssImport("./themes/hotel/styles.css")
 @CssImport("./themes/hotel/guest.css")
 public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver {
