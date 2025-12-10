@@ -35,6 +35,7 @@ import java.util.stream.Collectors;
 // @Route: registriert die View unter /my-bookings im MainLayout.
 // @CssImport: bindet globale und Guest-spezifische Styles ein.
 @Route(value = "my-bookings", layout = MainLayout.class)
+@PageTitle("My Bookings")
 @CssImport("./themes/hotel/styles.css")
 @CssImport("./themes/hotel/guest.css")
 public class MyBookingsView extends VerticalLayout implements BeforeEnterObserver {
@@ -245,8 +246,9 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
     private String calculatePricePerNight(Booking booking) {
         if (booking.getRoomCategory() != null && booking.getRoomCategory().getPricePerNight() != null) {
             return String.format("%.2f €", booking.getRoomCategory().getPricePerNight());
-        } else if (booking.getRoom() != null && booking.getRoom().getPrice() != null) {
-            return String.format("%.2f €", booking.getRoom().getPrice());
+        } else if (booking.getRoom() != null && booking.getRoom().getCategory() != null 
+                && booking.getRoom().getCategory().getPricePerNight() != null) {
+            return String.format("%.2f €", booking.getRoom().getCategory().getPricePerNight());
         }
         return null;
     }

@@ -14,7 +14,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -158,6 +157,8 @@ public class RoomCategory {
                 .filter(RoomImage::getIsPrimary)
                 .findFirst()
                 .orElse(images.isEmpty() ? null : images.get(0));
+    }
+
     public Set<Amenities> getAmenities() {
         return amenities;
     }

@@ -9,7 +9,7 @@ import com.hotel.booking.entity.RoomCategory;
 import com.hotel.booking.entity.RoomImage;
 import com.hotel.booking.entity.User;
 import com.hotel.booking.security.SessionService;
-import com.hotel.booking.service.BookingExtraService;
+import com.hotel.booking.service.BookingFormService;
 import com.hotel.booking.service.BookingService;
 import com.hotel.booking.service.RoomCategoryService;
 import com.hotel.booking.view.createNewBookingForm;
@@ -35,8 +35,8 @@ public class RoomGrid extends Div {
 
     private final SessionService sessionService;
     private final BookingService bookingService;
+    private final BookingFormService bookingFormService;
     private final RoomCategoryService roomCategoryService;
-    private final BookingExtraService bookingExtraService;
     
     private RoomActionHandler actionHandler;
 
@@ -44,12 +44,12 @@ public class RoomGrid extends Div {
     // Konstruktor: setzt Services und Grundstyling des Grids.
     public RoomGrid(SessionService sessionService,
                     BookingService bookingService,
-                    RoomCategoryService roomCategoryService,
-                    BookingExtraService bookingExtraService) {
+                    BookingFormService bookingFormService,
+                    RoomCategoryService roomCategoryService) {
         this.sessionService = sessionService;
         this.bookingService = bookingService;
+        this.bookingFormService = bookingFormService;
         this.roomCategoryService = roomCategoryService;
-        this.bookingExtraService = bookingExtraService;
         addClassName("room-grid");
         setWidthFull();
     }
@@ -119,29 +119,28 @@ public class RoomGrid extends Div {
         LocalDate out = (checkOut != null && checkOut.isAfter(in)) ? checkOut : in.plusDays(1);
 
         content.add(new Paragraph("Zimmer: " + roomName));
-        content.add(new Paragraph("Preis: €" + room.getPrice() + " pro Nacht"));
+        String priceText = room.getCategory() != null && room.getCategory().getPricePerNight() != null
+                ? "€" + room.getCategory().getPricePerNight() + " pro Nacht"
+                : "Preis nicht verfügbar";
+        content.add(new Paragraph("Preis: " + priceText));
         content.add(new Paragraph("Zeitraum: " + in + " bis " + out));
 
         User currentUser = sessionService.getCurrentUser();
 
+        // Erstelle Formular mit direkt übergebenen Werten (category, checkIn, checkOut)
         createNewBookingForm bookingForm = new createNewBookingForm(
-                currentUser, sessionService, null,
-                bookingService, bookingExtraService, roomCategoryService
+                currentUser, sessionService, null, bookingFormService,
+                room.getCategory(), in, out
         );
 
         Booking formBooking = bookingForm.getBooking();
         formBooking.setRoom(room);
-        if (room.getCategory() != null) {
-            formBooking.setRoomCategory(room.getCategory());
-        }
         Integer max = room.getCategory() != null ? room.getCategory().getMaxOccupancy() : null;
         int defaultGuests = 1;
         if (max != null && max > 0) {
             defaultGuests = Math.min(defaultGuests, max);
         }
         formBooking.setAmount(defaultGuests);
-        formBooking.setCheckInDate(in);
-        formBooking.setCheckOutDate(out);
 
         content.add(bookingForm);
 

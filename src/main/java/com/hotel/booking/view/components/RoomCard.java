@@ -57,7 +57,10 @@ public class RoomCard extends Div {
         
         Div priceDiv = new Div();
         priceDiv.addClassName("room-card__price");
-        Paragraph priceMain = new Paragraph("€" + room.getPrice());
+        String priceText = room.getCategory() != null && room.getCategory().getPricePerNight() != null
+                ? "€" + room.getCategory().getPricePerNight()
+                : "N/A";
+        Paragraph priceMain = new Paragraph(priceText);
         priceMain.addClassName("room-card__price-main");
         Paragraph priceSub = new Paragraph("pro Nacht");
         priceSub.addClassName("room-card__price-sub");
