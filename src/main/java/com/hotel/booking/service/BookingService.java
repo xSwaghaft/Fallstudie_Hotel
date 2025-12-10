@@ -5,28 +5,25 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.BookingExtra;
+import com.hotel.booking.entity.BookingStatus;
 import com.hotel.booking.entity.Room;
 import com.hotel.booking.entity.RoomCategory;
-import com.hotel.booking.entity.User;
 import com.hotel.booking.repository.BookingRepository;
 import com.hotel.booking.repository.RoomCategoryRepository;
 import com.hotel.booking.repository.RoomRepository;
-import com.hotel.booking.repository.UserRepository;
 
 @Service
 @Transactional
 public class BookingService {
-
-    private final UserRepository userRepository;
 
     private final BookingRepository bookingRepository;
     private final RoomRepository roomRepository;
@@ -34,10 +31,9 @@ public class BookingService {
     
 
 
-    public BookingService(BookingRepository bookingRepository,RoomCategoryRepository roomCategoryRepository, RoomRepository roomRepository, UserRepository userRepository) {
+    public BookingService(BookingRepository bookingRepository, RoomRepository roomRepository, RoomCategoryRepository roomCategoryRepository) {
         this.bookingRepository = bookingRepository;
         this.roomRepository = roomRepository;
-        this.userRepository = userRepository;
         this.roomCategoryRepository = roomCategoryRepository;
     }
 
@@ -53,11 +49,13 @@ public class BookingService {
         return bookingRepository.findByBookingNumber(bookingNumber);
     }
 
+    //Der gesamtbetrag sollte hier auch mit gespeichert werden - Methode folgt
+    //Matthias Lohr
     public Booking save(Booking booking) {
         booking.setBookingNumber(generateBookingNumber());
         booking.setRoom(assignRoom(booking));
-        booking.validateDates();
-        calculateBookingPrice(booking); 
+        booking.validateDates(); // nutzt deine Validierung in der Entity
+        booking.setTotalPrice(calculateTotalPrice());
         return bookingRepository.save(booking);
     }
 
@@ -67,23 +65,23 @@ public class BookingService {
 
     //Matthias Lohr
     public List<Booking> getActiveBookings(LocalDate start, LocalDate end) {
-        return bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(start, end);
+        return bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(start, end, BookingStatus.CANCELLED);
     }
 
-    //Buchungen der letzten 7 Tage
+    //Buchungen der letzten 5 Tage
     //Matthias Lohr
     public List<Booking> getRecentBookings() {
         LocalDate today = LocalDate.now();
-        LocalDate sevenDaysAgo = today.minusDays(7);
-        return bookingRepository.findAll();
-        // .stream()
-        //         .filter(booking -> !booking.created_at().isBefore(sevenDaysAgo))
-        //         .toList();
+        LocalDate fiveDaysAgo = today.minusDays(5);
+        return bookingRepository.findAll()
+        .stream()
+                .filter(booking -> !booking.getCreatedAt().isBefore(fiveDaysAgo))
+                .toList();
     }
 
     //Matthias Lohr
     public int getNumberOfGuestsPresent() {
-        List<Booking> todayBookings = bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(LocalDate.now(), LocalDate.now());
+        List<Booking> todayBookings = bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(LocalDate.now(), LocalDate.now(), BookingStatus.CANCELLED);
         return todayBookings.stream()
                 .mapToInt(Booking::getAmount)
                 .sum();
@@ -91,7 +89,7 @@ public class BookingService {
 
     //Matthias Lohr
     public int getNumberOfCheckoutsToday() {
-        List<Booking> todayCheckouts = bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(LocalDate.now(), LocalDate.now());
+        List<Booking> todayCheckouts = bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(LocalDate.now(), LocalDate.now(), BookingStatus.CANCELLED);
         return (int) todayCheckouts.stream()
                 .filter(booking -> booking.getCheckOutDate().isEqual(LocalDate.now()))
                 .count();
@@ -99,7 +97,7 @@ public class BookingService {
 
     //Matthias Lohr
     public int getNumberOfCheckinsToday() {
-        List<Booking> todayCheckins = bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(LocalDate.now(), LocalDate.now());
+        List<Booking> todayCheckins = bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(LocalDate.now(), LocalDate.now(), BookingStatus.CANCELLED);
         return (int) todayCheckins.stream()
                 .filter(booking -> booking.getCheckInDate().isEqual(LocalDate.now()))
                 .count();
@@ -185,8 +183,20 @@ public class BookingService {
 
     //In diesem Service, da die Methode so nur fürs Booking verwendet wird
     //Matthias Lohr
-    public User findUserByEmail(String email) {
-        return userRepository.findByEmail(email).orElse(null); //orElse da ein Optional<> zurückkommt
+    public int getNumberOfBookingsInPeriod(LocalDate from, LocalDate to){
+        List<Booking> bookings = bookingRepository.findByCreatedAtLessThanEqualAndCreatedAtGreaterThanEqual(to, from);
+        int uniqueBookingsCount = new HashSet<>(bookings).size();
+        return uniqueBookingsCount;
+    }
+
+    //Matthias Lohr
+    public List<Booking> getAllBookingsInPeriod (LocalDate from, LocalDate to) {
+        return bookingRepository.findByCreatedAtLessThanEqualAndCreatedAtGreaterThanEqual(to, from);
+    }
+
+    //Hier soll der gesamtpreis berechnet werden - (Preis x Tage) + (Extra + Extra1 ...) - Vorübergehend 100€
+    private BigDecimal calculateTotalPrice() {
+        return new BigDecimal(100.00);
     }
 
 
@@ -226,7 +236,7 @@ public class BookingService {
 
         // Preis pro Nacht
         if (booking.getRoomCategory() != null && booking.getRoomCategory().getPricePerNight() != null) {
-            BigDecimal pricePerNight = BigDecimal.valueOf(booking.getRoomCategory().getPricePerNight());
+            BigDecimal pricePerNight = booking.getRoomCategory().getPricePerNight();
             total = total.add(pricePerNight.multiply(BigDecimal.valueOf(nights)));
         }
 

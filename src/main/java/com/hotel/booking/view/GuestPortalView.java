@@ -27,13 +27,15 @@ import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
+import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
 // @Route: registriert das Gäste-Portal unter /guest-portal im MainLayout.
 // @CssImport: lädt globale und Guest-spezifische Styles.
 @Route(value = "guest-portal", layout = MainLayout.class)
+@PageTitle("Guest Portal")
 @CssImport("./themes/hotel/styles.css")
-@CssImport("./themes/hotel/guest.css")
+@CssImport("./themes/hotel/views/guest-portal.css")
 public class GuestPortalView extends VerticalLayout implements BeforeEnterObserver {
 
     private final SessionService sessionService;

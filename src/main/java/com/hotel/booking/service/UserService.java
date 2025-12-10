@@ -7,6 +7,7 @@ import com.hotel.booking.repository.GuestRepository;
 import com.hotel.booking.repository.ReportRepository;
 import com.hotel.booking.repository.BookingModificationRepository;
 import com.hotel.booking.repository.BookingCancellationRepository;
+import com.hotel.booking.repository.BookingRepository;
 import com.hotel.booking.security.BcryptPasswordEncoder;
 import java.util.List;
 import java.util.Optional;
@@ -31,16 +32,19 @@ public class UserService {
     private final ReportRepository reportRepository;
     private final BookingModificationRepository bookingModificationRepository;
     private final BookingCancellationRepository bookingCancellationRepository;
+    private final BookingRepository bookingRepository;
     private final BcryptPasswordEncoder passwordEncoder;
 
     public UserService(UserRepository userRepository, GuestRepository guestRepository, 
                        ReportRepository reportRepository, BookingModificationRepository bookingModificationRepository,
-                       BookingCancellationRepository bookingCancellationRepository, BcryptPasswordEncoder passwordEncoder) {
+                       BookingCancellationRepository bookingCancellationRepository, BookingRepository bookingRepository,
+                       BcryptPasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.guestRepository = guestRepository;
         this.reportRepository = reportRepository;
         this.bookingModificationRepository = bookingModificationRepository;
         this.bookingCancellationRepository = bookingCancellationRepository;
+        this.bookingRepository = bookingRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -97,6 +101,12 @@ public class UserService {
     /* Findet einen User anhand der E-Mail (für Login/Registrierung) */
     public Optional<User> findByEmail(String email) {
         return userRepository.findByEmail(email);
+    }
+
+    //Methode für Booking, gibt User statt Optional zurück
+    //Matthias Lohr
+    public User findUserByEmail(String email) {
+        return userRepository.findByEmail(email).orElse(null); //orElse da ein Optional<> zurückkommt
     }
 
     /* Gibt alle Users zurück */
@@ -310,5 +320,40 @@ public class UserService {
     /* Prüft, ob eine E-Mail bereits existiert */
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
+    }
+
+    /* Prüft ob ein User gelöscht werden kann und gibt die Aktion zurück */
+    public DeleteAction getDeletionAction(Long userId) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            
+            // Prüfe auf Bookings
+            List<com.hotel.booking.entity.Booking> bookings = bookingRepository.findByGuest_Id(userId);
+            if (bookings != null && !bookings.isEmpty()) {
+                return new DeleteAction(true, 
+                    "Cannot delete User \"" + user.getUsername() + "\": " + bookings.size() + " bookings reference this User",
+                    "Cannot Delete User");
+            }
+            
+            return new DeleteAction(false, null, null);
+        }
+        
+        throw new IllegalArgumentException("User mit ID " + userId + " nicht gefunden");
+    }
+
+    // ==================== Inner Class ====================
+
+    public static class DeleteAction {
+        public final boolean isBlocked;
+        public final String errorMessage;
+        public final String dialogTitle;
+
+        public DeleteAction(boolean isBlocked, String errorMessage, String dialogTitle) {
+            this.isBlocked = isBlocked;
+            this.errorMessage = errorMessage;
+            this.dialogTitle = dialogTitle;
+        }
     }
 }

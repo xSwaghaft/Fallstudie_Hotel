@@ -2,34 +2,34 @@ package com.hotel.booking.view;
 
 import com.hotel.booking.entity.Room;
 import com.hotel.booking.entity.RoomCategory;
+import com.hotel.booking.entity.RoomStatus;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.RoomCategoryService;
 import com.hotel.booking.service.RoomService;
+import com.hotel.booking.view.components.RoomForm;
+import com.hotel.booking.view.components.RoomCategoryForm;
+import com.hotel.booking.view.components.CardFactory;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.dialog.Dialog;
-import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.*;
-import com.vaadin.flow.component.select.Select;
-import com.vaadin.flow.component.textfield.NumberField;
-import com.vaadin.flow.component.textfield.TextArea;
-import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.*;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
 // Room Management View - Verwaltung von Zimmern und Zimmerkategorien
 @Route(value = "rooms", layout = MainLayout.class)
+@PageTitle("Room Management")
 @CssImport("./themes/hotel/styles.css")
+@CssImport("./themes/hotel/views/card-factory.css")
+@CssImport("./themes/hotel/views/room-management.css")
 public class RoomManagementView extends VerticalLayout implements BeforeEnterObserver {
 
     // Services (direkt injiziert)
@@ -44,7 +44,6 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
     // Statistiken-Komponenten für Live-Updates
     private Component statsRow;
 
-    @Autowired
     public RoomManagementView(SessionService sessionService, 
                                RoomService roomService,
                                RoomCategoryService roomCategoryService) {
@@ -56,23 +55,18 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
         setPadding(true);
         setSizeFull();
         setDefaultHorizontalComponentAlignment(Alignment.STRETCH);
-        setFlexGrow(0, createHeader());
-        setFlexGrow(0, createStatsRow());
 
         try {
-            // Grids konfigurieren VOR dem Laden von Daten
             configureRoomGrid();
             configureCategoryGrid();
             
-            // Statistiken-Zeile speichern für Updates
             statsRow = createStatsRow();
             
-            // Layout aufbauen: Header → Stats → ROOMS (oben) → CATEGORIES (unten)
             add(
                 createHeader(), 
                 statsRow, 
-                createRoomsCard(),      // ← ROOMS OBEN
-                createCategoriesCard()  // ← CATEGORIES UNTEN
+                createRoomsCard(),
+                createCategoriesCard()
             );
             
             // Daten aus Datenbank laden
@@ -84,9 +78,7 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
         }
     }
 
-    // Lädt alle Daten aus der Datenbank und aktualisiert die Grids + Statistiken
     private void refreshData() {
-        // Direkt aus Service holen 
         try {
             List<Room> rooms = roomService.getAllRooms();
             List<RoomCategory> categories = roomCategoryService.getAllRoomCategories();
@@ -94,11 +86,9 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
             roomGrid.setItems(rooms);
             categoryGrid.setItems(categories);
             
-            // Statistiken aktualisieren
             if (statsRow != null) {
-                // Alte Komponente entfernen und neue hinzufügen
                 replace(statsRow, createStatsRow());
-                statsRow = getComponentAt(1); // Statistiken-Zeile ist an Position 1
+                statsRow = getComponentAt(1);
             }
         } catch (Exception e) {
             Notification.show("Error loading data: " + e.getMessage(), 5000, Notification.Position.MIDDLE)
@@ -111,12 +101,13 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
     // Header mit Titel
     private Component createHeader() {
         H1 title = new H1("Room Management");
-        title.getStyle().set("margin", "0");
+        title.addClassName("room-management-header-title");
         
         Paragraph subtitle = new Paragraph("Manage rooms, categories, pricing, and availability");
-        subtitle.getStyle().set("margin", "0").set("color", "#6b7280");
+        subtitle.addClassName("room-management-header-subtitle");
         
         Div headerLeft = new Div(title, subtitle);
+        headerLeft.addClassName("room-management-header");
         
         HorizontalLayout header = new HorizontalLayout(headerLeft);
         header.setWidthFull();
@@ -124,110 +115,41 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
         return header;
     }
 
-    // ==================== STATISTIKEN ====================
-
-    // Statistiken-Zeile: Total Rooms, Available, Occupied, Categories 
+    // Statistiken-Zeile: Total Rooms, Available, Occupied, Cleaning, Categories 
     private Component createStatsRow() {
         try {
-            // Service-Methode aufrufen
             RoomService.RoomStatistics roomStats = roomService.getStatistics();
             RoomCategoryService.CategoryStatistics categoryStats = roomCategoryService.getStatistics();
 
-            HorizontalLayout stats = new HorizontalLayout();
-            stats.setWidthFull();
-            stats.setSpacing(true);
-            
-            stats.add(
-                createStatCard("Total Rooms", String.valueOf(roomStats.getTotalRooms()), "#3b82f6"),
-                createStatCard("Available", String.valueOf(roomStats.getAvailableRooms()), "#10b981"),
-                createStatCard("Occupied", String.valueOf(roomStats.getOccupiedRooms()), "#ef4444"),
-                createStatCard("Maintenance", String.valueOf(roomStats.getMaintenanceRooms()), "#d97706"),
-                createStatCard("Categories", String.valueOf(categoryStats.getTotalCategories()), "#8b5cf6")
+            return CardFactory.createStatsRow(
+                CardFactory.createStatCard("Total Rooms", String.valueOf(roomStats.getTotalRooms()), "#3b82f6"),
+                CardFactory.createStatCard("Available", String.valueOf(roomStats.getAvailableRooms()), "#10b981"),
+                CardFactory.createStatCard("Occupied", String.valueOf(roomStats.getOccupiedRooms()), "#ef4444"),
+                CardFactory.createStatCard("Cleaning", String.valueOf(roomStats.getCleaningRooms()), "#d97706"),
+                CardFactory.createStatCard("Categories", String.valueOf(categoryStats.getTotalCategories()), "#8b5cf6")
             );
-            
-            return stats;
         } catch (Exception e) {
             e.printStackTrace();
             return new Div(new Paragraph("Error loading statistics"));
         }
     }
 
-    private Component createStatCard(String label, String value, String color) {
-        Div card = new Div();
-        card.getStyle()
-            .set("background", "white")
-            .set("border-radius", "12px")
-            .set("padding", "1.5rem")
-            .set("box-shadow", "0 1px 3px rgba(0,0,0,0.1)")
-            .set("flex", "1");
 
-        Paragraph labelP = new Paragraph(label);
-        labelP.getStyle()
-            .set("margin", "0 0 0.5rem 0")
-            .set("color", "#6b7280")
-            .set("font-size", "0.875rem");
 
-        H2 valueH = new H2(value);
-        valueH.getStyle()
-            .set("margin", "0")
-            .set("color", color)
-            .set("font-size", "2rem")
-            .set("font-weight", "700");
+    // ==================== ROOMS CARD ====================
 
-        card.add(labelP, valueH);
-        return card;
-    }
-
-    // ==================== ROOMS CARD (OBEN) ====================
-
-    // ROOMS CARD - Wird OBEN angezeigt
     private Component createRoomsCard() {
-        VerticalLayout card = new VerticalLayout();
-        card.getStyle()
-            .set("background", "white")
-            .set("border-radius", "12px")
-            .set("padding", "1.5rem")
-            .set("box-shadow", "0 1px 3px rgba(0,0,0,0.1)")
-            .set("flex-grow", "1");
-        card.setPadding(true);
-        card.setSpacing(true);
-
-        // Header mit Titel und Button
-        H3 title = new H3("Individual Rooms");
-        title.getStyle().set("margin", "0");
-
-        Paragraph subtitle = new Paragraph("Manage individual room availability and pricing");
-        subtitle.getStyle()
-            .set("margin", "0.25rem 0 0 0")
-            .set("color", "#6b7280")
-            .set("font-size", "0.875rem");
-
-        // Button zum Hinzufügen von Rooms
-        Button addRoomBtn = new Button("Add Room", VaadinIcon.PLUS.create());
-        addRoomBtn.addClassName("primary-button");
-        addRoomBtn.getStyle().set("background", "#10b981").set("color", "white");
-        addRoomBtn.addClickListener(e -> openAddRoomDialog());
-
-        HorizontalLayout headerRow = new HorizontalLayout();
-        headerRow.setWidthFull();
-        headerRow.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-        headerRow.setAlignItems(FlexComponent.Alignment.CENTER);
-        
-        Div titleBox = new Div(title, subtitle);
-        headerRow.add(titleBox, addRoomBtn);
-
-        // Grid wird bereits in Konstruktor konfiguriert
-        roomGrid.setWidthFull();
-        roomGrid.setHeightFull();
-        
-        card.add(headerRow, roomGrid);
-        card.setFlexGrow(1, roomGrid);
-        return card;
+        return CardFactory.createContentCard(
+            "Individual Rooms",
+            "Manage individual room availability and pricing",
+            "Add Room",
+            this::openAddRoomDialog,
+            "#10b981",
+            roomGrid
+        );
     }
 
-    // Konfiguriert das Room Grid mit allen Spalten
     private void configureRoomGrid() {
-        try {
             roomGrid.removeAllColumns();
             
             roomGrid.addColumn(Room::getRoomNumber)
@@ -264,8 +186,8 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
                     // ✅ CHANGED: Get price from category, not from room.price field
                     // This ensures the price updates live when category price changes
                     RoomCategory cat = room.getCategory();
-                    Double categoryPrice = cat != null ? cat.getPricePerNight() : null;
-                    return categoryPrice != null ? String.format("%.2f €", categoryPrice) : "N/A";
+                    var categoryPrice = cat != null ? cat.getPricePerNight() : null;
+                    return categoryPrice != null ? String.format("%.2f €", categoryPrice.doubleValue()) : "N/A";
                 } catch (Exception e) {
                     return "N/A";
                 }
@@ -286,46 +208,35 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
             roomGrid.setAllRowsVisible(true);
             roomGrid.setWidthFull();
             roomGrid.setHeightFull();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
-    // Erstellt Availability Badge (Available/Maintenance/Occupied)
     private Component createAvailabilityBadge(Room room) {
-        String status = room.getAvailability();
-        if (status == null) status = "Available";
+        RoomStatus status = room.getStatus();
+        if (status == null) status = RoomStatus.AVAILABLE;
         
-        Span badge = new Span(status);
-        badge.getStyle()
-            .set("padding", "0.25rem 0.75rem")
-            .set("border-radius", "0.5rem")
-            .set("font-size", "0.875rem")
-            .set("font-weight", "600")
-            .set("text-transform", "capitalize");
+        Span badge = new Span(status.toString());
         
         switch(status) {
-            case "Available":
-                badge.getStyle()
-                    .set("background", "#d1fae5")
-                    .set("color", "#10b981");
+            case AVAILABLE:
+                badge.addClassName("room-status-available");
                 break;
-            case "Occupied":
-                badge.getStyle()
-                    .set("background", "#fee2e2")
-                    .set("color", "#ef4444");
+            case OCCUPIED:
+                badge.addClassName("room-status-occupied");
                 break;
-            case "Maintenance":
-                badge.getStyle()
-                    .set("background", "#fef3c7")
-                    .set("color", "#d97706");
+            case CLEANING:
+                badge.addClassName("room-status-cleaning");
+                break;
+            case RENOVATING:
+                badge.addClassName("room-status-renovating");
+                break;
+            case OUT_OF_SERVICE:
+                badge.addClassName("room-status-out-of-service");
                 break;
             default:
-                badge.getStyle()
-                    .set("background", "#f3f4f6")
-                    .set("color", "#6b7280");
+                badge.addClassName("room-status-default");
         }
         
+        badge.addClassName("room-status-badge");
         return badge;
     }
 
@@ -338,63 +249,27 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
         editBtn.addClickListener(e -> openEditRoomDialog(room));
         
         Button deleteBtn = new Button("Delete", VaadinIcon.TRASH.create());
-        deleteBtn.getStyle().set("color", "#ef4444");
+        deleteBtn.addClassName("delete-btn");
         deleteBtn.addClickListener(e -> deleteRoom(room));
         
         actions.add(editBtn, deleteBtn);
         return actions;
     }
 
-    // ==================== CATEGORIES CARD (UNTEN) ====================
-
-    // CATEGORIES CARD
+    // ==================== CATEGORIES CARD ==
     private Component createCategoriesCard() {
-        VerticalLayout card = new VerticalLayout();
-        card.getStyle()
-            .set("background", "white")
-            .set("border-radius", "12px")
-            .set("padding", "1.5rem")
-            .set("box-shadow", "0 1px 3px rgba(0,0,0,0.1)")
-            .set("flex-grow", "1");
-        card.setPadding(true);
-        card.setSpacing(true);
-
-        H3 title = new H3("Room Categories");
-        title.getStyle().set("margin", "0");
-
-        Paragraph subtitle = new Paragraph("Define room types, pricing, and maximum occupancy");
-        subtitle.getStyle()
-            .set("margin", "0.25rem 0 0 0")
-            .set("color", "#6b7280")
-            .set("font-size", "0.875rem");
-
-        // Button zum Hinzufügen von Categories
-        Button addCategoryBtn = new Button("Add Room Category", VaadinIcon.PLUS.create());
-        addCategoryBtn.addClassName("primary-button");
-        addCategoryBtn.getStyle().set("background", "#8b5cf6").set("color", "white");
-        addCategoryBtn.addClickListener(e -> openCategoryDialog(null));
-
-        HorizontalLayout headerRow = new HorizontalLayout();
-        headerRow.setWidthFull();
-        headerRow.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-        headerRow.setAlignItems(FlexComponent.Alignment.CENTER);
-        
-        Div titleBox = new Div(title, subtitle);
-        headerRow.add(titleBox, addCategoryBtn);
-
-        // Grid wird bereits in Konstruktor konfiguriert
-        categoryGrid.setWidthFull();
-        categoryGrid.setHeightFull();
-        
-        card.add(headerRow, categoryGrid);
-        card.setFlexGrow(1, categoryGrid);
-        return card;
+        return CardFactory.createContentCard(
+            "Room Categories",
+            "Define room types, pricing, and maximum occupancy",
+            "Add Room Category",
+            () -> openCategoryDialog(null),
+            "#8b5cf6",
+            categoryGrid
+        );
     }
 
-    // Konfiguriert das Category Grid mit allen Spalten
     private void configureCategoryGrid() {
-        try {
-            categoryGrid.removeAllColumns();            
+        categoryGrid.removeAllColumns();            
             categoryGrid.addColumn(RoomCategory::getName)
                 .setHeader("Name")
                 .setAutoWidth(true)
@@ -406,8 +281,8 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
 
             categoryGrid.addColumn(cat -> {
                 try {
-                    Double price = cat.getPricePerNight();
-                    return price != null ? String.format("%.2f €", price) : "N/A";
+                    var price = cat.getPricePerNight();
+                    return price != null ? String.format("%.2f €", price.doubleValue()) : "N/A";
                 } catch (Exception e) {
                     return "N/A";
                 }
@@ -447,31 +322,19 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
             categoryGrid.setAllRowsVisible(true);
             categoryGrid.setWidthFull();
             categoryGrid.setHeightFull();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
-    // Erstellt Status Badge für Category (Active/Inactive)
     private Component createCategoryStatusBadge(RoomCategory category) {
         Boolean isActive = category.getActive();
         String text = (isActive != null && isActive) ? "Active" : "Inactive";
         
         Span badge = new Span(text);
-        badge.getStyle()
-            .set("padding", "0.25rem 0.75rem")
-            .set("border-radius", "0.5rem")
-            .set("font-size", "0.875rem")
-            .set("font-weight", "600");
+        badge.addClassName("category-status-badge");
         
         if (isActive != null && isActive) {
-            badge.getStyle()
-                .set("background", "#d1fae5")
-                .set("color", "#10b981");
+            badge.addClassName("category-status-active");
         } else {
-            badge.getStyle()
-                .set("background", "#f3f4f6")
-                .set("color", "#6b7280");
+            badge.addClassName("category-status-inactive");
         }
         
         return badge;
@@ -486,7 +349,7 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
         editBtn.addClickListener(e -> openCategoryDialog(category));
         
         Button deleteBtn = new Button("Delete", VaadinIcon.TRASH.create());
-        deleteBtn.getStyle().set("color", "#ef4444");
+        deleteBtn.addClassName("delete-btn");
         deleteBtn.addClickListener(e -> deleteCategory(category));
         
         actions.add(editBtn, deleteBtn);
@@ -501,79 +364,16 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
         dialog.setHeaderTitle("Add New Room");
         dialog.setWidth("600px");
 
-        // Formular-Felder
-        TextField roomNumberField = new TextField("Room Number *");
-        roomNumberField.setWidthFull();
-        roomNumberField.setPlaceholder("e.g., 101, 102, A01");
+        RoomForm form = new RoomForm(null, roomCategoryService);
 
-        NumberField floorField = new NumberField("Floor");
-        floorField.setWidthFull();
-        floorField.setMin(0);
-        floorField.setStep(1);
-
-        Select<RoomCategory> categorySelect = new Select<>();
-        categorySelect.setLabel("Room Category *");
-        categorySelect.setItems(roomCategoryService.getAllRoomCategories());
-        categorySelect.setItemLabelGenerator(RoomCategory::getName);
-        categorySelect.setWidthFull();
-
-        // Price wird automatisch von Category übernommen, aber readonly
-        NumberField priceField = new NumberField("Price per Night (€)");
-        priceField.setWidthFull();
-        priceField.setReadOnly(true);
-        priceField.setHelperText("Automatically set from category");
-
-        // Availability Status
-        Select<String> statusSelect = new Select<>();
-        statusSelect.setLabel("Status *");
-        statusSelect.setItems("Available", "Maintenance", "Occupied");
-        statusSelect.setValue("Available");
-        statusSelect.setWidthFull();
-
-        TextArea infoArea = new TextArea("Additional Information");
-        infoArea.setWidthFull();
-        infoArea.setHeight("100px");
-        infoArea.setPlaceholder("Optional notes about this room...");
-
-        // Listener um Price automatisch zu updaten wenn Category sich ändert
-        categorySelect.addValueChangeListener(event -> {
-            if (event.getValue() != null) {
-                priceField.setValue(event.getValue().getPricePerNight());
-            }
-        });
-
-        FormLayout form = new FormLayout(roomNumberField, floorField, categorySelect, priceField, statusSelect, infoArea);
-        form.setResponsiveSteps(
-            new FormLayout.ResponsiveStep("0", 1),
-            new FormLayout.ResponsiveStep("500px", 2)
-        );
-        form.setColspan(infoArea, 2);
-
-        // Buttons
         Button saveBtn = new Button("Add Room");
         saveBtn.addClassName("primary-button");
         saveBtn.addClickListener(e -> {
-            // Validierung
-            if (roomNumberField.isEmpty() || categorySelect.isEmpty() || statusSelect.isEmpty()) {
-                Notification.show("Please fill all required fields", 3000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-                return;
-            }
-
-            // Room erstellen und in Datenbank speichern
-            Room newRoom = new Room();
-            newRoom.setRoomNumber(roomNumberField.getValue());
-            newRoom.setFloor(floorField.getValue() != null ? floorField.getValue().intValue() : null);
-            newRoom.setCategory(categorySelect.getValue());
-            newRoom.setPrice(categorySelect.getValue().getPricePerNight());
-            newRoom.setAvailability(statusSelect.getValue());
-            newRoom.setInformation(infoArea.getValue());
-            
             try {
-                roomService.saveRoom(newRoom);
+                form.writeBean();
+                roomService.saveRoom(form.getRoom());
                 refreshData();
                 dialog.close();
-                
                 Notification.show("Room added successfully!", 3000, Notification.Position.BOTTOM_START)
                     .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
             } catch (Exception ex) {
@@ -585,83 +385,27 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
         Button cancelBtn = new Button("Cancel");
         cancelBtn.addClickListener(e -> dialog.close());
 
-        dialog.add(form);
-        dialog.getFooter().add(new HorizontalLayout(cancelBtn, saveBtn));
+        HorizontalLayout buttonLayout = new HorizontalLayout(cancelBtn, saveBtn);
+        buttonLayout.setSpacing(true);
+        dialog.add(form, buttonLayout);
         dialog.open();
     }
 
-    // Dialog zum Bearbeiten eines existierenden Rooms
     private void openEditRoomDialog(Room room) {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle("Edit Room " + room.getRoomNumber());
         dialog.setWidth("600px");
 
-        // Formular-Felder (vorausgefüllt)
-        TextField roomNumberField = new TextField("Room Number *");
-        roomNumberField.setValue(room.getRoomNumber());
-        roomNumberField.setWidthFull();
+        RoomForm form = new RoomForm(room, roomCategoryService);
 
-        NumberField floorField = new NumberField("Floor");
-        floorField.setValue(room.getFloor() != null ? room.getFloor().doubleValue() : 0);
-        floorField.setWidthFull();
-        floorField.setMin(0);
-        floorField.setStep(1);
-
-        Select<RoomCategory> categorySelect = new Select<>();
-        categorySelect.setLabel("Room Category *");
-        categorySelect.setItems(roomCategoryService.getAllRoomCategories());
-        categorySelect.setItemLabelGenerator(RoomCategory::getName);
-        categorySelect.setValue(room.getCategory());
-        categorySelect.setWidthFull();
-
-        NumberField priceField = new NumberField("Price per Night (€)");
-        priceField.setValue(room.getPrice());
-        priceField.setWidthFull();
-        priceField.setReadOnly(true);
-        priceField.setHelperText("Automatically set from category");
-
-        Select<String> statusSelect = new Select<>();
-        statusSelect.setLabel("Status *");
-        statusSelect.setItems("Available", "Maintenance", "Occupied");
-        statusSelect.setValue(room.getAvailability());
-        statusSelect.setWidthFull();
-
-        // Listener um Price automatisch zu updaten wenn Category sich ändert
-        categorySelect.addValueChangeListener(event -> {
-            if (event.getValue() != null) {
-                priceField.setValue(event.getValue().getPricePerNight());
-            }
-        });
-
-        FormLayout form = new FormLayout(roomNumberField, floorField, categorySelect, priceField, statusSelect);
-        form.setResponsiveSteps(
-            new FormLayout.ResponsiveStep("0", 1),
-            new FormLayout.ResponsiveStep("500px", 2)
-        );
-
-        // Buttons
         Button saveBtn = new Button("Update Room");
         saveBtn.addClassName("primary-button");
         saveBtn.addClickListener(e -> {
-            // Validierung
-            if (roomNumberField.isEmpty() || categorySelect.isEmpty() || statusSelect.isEmpty()) {
-                Notification.show("Please fill all required fields", 3000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-                return;
-            }
-
-            // Room aktualisieren
-            room.setRoomNumber(roomNumberField.getValue());
-            room.setFloor(floorField.getValue() != null ? floorField.getValue().intValue() : null);
-            room.setCategory(categorySelect.getValue());
-            room.setPrice(categorySelect.getValue().getPricePerNight());
-            room.setAvailability(statusSelect.getValue());
-            
             try {
-                roomService.saveRoom(room);
+                form.writeBean();
+                roomService.saveRoom(form.getRoom());
                 refreshData();
                 dialog.close();
-                
                 Notification.show("Room updated successfully!", 3000, Notification.Position.BOTTOM_START)
                     .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
             } catch (Exception ex) {
@@ -673,124 +417,95 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
         Button cancelBtn = new Button("Cancel");
         cancelBtn.addClickListener(e -> dialog.close());
 
-        dialog.add(form);
-        dialog.getFooter().add(new HorizontalLayout(cancelBtn, saveBtn));
+        HorizontalLayout buttonLayout = new HorizontalLayout(cancelBtn, saveBtn);
+        buttonLayout.setSpacing(true);
+        dialog.add(form, buttonLayout);
         dialog.open();
     }
 
-    // Löscht einen Room aus der Datenbank
+    // Löscht einen Room (Dialog)
     private void deleteRoom(Room room) {
-        Dialog confirmDialog = new Dialog();
-        confirmDialog.setHeaderTitle("Delete Room");
+        RoomService.RoomDeleteAction action = roomService.getDeletionAction(room.getId());
         
-        Paragraph message = new Paragraph("Are you sure you want to delete Room " + room.getRoomNumber() + "?");
-        message.getStyle().set("margin", "0");
+        // Wenn durch Bookings blockiert
+        if (action.isBlocked()) {
+            Dialog errorDialog = new Dialog();
+            errorDialog.setHeaderTitle("Cannot Delete Room");
+            Paragraph message = new Paragraph(action.getErrorMessage());
+            message.addClassName("dialog-message");
+            Button okBtn = new Button("OK", e -> errorDialog.close());
+            errorDialog.add(message);
+            errorDialog.getFooter().add(okBtn);
+            errorDialog.open();
+            return;
+        }
         
-        Button confirmBtn = new Button("Delete");
-        confirmBtn.getStyle().set("background", "#ef4444").set("color", "white");
-        confirmBtn.addClickListener(e -> {
+        String message = action.getMessageTemplate().replace("{roomNumber}", room.getRoomNumber());
+        
+        showConfirmDialog(action.getDialogTitle(), message, action.getButtonLabel(), () -> {
             try {
                 roomService.deleteRoom(room.getId());
                 refreshData();
-                confirmDialog.close();
-                
-                Notification.show("Room deleted successfully!", 3000, Notification.Position.BOTTOM_START)
+                Notification.show(action.getSuccessMessage(), 3000, Notification.Position.BOTTOM_START)
                     .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
             } catch (Exception ex) {
                 Notification.show("Error: " + ex.getMessage(), 3000, Notification.Position.MIDDLE)
                     .addThemeVariants(NotificationVariant.LUMO_ERROR);
             }
         });
+    }
+
+    // Hilfsmethode für generische Bestätigungsdialoge
+    private void showConfirmDialog(String title, String message, String confirmLabel, Runnable onConfirm) {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle(title);
+        
+        VerticalLayout content = new VerticalLayout();
+        content.setSpacing(true);
+        content.setPadding(false);
+        
+        // Teile Text in Absätze auf (getrennt durch doppelte Zeilenumbrüche)
+        String[] paragraphs = message.split("\n\n");
+        for (String para : paragraphs) {
+            if (!para.trim().isEmpty()) {
+                Paragraph p = new Paragraph(para.trim());
+                p.addClassName("dialog-message");
+                content.add(p);
+            }
+        }
+        
+        Button confirmBtn = new Button(confirmLabel);
+        confirmBtn.addClassName("confirm-delete-btn");
+        confirmBtn.addClickListener(e -> {
+            dialog.close();
+            onConfirm.run();
+        });
         
         Button cancelBtn = new Button("Cancel");
-        cancelBtn.addClickListener(e -> confirmDialog.close());
+        cancelBtn.addClickListener(e -> dialog.close());
         
-        confirmDialog.add(message);
-        confirmDialog.getFooter().add(new HorizontalLayout(cancelBtn, confirmBtn));
-        confirmDialog.open();
+        dialog.add(content);
+        dialog.getFooter().add(new HorizontalLayout(cancelBtn, confirmBtn));
+        dialog.open();
     }
 
     // ==================== CATEGORY DIALOGS ====================
 
-    // Dialog zum Hinzufügen/Bearbeiten einer Category
     private void openCategoryDialog(RoomCategory existing) {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle(existing == null ? "Add New Room Category" : "Edit Room Category");
-        dialog.setWidth("700px");
+        dialog.setWidth("600px");
 
-        // Formular-Felder
-        TextField nameField = new TextField("Category Name *");
-        nameField.setWidthFull();
-        
-        TextArea descArea = new TextArea("Description *");
-        descArea.setWidthFull();
-        descArea.setHeight("100px");
-        
-        NumberField priceField = new NumberField("Price per Night (€) *");
-        priceField.setWidthFull();
-        priceField.setMin(0);
-        priceField.setStep(0.01);
-        
-        NumberField maxOccupancyField = new NumberField("Max Occupancy *");
-        maxOccupancyField.setWidthFull();
-        maxOccupancyField.setMin(1);
-        maxOccupancyField.setStep(1);
+        RoomCategoryForm form = new RoomCategoryForm(existing);
 
-        Checkbox activeCheck = new Checkbox("Active");
-        activeCheck.setValue(true);
-
-        // Wenn existing vorhanden, Felder vorausfüllen
-        if (existing != null) {
-            nameField.setValue(existing.getName() != null ? existing.getName() : "");
-            descArea.setValue(existing.getDescription() != null ? existing.getDescription() : "");
-            priceField.setValue(existing.getPricePerNight());
-            maxOccupancyField.setValue(existing.getMaxOccupancy().doubleValue());
-            activeCheck.setValue(existing.getActive());
-        }
-
-        FormLayout form = new FormLayout(nameField, priceField, descArea, maxOccupancyField, activeCheck);
-        form.setResponsiveSteps(
-            new FormLayout.ResponsiveStep("0", 1),
-            new FormLayout.ResponsiveStep("600px", 2)
-        );
-        form.setColspan(descArea, 2);
-
-        // Buttons
         Button saveBtn = new Button(existing == null ? "Add Category" : "Update Category");
         saveBtn.addClassName("primary-button");
         saveBtn.addClickListener(e -> {
-            // Validierung
-            if (nameField.isEmpty() || descArea.isEmpty() || priceField.isEmpty() || maxOccupancyField.isEmpty()) {
-                Notification.show("Please fill all required fields", 3000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-                return;
-            }
-
             try {
-                if (existing == null) {
-                    // Neue Category erstellen
-                    RoomCategory newCategory = new RoomCategory();
-                    newCategory.setName(nameField.getValue());
-                    newCategory.setDescription(descArea.getValue());
-                    newCategory.setPricePerNight(priceField.getValue());
-                    newCategory.setMaxOccupancy(maxOccupancyField.getValue().intValue());
-                    newCategory.setActive(activeCheck.getValue());
-                    
-                    roomCategoryService.saveRoomCategory(newCategory);
-                } else {
-                    // Existierende Category aktualisieren
-                    existing.setName(nameField.getValue());
-                    existing.setDescription(descArea.getValue());
-                    existing.setPricePerNight(priceField.getValue());
-                    existing.setMaxOccupancy(maxOccupancyField.getValue().intValue());
-                    existing.setActive(activeCheck.getValue());
-                    
-                    roomCategoryService.saveRoomCategory(existing);
-                }
-                
+                form.writeBean();
+                roomCategoryService.saveRoomCategory(form.getCategory());
                 refreshData();
                 dialog.close();
-                
                 Notification.show("Category saved successfully!", 3000, Notification.Position.BOTTOM_START)
                     .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
             } catch (Exception ex) {
@@ -802,44 +517,42 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
         Button cancelBtn = new Button("Cancel");
         cancelBtn.addClickListener(e -> dialog.close());
 
-        dialog.add(form);
-        dialog.getFooter().add(new HorizontalLayout(cancelBtn, saveBtn));
+        HorizontalLayout buttonLayout = new HorizontalLayout(cancelBtn, saveBtn);
+        buttonLayout.setSpacing(true);
+        dialog.add(form, buttonLayout);
         dialog.open();
     }
 
-    // Löscht eine Category aus der Datenbank
+    // Löscht eine Category (Dialog)
     private void deleteCategory(RoomCategory category) {
-        Dialog confirmDialog = new Dialog();
-        confirmDialog.setHeaderTitle("Delete Category");
+        RoomCategoryService.CategoryDeleteAction action = roomCategoryService.getDeletionAction(category.getCategory_id());
         
-        Paragraph message = new Paragraph("Are you sure you want to delete category '" + category.getName() + "'?");
-        message.getStyle().set("margin", "0");
+        // Wenn durch Invoices blockiert
+        if (action.isBlocked()) {
+            Dialog errorDialog = new Dialog();
+            errorDialog.setHeaderTitle("Cannot Delete Category");
+            Paragraph message = new Paragraph(action.getErrorMessage());
+            message.addClassName("dialog-message");
+            Button okBtn = new Button("OK", e -> errorDialog.close());
+            errorDialog.add(message);
+            errorDialog.getFooter().add(okBtn);
+            errorDialog.open();
+            return;
+        }
         
-        Paragraph warning = new Paragraph("Warning: This will also affect all rooms in this category!");
-        warning.getStyle().set("margin", "0.5rem 0 0 0").set("color", "#ef4444").set("font-weight", "600");
+        String message = action.getMessageTemplate().replace("{categoryName}", category.getName());
         
-        Button confirmBtn = new Button("Delete");
-        confirmBtn.getStyle().set("background", "#ef4444").set("color", "white");
-        confirmBtn.addClickListener(e -> {
+        showConfirmDialog(action.getDialogTitle(), message, action.getButtonLabel(), () -> {
             try {
                 roomCategoryService.deleteRoomCategory(category.getCategory_id());
                 refreshData();
-                confirmDialog.close();
-                
-                Notification.show("Category deleted successfully!", 3000, Notification.Position.BOTTOM_START)
+                Notification.show(action.getSuccessMessage(), 3000, Notification.Position.BOTTOM_START)
                     .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
             } catch (Exception ex) {
                 Notification.show("Error: " + ex.getMessage(), 3000, Notification.Position.MIDDLE)
                     .addThemeVariants(NotificationVariant.LUMO_ERROR);
             }
         });
-        
-        Button cancelBtn = new Button("Cancel");
-        cancelBtn.addClickListener(e -> confirmDialog.close());
-        
-        confirmDialog.add(message, warning);
-        confirmDialog.getFooter().add(new HorizontalLayout(cancelBtn, confirmBtn));
-        confirmDialog.open();
     }
 
     // ==================== SECURITY ====================

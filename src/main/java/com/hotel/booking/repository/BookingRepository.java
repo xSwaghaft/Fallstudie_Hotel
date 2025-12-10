@@ -1,6 +1,8 @@
 package com.hotel.booking.repository;
 
 import com.hotel.booking.entity.Booking;
+import com.hotel.booking.entity.BookingStatus;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -23,11 +25,16 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
 
     void deleteByBookingNumber(String bookingNumber);
 
-        // --- Room-bezogene Abfragen ----------------------------------------------
+    // --- Room-bezogene Abfragen ----------------------------------------------
 
         List<Booking> findByRoom_Id(Long roomId);
 
-        // Gleiche Logik als Exists – nützlich für “ist Zimmer frei?”
+        // --- RoomCategory-bezogene Abfragen ----------------------------------
+
+        @Query("SELECT b FROM Booking b WHERE b.roomCategory.category_id = :categoryId")
+        List<Booking> findByRoomCategoryId(@Param("categoryId") Long categoryId);
+
+        // Gleiche Logik als Exists – nützlich für "ist Zimmer frei?"
         boolean existsByRoom_IdAndCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(
                 Long roomId,
                 LocalDate endInclusive,
@@ -50,14 +57,17 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
 
     // --- Zeitraum-Abfragen ----------------------------------------------------
 
-        // Alle heute(in einem Zeitraum) aktiven Buchungen:
+        // Alle Buchungen, in einem Zeitraum erstellt wurden:
         // (checkIn <= end) AND (checkOut >= start)
         //Matthias Lohr
-        List<Booking> findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(
-                LocalDate today1,
-                LocalDate today2);
+        List<Booking> findByCreatedAtLessThanEqualAndCreatedAtGreaterThanEqual(LocalDate endInclusive, LocalDate startInclusive);
 
-        List<Booking> findByCheckInDateBetween(LocalDate from, LocalDate to);
+         //Liefert alle aktiven (cancelled ausschließen) Buchungen im Zeitraum.
+        List<Booking> findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(
+            LocalDate endInclusive,
+            LocalDate startInclusive,
+            BookingStatus statusToExclude
+        );
 
     @Query("""
             SELECT COALESCE(SUM(b.totalPrice), 0)
@@ -86,6 +96,5 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
             @Param("beforeDate") LocalDate beforeDate,
             @Param("status") com.hotel.booking.entity.BookingStatus status);
     
-    @EntityGraph(attributePaths = {"feedback", "roomCategory", "room", "extras", "invoice"})
     List<Booking> findByGuest_Id(Long guestId);
 }

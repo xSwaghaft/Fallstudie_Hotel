@@ -140,6 +140,10 @@ public class Booking {
     @OneToOne(mappedBy = "booking", fetch = FetchType.LAZY)
     private Feedback feedback;
 
+    /** Erstellungsdatum der Buchung. */
+    @Column(name = "created_at", nullable = false)
+    private LocalDate createdAt;
+
     // ------------------------------------------------------------
     // Konstruktoren
     // ------------------------------------------------------------
@@ -247,6 +251,19 @@ public class Booking {
 
     public Feedback getFeedback() { return feedback; }
     public void setFeedback(Feedback feedback) { this.feedback = feedback; }
+
+    public LocalDate getCreatedAt() {
+        return createdAt;
+    }
+    
+    //Methode soll beim ersten persistieren einmalig ausgeführt werden -> Lifecycle
+    //Matthias Lohr
+    @jakarta.persistence.PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDate.now();
+        }
+    }
 
     // ------------------------------------------------------------
     // Hilfs- und Konsistenzmethoden
