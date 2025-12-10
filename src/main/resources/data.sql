@@ -15,6 +15,7 @@ TRUNCATE TABLE bookings;
 TRUNCATE TABLE invoices;
 TRUNCATE TABLE guests;
 TRUNCATE TABLE rooms;
+TRUNCATE TABLE room_images;
 TRUNCATE TABLE room_category;
 TRUNCATE TABLE room_extras;
 TRUNCATE TABLE users;
@@ -163,3 +164,15 @@ INSERT IGNORE INTO reports (id, title, description, created_by_user_id) VALUES
 (3,'Kundenfeedback','Zusammenfassung Feedback November',2),
 (4,'Wartung','Technische Wartung geplant',2),
 (5,'Personaleinsatz','Einsatzplan Rezeption',3);
+
+-- ---------- Room Images (für Standard und Deluxe Kategorien) ----------
+INSERT IGNORE INTO room_images (image_path, alt_text, title, display_order, is_primary, category_id) VALUES
+('images/rooms/standard_001.png', 'Standard Zimmer Ansicht 1', 'Standard Zimmer', 0, TRUE, 1),
+('images/rooms/standard_002.png', 'Standard Zimmer Ansicht 2', 'Standard Zimmer', 1, FALSE, 1),
+('images/rooms/deluxe_001.png', 'Deluxe Zimmer Ansicht 1', 'Deluxe Zimmer', 0, TRUE, 2),
+('images/rooms/deluxe_002.png', 'Deluxe Zimmer Ansicht 2', 'Deluxe Zimmer', 1, FALSE, 2),
+('images/rooms/Suite_001.png', 'Suite Zimmer Ansicht 1', 'Deluxe Zimmer', 1, TRUE, 3),
+('images/rooms/Economy_001.png', 'Economy Zimmer Ansicht 1', 'Deluxe Zimmer', 1, TRUE, 4),
+('images/rooms/Family_001.png', 'Family Zimmer Ansicht 1', 'Deluxe Zimmer', 1, TRUE, 5);
+
+

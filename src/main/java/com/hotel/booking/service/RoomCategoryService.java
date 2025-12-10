@@ -1,8 +1,10 @@
 package com.hotel.booking.service;
 
 import com.hotel.booking.entity.RoomCategory;
+import com.hotel.booking.entity.RoomImage;
 import com.hotel.booking.entity.Room;
 import com.hotel.booking.repository.RoomCategoryRepository;
+import com.hotel.booking.repository.RoomImageRepository;
 import com.hotel.booking.repository.RoomRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,12 +25,14 @@ public class RoomCategoryService {
     private static final Logger log = LoggerFactory.getLogger(RoomCategoryService.class);
 
     private final RoomCategoryRepository roomCategoryRepository;
+    private final RoomImageRepository roomImageRepository;
     private final RoomRepository roomRepository;
 
     @Autowired
-    public RoomCategoryService(RoomCategoryRepository roomCategoryRepository, RoomRepository roomRepository) {
+    public RoomCategoryService(RoomCategoryRepository roomCategoryRepository,RoomImageRepository roomImageRepository, RoomRepository roomRepository) {
         this.roomCategoryRepository = roomCategoryRepository;
         this.roomRepository = roomRepository;
+        this.roomImageRepository = roomImageRepository;
     }
 
     // ==================== CRUD-Operationen ====================
@@ -188,5 +193,15 @@ public class RoomCategoryService {
                     ", inactiveCategories=" + getInactiveCategories() +
                     '}';
         }
+    }
+
+
+    //Viktor Götting Gibt alle bilder einer Kategorie zurück
+
+    public List<RoomImage> getAllRoomImages(Room room){
+
+        List<RoomImage> images = roomImageRepository.findByCategoryOrderByDisplayOrderAsc(room.getCategory());
+
+        return images;
     }
 }
