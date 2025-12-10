@@ -12,6 +12,7 @@ import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.*;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.TextField;
@@ -254,8 +255,8 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
 
         Button saveButton = new Button("Save", e -> {
             try {
-                form.writeBean();
-                userService.save(form.getUser());
+                form.writeBean(); // Überträgt die Formulardaten in das User-Objekt
+                userService.save(form.getUser()); // Speichert das User-Objekt aus dem Formular in der Datenbank
                 users.clear();
                 users.addAll(userService.findAll());
                 grid.getDataProvider().refreshAll();
@@ -327,6 +328,21 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
             return;
         }
 
+        UserService.DeleteAction action = userService.getDeletionAction(user.getId());
+        
+        // Wenn durch Bookings blockiert
+        if (action.isBlocked) {
+            Dialog errorDialog = new Dialog();
+            errorDialog.setHeaderTitle(action.dialogTitle);
+            Paragraph message = new Paragraph(action.errorMessage);
+            message.addClassName("dialog-message");
+            Button okBtn = new Button("OK", e -> errorDialog.close());
+            errorDialog.add(message);
+            errorDialog.getFooter().add(okBtn);
+            errorDialog.open();
+            return;
+        }
+
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle("Confirm Delete");
         dialog.setWidth("400px");
@@ -338,11 +354,12 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
         confirmBtn.addClassName("logout-btn-header");
         confirmBtn.addClickListener(e -> {
             try {
-                userService.delete(user); // Use the service to delete the user from the database
+                userService.delete(user);
                 users.remove(user);
                 grid.getDataProvider().refreshAll();
                 dialog.close();
-                Notification.show("User deleted successfully");
+                Notification.show("User deleted successfully", 3000, Notification.Position.BOTTOM_START)
+                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
             } catch (Exception ex) {
                 Notification.show("Error deleting user: " + ex.getMessage(), 5000, Notification.Position.TOP_CENTER);
                 ex.printStackTrace();

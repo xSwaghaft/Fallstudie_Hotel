@@ -425,13 +425,22 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
 
     // Löscht einen Room (Dialog)
     private void deleteRoom(Room room) {
-        RoomService.DeleteAction action = roomService.getDeletionAction(room.getId());
-        String message = action.getMessageTemplate().replace("{roomNumber}", room.getRoomNumber());
+        RoomService.RoomDeleteAction action = roomService.getDeletionAction(room.getId());
         
-        // Wenn Explanation existiert, zeige sie an (z.B. warum Löschen nicht möglich ist)
-        if (action.getExplanation() != null) {
-            message += "\n\n" + action.getExplanation();
+        // Wenn durch Bookings blockiert
+        if (action.isBlocked()) {
+            Dialog errorDialog = new Dialog();
+            errorDialog.setHeaderTitle("Cannot Delete Room");
+            Paragraph message = new Paragraph(action.getErrorMessage());
+            message.addClassName("dialog-message");
+            Button okBtn = new Button("OK", e -> errorDialog.close());
+            errorDialog.add(message);
+            errorDialog.getFooter().add(okBtn);
+            errorDialog.open();
+            return;
         }
+        
+        String message = action.getMessageTemplate().replace("{roomNumber}", room.getRoomNumber());
         
         showConfirmDialog(action.getDialogTitle(), message, action.getButtonLabel(), () -> {
             try {

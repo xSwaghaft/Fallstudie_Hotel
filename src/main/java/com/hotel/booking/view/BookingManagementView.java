@@ -1,7 +1,11 @@
 package com.hotel.booking.view;
 
+import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
+import com.hotel.booking.service.BookingExtraService;
+import com.hotel.booking.service.BookingService;
+import com.hotel.booking.service.RoomCategoryService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.datepicker.DatePicker;
@@ -17,11 +21,11 @@ import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.router.*;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 
 @Route(value = "bookings", layout = MainLayout.class)
 @PageTitle("Booking Management")
@@ -30,19 +34,16 @@ import java.util.List;
 public class BookingManagementView extends VerticalLayout implements BeforeEnterObserver {
 
     private final SessionService sessionService;
+    private final BookingService bookingService;
+    private final BookingExtraService bookingExtraService;
+    private final RoomCategoryService roomCategoryService;
     private static final DateTimeFormatter GERMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-
-    public record Booking(
-            String id, String guest, String email, String phone,
-            String room, String roomType,
-            LocalDate checkIn, LocalDate checkOut,
-            int nights, int guests, int amount,
-            String status, String paymentStatus, String createdAt) {}
-
-    private Grid<Booking> grid;
-
-    public BookingManagementView(SessionService sessionService) {
+    
+    public BookingManagementView(SessionService sessionService, BookingService bookingService, BookingExtraService bookingExtraService, RoomCategoryService roomCategoryService) {
         this.sessionService = sessionService;
+        this.bookingService = bookingService;
+        this.bookingExtraService = bookingExtraService;
+        this.roomCategoryService = roomCategoryService;
         setSpacing(true);
         setPadding(true);
         setSizeFull();
@@ -60,7 +61,7 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         
         Button newBooking = new Button("New Booking", VaadinIcon.PLUS.create());
         newBooking.addClassName("primary-button");
-        newBooking.addClickListener(e -> Notification.show("New booking wizard"));
+        newBooking.addClickListener(e -> openAddBookingDialog(null));
         
         HorizontalLayout header = new HorizontalLayout(headerLeft, newBooking);
         header.setWidthFull();
@@ -68,6 +69,35 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         header.setAlignItems(FlexComponent.Alignment.CENTER);
         
         return header;
+    }
+
+    //Möglicherweise nach Bearbeitung Grid aktualisieren
+    //Matthias Lohr
+    private void openAddBookingDialog(Booking existingBooking) {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle(existingBooking != null ? "Edit Booking" : "New Booking");
+        dialog.setWidth("600px");
+
+        createNewBookingForm form = new createNewBookingForm(sessionService.getCurrentUser(), sessionService, existingBooking, bookingService, bookingExtraService, roomCategoryService);
+
+        Button saveButton = new Button("Save", e -> {
+            try {
+                form.writeBean(); // Überträgt die Formulardaten in das User-Objekt
+                bookingService.save(form.getBooking()); // Speichert das User-Objekt aus dem Formular in der Datenbank
+                dialog.close();
+                Notification.show("Booking saved successfully.", 3000, Notification.Position.BOTTOM_START);
+            } catch (ValidationException ex) {
+                Notification.show("Please fix validation errors before saving.", 3000, Notification.Position.MIDDLE);
+            }
+        });
+
+        Button cancelButton = new Button("Cancel", e -> dialog.close());
+        cancelButton.addClassName("primary-button");
+
+        HorizontalLayout buttonLayout = new HorizontalLayout(saveButton, cancelButton);
+
+        dialog.add(form, buttonLayout);
+        dialog.open();
     }
 
     private Component createFilters() {
@@ -117,56 +147,65 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         H3 title = new H3("All Bookings");
         title.addClassName("booking-section-title");
 
-        grid = new Grid<>(Booking.class, false);
+        //Matthias Lohr
+        Grid<Booking> grid = new Grid<>(Booking.class, false);
         
-        grid.addColumn(Booking::id)
-            .setHeader("ID")
-            .setAutoWidth(true)
+        grid.addColumn(Booking::getBookingNumber)
+            .setHeader("Booking ID")
+            .setWidth("120px")
             .setFlexGrow(0);
         
-        grid.addColumn(Booking::guest)
+        grid.addColumn(Booking::getAmount)
+            .setHeader("Guest Name")
+            .setFlexGrow(2);
+        
+        grid.addColumn(booking -> booking.getRoom().getRoomNumber())
+            .setHeader("Room")
+            .setFlexGrow(2);
+        
+        // Check-in mit deutschem Datumsformat
+        grid.addColumn(booking -> booking.getCheckInDate().format(GERMAN_DATE_FORMAT))
+            .setHeader("Check-in Date")
+            .setWidth("140px")
+            .setFlexGrow(0);
+        
+        // grid.addColumn(Booking::id)
+        //     .setHeader("ID")
+        //     .setAutoWidth(true)
+        //     .setFlexGrow(0);
+        
+        grid.addColumn(booking -> booking.getGuest().getFullName())
             .setHeader("Guest")
             .setFlexGrow(1);
         
-        grid.addColumn(Booking::room)
-            .setHeader("Room")
-            .setAutoWidth(true)
-            .setFlexGrow(0);
-        
-        // Check-in mit deutschem Datumsformat
-        grid.addColumn(booking -> booking.checkIn().format(GERMAN_DATE_FORMAT))
-            .setHeader("Check-in")
-            .setAutoWidth(true)
-            .setFlexGrow(0);
-        
         // Check-out mit deutschem Datumsformat
-        grid.addColumn(booking -> booking.checkOut().format(GERMAN_DATE_FORMAT))
+        grid.addColumn(booking -> booking.getCheckOutDate().format(GERMAN_DATE_FORMAT))
             .setHeader("Check-out")
             .setAutoWidth(true)
             .setFlexGrow(0);
         
-        // Amount in Euro
-        grid.addColumn(booking -> "€" + booking.amount())
-            .setHeader("Amount")
-            .setAutoWidth(true)
-            .setFlexGrow(0);
+        // // Amount in Euro
+        // grid.addColumn(booking -> "€" + booking.amount())
+        //     .setHeader("Amount")
+        //     .setAutoWidth(true)
+        //     .setFlexGrow(0);
         
         grid.addComponentColumn(this::createStatusBadge)
             .setHeader("Status")
             .setAutoWidth(true)
             .setFlexGrow(0);
         
-        grid.addComponentColumn(this::createPaymentBadge)
-            .setHeader("Payment")
-            .setAutoWidth(true)
-            .setFlexGrow(0);
+        // grid.addComponentColumn(this::createPaymentBadge)
+        //     .setHeader("Payment")
+        //     .setAutoWidth(true)
+        //     .setFlexGrow(0);
         
         grid.addComponentColumn(this::createActionButtons)
             .setHeader("Actions")
             .setAutoWidth(true)
             .setFlexGrow(0);
 
-        grid.setItems(mockBookings());
+        grid.setItems(bookingService.getRecentBookings());
         grid.setAllRowsVisible(true);
         grid.setWidthFull();
 
@@ -175,18 +214,18 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
     }
 
     private Component createStatusBadge(Booking booking) {
-        Span badge = new Span(booking.status());
+        Span badge = new Span(booking.getStatus().name());
         badge.addClassName("status-badge");
-        badge.addClassName("status-" + booking.status());
+        badge.addClassName("status-" + booking.getStatus().toString().toLowerCase());
         return badge;
     }
 
-    private Component createPaymentBadge(Booking booking) {
-        Span badge = new Span(booking.paymentStatus());
-        badge.addClassName("status-badge");
-        badge.addClassName("status-" + booking.paymentStatus());
-        return badge;
-    }
+    // private Component createPaymentBadge(Booking booking) {
+    //     Span badge = new Span(booking.paymentStatus());
+    //     badge.addClassName("status-badge");
+    //     badge.addClassName("status-" + booking.paymentStatus());
+    //     return badge;
+    // }
 
     private Component createActionButtons(Booking booking) {
         HorizontalLayout actions = new HorizontalLayout();
@@ -196,67 +235,40 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         viewBtn.addClickListener(e -> openDetails(booking));
         
         Button editBtn = new Button("Edit", VaadinIcon.EDIT.create());
-        editBtn.addClickListener(e -> Notification.show("Edit " + booking.id()));
+        editBtn.addClickListener(e -> openAddBookingDialog(booking));
         
         actions.add(viewBtn, editBtn);
         
-        if ("confirmed".equals(booking.status())) {
+        if (booking.getStatus() != null && "CONFIRMED".equals(booking.getStatus().name())) {
             Button checkInBtn = new Button("Check In", VaadinIcon.SIGN_IN.create());
-            checkInBtn.addClickListener(e -> Notification.show("Checked in " + booking.id()));
+            checkInBtn.addClickListener(e -> Notification.show("Checked in " + booking.getBookingNumber()));
             actions.add(checkInBtn);
         }
         
         return actions;
     }
 
-    private List<Booking> mockBookings() {
-        return List.of(
-                new Booking("BK001","Emma Wilson","emma.w@email.com","+1 555-0101",
-                        "302","Deluxe",
-                        LocalDate.of(2025, 11, 5), LocalDate.of(2025, 11, 8),
-                        3, 2, 447, "confirmed", "paid", "2025-10-28"),
-                new Booking("BK002","Michael Brown","michael.b@email.com","+1 555-0102",
-                        "105","Suite",
-                        LocalDate.of(2025, 11, 8), LocalDate.of(2025, 11, 12),
-                        4, 3, 1196, "pending", "pending", "2025-10-30"),
-                new Booking("BK003","Sarah Davis","sarah.d@email.com","+1 555-0103",
-                        "201","Standard",
-                        LocalDate.of(2025, 11, 3), LocalDate.of(2025, 11, 6),
-                        3, 1, 267, "checked-in", "paid", "2025-10-25"),
-                new Booking("BK004","James Miller","james.m@email.com","+1 555-0104",
-                        "401","Deluxe",
-                        LocalDate.of(2025, 11, 10), LocalDate.of(2025, 11, 15),
-                        5, 2, 745, "confirmed", "partial", "2025-11-01"),
-                new Booking("BK005","Lisa Anderson","lisa.a@email.com","+1 555-0105",
-                        "305","Suite",
-                        LocalDate.of(2025, 11, 6), LocalDate.of(2025, 11, 9),
-                        3, 4, 897, "confirmed", "paid", "2025-10-29")
-        );
-    }
-
     private void openDetails(Booking b) {
         Dialog d = new Dialog();
-        d.setHeaderTitle("Booking Details - " + b.id());
+        d.setHeaderTitle("Booking Details - " + b.getBookingNumber());
         d.setWidth("800px");
 
         Tabs tabs = new Tabs(new Tab("Details"), new Tab("Payments"), new Tab("History"), new Tab("Extras"));
         
         Div details = new Div();
-        details.add(new Paragraph("Guest Name: " + b.guest()));
-        details.add(new Paragraph("Email: " + b.email()));
-        details.add(new Paragraph("Phone: " + b.phone()));
-        details.add(new Paragraph("Room: " + b.room() + " - " + b.roomType()));
-        details.add(new Paragraph("Check-in: " + b.checkIn().format(GERMAN_DATE_FORMAT)));
-        details.add(new Paragraph("Check-out: " + b.checkOut().format(GERMAN_DATE_FORMAT)));
-        details.add(new Paragraph("Total: €" + b.amount()));
+        details.add(new Paragraph("Guest Name: " + (b.getGuest() != null ? b.getGuest().getFullName() : "N/A")));
+        details.add(new Paragraph("Booking Number: " + b.getBookingNumber()));
+        details.add(new Paragraph("Check-in: " + b.getCheckInDate().format(GERMAN_DATE_FORMAT)));
+        details.add(new Paragraph("Check-out: " + b.getCheckOutDate().format(GERMAN_DATE_FORMAT)));
+        details.add(new Paragraph("Guests: " + b.getAmount()));
+        details.add(new Paragraph("Status: " + b.getStatus()));
 
-        Div payments = new Div(new Paragraph("Initial Payment - 28.10.2025 - €" + b.amount()),
-                new Paragraph("Status: " + b.paymentStatus()));
+        Div payments = new Div(new Paragraph("Payment information not available"));
 
         Div history = new Div(new Paragraph("Booking confirmed - 28.10.2025 10:30"),
                 new Paragraph("Booking created - 28.10.2025 10:25"));
 
-        Div extras = new Div(new Paragraph("No additional services requested"));
+        Div extras = new Div(new Paragraph(b.getExtras().isEmpty() ? "No additional services requested" : b.getExtras().size() + " services added"));
 
         Div pages = new Div(details, payments, history, extras);
         pages.addClassName("booking-details-container");
@@ -272,7 +284,7 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         });
 
         Button checkIn = new Button("Check In", e -> { d.close(); Notification.show("Checked in"); });
-        Button edit = new Button("Edit Booking", e -> Notification.show("Edit not implemented"));
+        Button edit = new Button("Edit Booking", e -> { d.close(); openAddBookingDialog(b); });
         Button cancel = new Button("Cancel", e -> d.close());
 
         d.add(new VerticalLayout(tabs, pages));

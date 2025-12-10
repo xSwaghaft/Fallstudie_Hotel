@@ -2,9 +2,11 @@ package com.hotel.booking.service;
 
 import com.hotel.booking.entity.RoomCategory;
 import com.hotel.booking.entity.Room;
+import com.hotel.booking.entity.Booking;
 import com.hotel.booking.repository.RoomCategoryRepository;
 import com.hotel.booking.repository.RoomRepository;
 import com.hotel.booking.repository.InvoiceRepository;
+import com.hotel.booking.repository.BookingRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,14 +28,17 @@ public class RoomCategoryService {
     private final RoomCategoryRepository roomCategoryRepository;
     private final RoomRepository roomRepository;
     private final InvoiceRepository invoiceRepository;
+    private final BookingRepository bookingRepository;
 
     @Autowired
     public RoomCategoryService(RoomCategoryRepository roomCategoryRepository, 
                                 RoomRepository roomRepository,
-                                InvoiceRepository invoiceRepository) {
+                                InvoiceRepository invoiceRepository,
+                                BookingRepository bookingRepository) {
         this.roomCategoryRepository = roomCategoryRepository;
         this.roomRepository = roomRepository;
         this.invoiceRepository = invoiceRepository;
+        this.bookingRepository = bookingRepository;
     }
 
     // ==================== CRUD-Operationen ====================
@@ -64,8 +69,18 @@ public class RoomCategoryService {
             if (category.getActive() != null && category.getActive()) {
                 category.setActive(false);
                 roomCategoryRepository.save(category);
-                log.info("RoomCategory {} (ID: {}) auf Inactive gesetzt", category.getName(), id);
+                log.info("RoomCategory {} (ID: {}) set to inactive", category.getName(), id);
                 return;
+            }
+            
+            // Prüfe auf Bookings, die diese RoomCategory referenzieren
+            List<Booking> relatedBookings = bookingRepository.findByRoomCategoryId(id);
+            if (relatedBookings != null && !relatedBookings.isEmpty()) {
+                log.warn("Cannot delete category {}: {} bookings reference this category", 
+                    category.getName(), relatedBookings.size());
+                throw new IllegalStateException(
+                    "Cannot delete category \"" + category.getName() + "\": " +
+                    relatedBookings.size() + " bookings reference this category");
             }
             
             // Wenn bereits Inactive, prüfe auf Invoices bevor echtes Löschen
@@ -87,14 +102,14 @@ public class RoomCategoryService {
                     room.setCategory(null);
                     roomRepository.save(room);
                 }
-                log.info("Entkoppelt {} Rooms von Category {} ({})", affectedRooms.size(), category.getName(), id);
+                log.info("Decoupled {} rooms from category {} ({})", affectedRooms.size(), category.getName(), id);
             }
             
             // Lösche die Category
             roomCategoryRepository.delete(category);
-            log.info("RoomCategory {} (ID: {}) gelöscht", category.getName(), id);
+            log.info("RoomCategory {} (ID: {}) deleted", category.getName(), id);
         } else {
-            throw new IllegalArgumentException("RoomCategory mit ID " + id + " nicht gefunden");
+            throw new IllegalArgumentException("RoomCategory with ID " + id + " not found");
         }
     }
 
@@ -111,6 +126,15 @@ public class RoomCategoryService {
                     null, "Deactivate Category", "Set to INACTIVE",
                     "Set category '{categoryName}' to INACTIVE? It can be reactivated later.",
                     "Category set to INACTIVE!");
+            }
+            
+            // Prüfe auf Bookings mit dieser RoomCategory
+            List<Booking> relatedBookings = bookingRepository.findByRoomCategoryId(categoryId);
+            if (relatedBookings != null && !relatedBookings.isEmpty()) {
+                String errorMsg = "Cannot delete category \"" + category.getName() + "\": " +
+                    relatedBookings.size() + " bookings reference this category";
+                return new CategoryDeleteAction(CategoryDeleteActionType.BLOCKED_BY_INVOICES, 
+                    errorMsg, "Cannot Delete Category", null, null, null);
             }
             
             // Wenn Inactive, prüfe auf Invoices

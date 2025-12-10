@@ -1,7 +1,6 @@
 // Ruslan Krause
 package com.hotel.booking.service;
 
-import com.hotel.booking.dto.BookingCancellationRequest;
 import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.BookingCancellation;
 import com.hotel.booking.entity.User;
@@ -39,45 +38,6 @@ public class BookingCancellationService {
     // Sucht eine BookingCancellation anhand der ID und gibt sie als Optional zurück
     public Optional<BookingCancellation> getById(Long id) {
         return cancellationRepository.findById(id);
-    }
-
-    // Erstellt eine neue BookingCancellation aus den Daten des Request-Objekts
-    public BookingCancellation createFromRequest(BookingCancellationRequest request) {
-        BookingCancellation cancellation = new BookingCancellation();
-        // Holt die zugehörige Buchung anhand der bookingId aus der Datenbank
-        Booking booking = bookingRepository.findById(request.bookingId).orElse(null);
-        cancellation.setBooking(booking);
-        // Setzt das Datum der Stornierung
-        cancellation.setCancelledAt(request.cancelledAt);
-        // Setzt den Grund der Stornierung
-        cancellation.setReason(request.reason);
-        // Setzt den erstatteten Betrag
-        cancellation.setRefundedAmount(request.refundedAmount);
-        // Holt den bearbeitenden User anhand der handledById aus der Datenbank
-        User handledBy = request.handledById != null ? userRepository.findById(request.handledById).orElse(null) : null;
-        cancellation.setHandledBy(handledBy);
-        // Speichert die neue Stornierung in der Datenbank und gibt sie zurück
-        return cancellationRepository.save(cancellation);
-    }
-
-    // Aktualisiert eine bestehende BookingCancellation anhand der ID und des Request-Objekts
-    public BookingCancellation updateFromRequest(Long id, BookingCancellationRequest request) {
-        // Holt die bestehende Stornierung aus der Datenbank
-        BookingCancellation cancellation = cancellationRepository.findById(id).orElseThrow();
-        // Aktualisiert die zugehörige Buchung
-        Booking booking = bookingRepository.findById(request.bookingId).orElse(null);
-        cancellation.setBooking(booking);
-        // Aktualisiert das Datum der Stornierung
-        cancellation.setCancelledAt(request.cancelledAt);
-        // Aktualisiert den Grund der Stornierung
-        cancellation.setReason(request.reason);
-        // Aktualisiert den erstatteten Betrag
-        cancellation.setRefundedAmount(request.refundedAmount);
-        // Aktualisiert den bearbeitenden User
-        User handledBy = request.handledById != null ? userRepository.findById(request.handledById).orElse(null) : null;
-        cancellation.setHandledBy(handledBy);
-        // Speichert die aktualisierte Stornierung in der Datenbank und gibt sie zurück
-        return cancellationRepository.save(cancellation);
     }
 
     // Löscht eine BookingCancellation anhand der ID aus der Datenbank

@@ -51,67 +51,111 @@ public class RoomService {
         if (roomOpt.isPresent()) {
             Room room = roomOpt.get();
             
-            // Prüfe ob es Bookings für diesen Room gibt
-            List<Booking> bookings = bookingRepository.findByRoom_Id(id);
-            
-            if (bookings.isEmpty()) {
-                // Keine Bookings -> echtes Löschen
-                roomRepository.deleteById(id);
-            } else {
-                // Bookings vorhanden -> setze auf Inactive
-                if (!RoomStatus.INACTIVE.equals(room.getStatus())) {
-                    room.setStatus(RoomStatus.INACTIVE);
-                    room.setActive(false);
-                    roomRepository.save(room);
-                }
+            // Wenn Status nicht Inactive ist, setze ihn auf Inactive
+            if (room.getActive() != null && room.getActive()) {
+                room.setActive(false);
+                room.setStatus(RoomStatus.INACTIVE);
+                roomRepository.save(room);
+                return;
             }
+            
+            // Prüfe auf Bookings, die diesen Room referenzieren
+            List<Booking> relatedBookings = bookingRepository.findByRoom_Id(id);
+            if (relatedBookings != null && !relatedBookings.isEmpty()) {
+                throw new IllegalStateException(
+                    "Cannot delete Room \"" + room.getRoomNumber() + "\": " +
+                    relatedBookings.size() + " bookings reference this Room");
+            }
+            
+            // Lösche den Room
+            roomRepository.deleteById(id);
         }
     }
 
-    /* Gibt zurück, ob ein Room gelöscht oder auf Inactive gesetzt werden soll */
-    public DeleteAction getDeletionAction(Long roomId) {
+    /* Prüft ob ein Room gelöscht werden kann und gibt die Aktion zurück */
+    public RoomDeleteAction getDeletionAction(Long roomId) {
         Optional<Room> roomOpt = roomRepository.findById(roomId);
+        
         if (roomOpt.isPresent()) {
-            List<Booking> bookings = bookingRepository.findByRoom_Id(roomId);
+            Room room = roomOpt.get();
             
-            // Wenn keine Bookings -> echtes Löschen möglich
-            if (bookings.isEmpty()) {
-                return DeleteAction.PERMANENT_DELETE;
-            } else {
-                // Bookings vorhanden -> nur auf Inactive setzen
-                return DeleteAction.SET_INACTIVE;
+            // Wenn aktiv, dann kann auf Inactive gesetzt werden
+            if (room.getActive() != null && room.getActive()) {
+                return new RoomDeleteAction(RoomDeleteActionType.SET_INACTIVE, 
+                    null, "Deactivate Room", "Set to INACTIVE",
+                    "Set Room {roomNumber} to INACTIVE? It will no longer be available for bookings.",
+                    "Room set to INACTIVE!");
             }
+            
+            // Prüfe auf Bookings mit diesem Room
+            List<Booking> relatedBookings = bookingRepository.findByRoom_Id(roomId);
+            if (relatedBookings != null && !relatedBookings.isEmpty()) {
+                String errorMsg = "Cannot delete Room \"" + room.getRoomNumber() + "\": " +
+                    relatedBookings.size() + " bookings reference this Room";
+                return new RoomDeleteAction(RoomDeleteActionType.BLOCKED_BY_BOOKINGS, 
+                    errorMsg, "Cannot Delete Room", null, null, null);
+            }
+            
+            // Wenn Inactive und keine Bookings -> echtes Löschen möglich
+            return new RoomDeleteAction(RoomDeleteActionType.PERMANENT_DELETE, 
+                null, "Delete Room Permanently", "Delete Permanently",
+                "This room is currently INACTIVE. Delete it permanently? This cannot be undone!",
+                "Room deleted permanently!");
         }
+        
         throw new IllegalArgumentException("Room mit ID " + roomId + " nicht gefunden");
     }
 
-    /* Enum für Deletions-Aktion */
-    public enum DeleteAction {
-        SET_INACTIVE("Deactivate Room", "Set to INACTIVE", 
-            "Set Room {roomNumber} to INACTIVE? It will no longer be available for bookings.",
-            "Room set to INACTIVE!",
-            "This room has existing bookings.\n\n" +
-            "Rooms with bookings cannot be deleted permanently to maintain historical records.\n\n" +
-            "Please deactivate the room first by setting its status to INACTIVE. " +
-            "The room will remain in the system for reference purposes."),
-        PERMANENT_DELETE("Delete Room", "Delete", 
-            "Delete Room {roomNumber} permanently?",
-            "Room deleted successfully!",
-            null);
+    // ==================== Query-Methoden ====================
 
+    /* Findet Rooms nach Status */
+    public List<Room> findByStatus(RoomStatus status) {
+        return roomRepository.findByStatus(status);
+    }
+
+    /* Findet Rooms nach Kategorie */
+    public List<Room> findByCategory(RoomCategory category) {
+        return roomRepository.findByCategory(category);
+    }
+
+    /* Findet alle verfügbaren Rooms */
+    public List<Room> getAvailableRooms() {
+        return roomRepository.findByStatus(RoomStatus.AVAILABLE);
+    }
+
+    // ==================== Inner Classes ====================
+
+    public enum RoomDeleteActionType {
+        SET_INACTIVE,
+        PERMANENT_DELETE,
+        BLOCKED_BY_BOOKINGS
+    }
+
+    public static class RoomDeleteAction {
+        private final RoomDeleteActionType type;
+        private final String errorMessage;
         private final String dialogTitle;
         private final String buttonLabel;
         private final String messageTemplate;
         private final String successMessage;
-        private final String explanation;
 
-        DeleteAction(String dialogTitle, String buttonLabel, String messageTemplate, 
-                    String successMessage, String explanation) {
+        public RoomDeleteAction(RoomDeleteActionType type, String errorMessage, 
+                                String dialogTitle, String buttonLabel, 
+                                String messageTemplate, String successMessage) {
+            this.type = type;
+            this.errorMessage = errorMessage;
             this.dialogTitle = dialogTitle;
             this.buttonLabel = buttonLabel;
             this.messageTemplate = messageTemplate;
             this.successMessage = successMessage;
-            this.explanation = explanation;
+        }
+
+        public RoomDeleteActionType getType() {
+            return type;
+        }
+
+        public String getErrorMessage() {
+            return errorMessage;
         }
 
         public String getDialogTitle() {
@@ -130,26 +174,9 @@ public class RoomService {
             return successMessage;
         }
 
-        public String getExplanation() {
-            return explanation;
+        public boolean isBlocked() {
+            return type == RoomDeleteActionType.BLOCKED_BY_BOOKINGS;
         }
-    }
-
-    // ==================== Query-Methoden ====================
-
-    /* Findet Rooms nach Status */
-    public List<Room> findByStatus(RoomStatus status) {
-        return roomRepository.findByStatus(status);
-    }
-
-    /* Findet Rooms nach Kategorie */
-    public List<Room> findByCategory(RoomCategory category) {
-        return roomRepository.findByCategory(category);
-    }
-
-    /* Findet alle verfügbaren Rooms */
-    public List<Room> getAvailableRooms() {
-        return roomRepository.findByStatus(RoomStatus.AVAILABLE);
     }
 
     // ==================== Business-Logik ====================
@@ -187,7 +214,7 @@ public class RoomService {
         throw new IllegalArgumentException("Room with ID " + roomId + " not found");
     }
 
-    /* Validiert einen Room vor dem Speichern */
+    /* Validiert einen Room vor dem Speichern; Wahrscheinlich unnötig durch binder und Entity validation */
     public void validateRoom(Room room) {
         if (room.getCategory() == null) {
             throw new IllegalArgumentException("Category is required");

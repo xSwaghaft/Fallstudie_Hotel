@@ -1,16 +1,25 @@
 package com.hotel.booking.view;
 
+import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
+import com.hotel.booking.service.BookingExtraService;
+import com.hotel.booking.service.BookingService;
+import com.hotel.booking.service.RoomCategoryService;
+import com.hotel.booking.service.RoomService;
+import com.hotel.booking.service.RoomService.RoomStatistics;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dependency.CssImport;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.*;
+import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.router.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -23,12 +32,20 @@ import java.util.List;
 public class DashboardView extends VerticalLayout implements BeforeEnterObserver {
 
     private final SessionService sessionService;
+    private final RoomService roomService;
+    private final BookingService bookingService;
+    private final BookingExtraService bookingExtraService;
+    private final RoomCategoryService roomCategoryService;
     private static final DateTimeFormatter GERMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
-    record BookingRecord(String id, String guest, String room, LocalDate checkIn, String status) {}
+    private Grid<Booking> grid = new Grid<>(Booking.class, false);
 
-    public DashboardView(SessionService sessionService) {
+    public DashboardView(SessionService sessionService, RoomService service, BookingService bookingService, BookingExtraService bookingExtraService, RoomCategoryService roomCategoryService) {
         this.sessionService = sessionService;
+        this.roomService = service; 
+        this.bookingService = bookingService;
+        this.bookingExtraService = bookingExtraService;
+        this.roomCategoryService = roomCategoryService;
         setSpacing(true);
         setPadding(true);
         setSizeFull();
@@ -61,46 +78,82 @@ public class DashboardView extends VerticalLayout implements BeforeEnterObserver
             viewReports.addClickListener(e -> UI.getCurrent().navigate(ReportsView.class));
             
             Button newBooking = new Button("New Booking", VaadinIcon.PLUS.create());
+            newBooking.addClickListener(e -> openAddBookingDialog(null));
             newBooking.addClassName("primary-button");
             
             headerRight.add(viewReports, newBooking);
         } else if (role == UserRole.RECEPTIONIST) {
             Button newBooking = new Button("New Booking", VaadinIcon.PLUS.create());
+            newBooking.addClickListener(e -> openAddBookingDialog(null));
             newBooking.addClassName("primary-button");
             headerRight.add(newBooking);
         }
         
-        headerRight.setSpacing(true);
+        headerRight.setSpacing(true); // Abstand zwischen den Buttons
         headerRight.setAlignItems(FlexComponent.Alignment.CENTER);
         
         HorizontalLayout header = new HorizontalLayout(headerLeft, headerRight);
         header.setWidthFull();
-        header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-        header.setAlignItems(FlexComponent.Alignment.CENTER);
+        header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN); //Layout der längsachse: Verteilt die Elemente gleichmäßig von links nach rechts (argument-BETWEEN ist ein Enum)
+        header.setAlignItems(FlexComponent.Alignment.CENTER); //Layout der querachse: Zentriert die Elemente vertikal
         
         return header;
     }
 
+    //Matthias Lohr
+    private void openAddBookingDialog(Booking existingBooking) {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle(existingBooking != null ? "Edit Booking" : "New Booking");
+        dialog.setWidth("600px");
+
+        createNewBookingForm form = new createNewBookingForm(sessionService.getCurrentUser(), sessionService, existingBooking, bookingService, bookingExtraService, roomCategoryService);
+
+        Button saveButton = new Button("Save", e -> {
+            try {
+                form.writeBean(); // Überträgt die Formulardaten in das User-Objekt
+                bookingService.save(form.getBooking()); // Speichert das User-Objekt aus dem Formular in der Datenbank
+                dialog.close();
+                Notification.show("Booking saved successfully.", 3000, Notification.Position.BOTTOM_START);
+                grid.setItems(bookingService.getRecentBookings());
+            } catch (ValidationException ex) {
+                Notification.show("Please fix validation errors before saving.", 3000, Notification.Position.MIDDLE);
+            }
+        });
+
+        Button cancelButton = new Button("Cancel", e -> dialog.close());
+        cancelButton.addClassName("primary-button");
+
+        HorizontalLayout buttonLayout = new HorizontalLayout(saveButton, cancelButton);
+
+        dialog.add(form, buttonLayout);
+        dialog.open();
+    }
+
+
     private Component createKpiRow(UserRole role) {
+        RoomStatistics stats = roomService.getStatistics();
+        int currentGuests = bookingService.getNumberOfGuestsPresent();
+        int checkoutsToday = bookingService.getNumberOfCheckoutsToday();
+        int checkinsToday = bookingService.getNumberOfCheckinsToday();
         // Verwende HorizontalLayout statt FlexLayout für gleichmäßige Verteilung
         HorizontalLayout row = new HorizontalLayout();
         row.setWidthFull();
         row.setSpacing(true);
 
         if (role == UserRole.RECEPTIONIST) {
-            Div card1 = createKpiCard("Check-ins Today", "8", VaadinIcon.USERS, null);
-            Div card2 = createKpiCard("Check-outs Today", "5", VaadinIcon.USERS, null);
-            Div card3 = createKpiCard("Occupied Rooms", "42/60", VaadinIcon.BED, null);
-            Div card4 = createKpiCard("Pending Invoices", "12", VaadinIcon.FILE_TEXT, null);
+            Div card1 = createKpiCard("Check-ins Today", String.valueOf(checkinsToday), VaadinIcon.USERS);
+            Div card2 = createKpiCard("Check-outs Today", String.valueOf(checkoutsToday), VaadinIcon.USERS);
+            Div card3 = createKpiCard("Occupied Rooms", String.valueOf(stats.getOccupiedRooms()), VaadinIcon.BED);
+            Div card4 = createKpiCard("Pending Invoices", "12", VaadinIcon.FILE_TEXT);
             
             row.add(card1, card2, card3, card4);
             // Alle Karten gleichmäßig expandieren
             row.expand(card1, card2, card3, card4);
         } else if (role == UserRole.MANAGER) {
-            Div card1 = createKpiCard("Occupied Rooms", "42/60", VaadinIcon.BED, null);
-            Div card2 = createKpiCard("Available Rooms", "18", VaadinIcon.BED, null);
-            Div card3 = createKpiCard("Revenue Today", "€8.450", VaadinIcon.DOLLAR, null);
-            Div card4 = createKpiCard("Current Guests", "67", VaadinIcon.USERS, null);
+            Div card1 = createKpiCard("Occupied Rooms", String.valueOf(stats.getOccupiedRooms()), VaadinIcon.BED);
+            Div card2 = createKpiCard("Available Rooms", String.valueOf(stats.getAvailableRooms()), VaadinIcon.BED);
+            Div card3 = createKpiCard("Revenue Today", "€8.450", VaadinIcon.DOLLAR);
+            Div card4 = createKpiCard("Current Guests", String.valueOf(currentGuests), VaadinIcon.USERS);
             
             row.add(card1, card2, card3, card4);
             row.expand(card1, card2, card3, card4);
@@ -109,7 +162,7 @@ public class DashboardView extends VerticalLayout implements BeforeEnterObserver
         return row;
     }
 
-    private Div createKpiCard(String title, String value, VaadinIcon iconType, String color) {
+    private Div createKpiCard(String title, String value, VaadinIcon iconType) {
         Div card = new Div();
         card.addClassName("kpi-card");
         
@@ -119,9 +172,6 @@ public class DashboardView extends VerticalLayout implements BeforeEnterObserver
         
         Icon icon = iconType.create();
         icon.addClassName("kpi-card-icon");
-        if (color != null) {
-            icon.getStyle().set("color", color);
-        }
         
         HorizontalLayout cardHeader = new HorizontalLayout(titleSpan, icon);
         cardHeader.setWidthFull();
@@ -139,7 +189,7 @@ public class DashboardView extends VerticalLayout implements BeforeEnterObserver
     private Component createRecentBookingsCard() {
         Div card = new Div();
         card.addClassName("card");
-        card.setWidthFull(); // WICHTIG: Card nutzt volle Breite
+        card.setWidthFull(); // Card nutzt volle Breite
         
         // Header
         HorizontalLayout cardHeader = new HorizontalLayout();
@@ -161,24 +211,25 @@ public class DashboardView extends VerticalLayout implements BeforeEnterObserver
         
         cardHeader.add(headerLeft, viewAll);
         
-        // Grid - vollständige Spalten mit optimaler Platznutzung
-        Grid<BookingRecord> grid = new Grid<>(BookingRecord.class, false);
+        //Spalten manuell definieren, da true zu viele Spalten anzeigt (die Abhängigkeit wäre auch da, weil neue Spalten gelöscht werden müssen)
+        //Matthias Lohr
         
-        grid.addColumn(BookingRecord::id)
+        grid.addColumn(Booking::getBookingNumber)
             .setHeader("Booking ID")
-            .setWidth("120px")
+            .setWidth("170px")
             .setFlexGrow(0);
         
-        grid.addColumn(BookingRecord::guest)
+        grid.addColumn(booking -> booking.getGuest().getFullName())
             .setHeader("Guest Name")
             .setFlexGrow(2);
         
-        grid.addColumn(BookingRecord::room)
+        grid.addColumn(booking -> booking.getRoom().getRoomNumber())
             .setHeader("Room")
-            .setFlexGrow(2);
+            .setWidth("100px")
+            .setFlexGrow(0);
         
         // Check-in mit deutschem Datumsformat
-        grid.addColumn(booking -> booking.checkIn().format(GERMAN_DATE_FORMAT))
+        grid.addColumn(booking -> booking.getCheckInDate().format(GERMAN_DATE_FORMAT))
             .setHeader("Check-in Date")
             .setWidth("140px")
             .setFlexGrow(0);
@@ -196,8 +247,8 @@ public class DashboardView extends VerticalLayout implements BeforeEnterObserver
             .setHeader("Actions")
             .setWidth("100px")
             .setFlexGrow(0);
-        
-        grid.setItems(getMockBookings());
+
+        grid.setItems(bookingService.getRecentBookings());
         grid.setAllRowsVisible(true);
         grid.setWidthFull();
         
@@ -205,21 +256,12 @@ public class DashboardView extends VerticalLayout implements BeforeEnterObserver
         return card;
     }
 
-    private Component createStatusBadge(BookingRecord booking) {
-        Span badge = new Span(booking.status());
+    //Matthias Lohr
+    private Component createStatusBadge(Booking booking) {
+        Span badge = new Span(booking.getStatus().name());
         badge.addClassName("status-badge");
-        badge.addClassName("status-" + booking.status());
+        badge.addClassName("status-" + booking.getStatus().toString().toLowerCase());
         return badge;
-    }
-
-    private List<BookingRecord> getMockBookings() {
-        return List.of(
-            new BookingRecord("BK001", "Emma Wilson", "302 - Deluxe", LocalDate.of(2025, 11, 5), "confirmed"),
-            new BookingRecord("BK002", "Michael Brown", "105 - Suite", LocalDate.of(2025, 11, 8), "pending"),
-            new BookingRecord("BK003", "Sarah Davis", "201 - Standard", LocalDate.of(2025, 11, 3), "checked-in"),
-            new BookingRecord("BK004", "James Miller", "401 - Deluxe", LocalDate.of(2025, 11, 10), "confirmed"),
-            new BookingRecord("BK005", "Lisa Anderson", "305 - Suite", LocalDate.of(2025, 11, 6), "confirmed")
-        );
     }
 
     @Override
