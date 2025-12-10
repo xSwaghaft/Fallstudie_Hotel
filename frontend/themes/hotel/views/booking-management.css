@@ -1,0 +1,12 @@
+/* =========================================================
+   BOOKING MANAGEMENT VIEW - STYLES
+   ========================================================= */
+
+.booking-subtitle,
+.booking-section-title {
+  margin: 0 0 var(--spacing-md) 0;
+}
+
+.booking-details-container {
+  min-height: 200px;
+}

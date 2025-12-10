@@ -11,12 +11,13 @@ import com.vaadin.flow.component.orderedlayout.*;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.router.*;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
 @Route(value = "my-bookings", layout = MainLayout.class)
+@PageTitle("My Bookings")
 @CssImport("./themes/hotel/styles.css")
+@CssImport("./themes/hotel/views/my-bookings.css")
 public class MyBookingsView extends VerticalLayout implements BeforeEnterObserver {
 
     private final SessionService sessionService;
@@ -26,7 +27,6 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
 
     private VerticalLayout contentArea;
 
-    @Autowired
     public MyBookingsView(SessionService sessionService) {
         this.sessionService = sessionService;
         setSpacing(true);
@@ -38,10 +38,8 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
 
     private Component createHeader() {
         H1 title = new H1("My Bookings");
-        title.getStyle().set("margin", "0");
         
         Paragraph subtitle = new Paragraph("Manage your reservations and leave reviews");
-        subtitle.getStyle().set("margin", "0");
         
         return new Div(title, subtitle);
     }
@@ -84,31 +82,19 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
     private Component createBookingCard(Booking booking, boolean isUpcoming) {
         Div card = new Div();
         card.addClassName("card");
-        card.getStyle()
-            .set("display", "flex")
-            .set("gap", "1.5rem")
-            .set("position", "relative");
+        card.addClassName("my-bookings-card");
         
         // Status Badge
         Span statusBadge = new Span(booking.status());
         statusBadge.addClassName("status-badge");
         statusBadge.addClassName("status-" + booking.status());
-        statusBadge.getStyle()
-            .set("position", "absolute")
-            .set("top", "1rem")
-            .set("left", "1rem")
-            .set("z-index", "10");
+        statusBadge.addClassName("my-bookings-status-badge");
         
         // Image
         Div imageContainer = new Div();
+        imageContainer.addClassName("my-bookings-image");
         imageContainer.getStyle()
-            .set("width", "200px")
-            .set("height", "150px")
-            .set("border-radius", "0.75rem")
-            .set("background-image", "url('" + booking.image() + "')")
-            .set("background-size", "cover")
-            .set("background-position", "center")
-            .set("flex-shrink", "0");
+            .set("background-image", "url('" + booking.image() + "')");
         
         imageContainer.add(statusBadge);
         
@@ -116,21 +102,15 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
         VerticalLayout content = new VerticalLayout();
         content.setSpacing(false);
         content.setPadding(false);
-        content.getStyle().set("flex", "1");
+        content.addClassName("my-bookings-content");
         
         H4 roomType = new H4(booking.roomType());
-        roomType.getStyle().set("margin", "0");
+        roomType.addClassName("my-bookings-room-type");
         
         Paragraph roomNumber = new Paragraph("Room " + booking.roomNumber());
-        roomNumber.getStyle()
-            .set("margin", "0")
-            .set("color", "var(--color-text-secondary)");
+        roomNumber.addClassName("my-bookings-room-number");
         
         Paragraph bookingId = new Paragraph("Booking ID: " + booking.id());
-        bookingId.getStyle()
-            .set("margin", "0.5rem 0")
-            .set("font-size", "0.875rem")
-            .set("color", "var(--color-text-secondary)");
         
         // Dates
         HorizontalLayout dates = new HorizontalLayout();
@@ -140,27 +120,27 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
         checkInBox.setSpacing(false);
         checkInBox.setPadding(false);
         Span checkInLabel = new Span("Check-in");
-        checkInLabel.getStyle().set("font-size", "0.875rem").set("color", "var(--color-text-secondary)");
+        checkInLabel.addClassName("my-bookings-date-label");
         Span checkInDate = new Span(booking.checkIn());
-        checkInDate.getStyle().set("font-weight", "600");
+        checkInDate.addClassName("my-bookings-date-value");
         checkInBox.add(checkInLabel, checkInDate);
         
         VerticalLayout checkOutBox = new VerticalLayout();
         checkOutBox.setSpacing(false);
         checkOutBox.setPadding(false);
         Span checkOutLabel = new Span("Check-out");
-        checkOutLabel.getStyle().set("font-size", "0.875rem").set("color", "var(--color-text-secondary)");
+        checkOutLabel.addClassName("my-bookings-date-label");
         Span checkOutDate = new Span(booking.checkOut());
-        checkOutDate.getStyle().set("font-weight", "600");
+        checkOutDate.addClassName("my-bookings-date-value");
         checkOutBox.add(checkOutLabel, checkOutDate);
         
         VerticalLayout guestsBox = new VerticalLayout();
         guestsBox.setSpacing(false);
         guestsBox.setPadding(false);
         Span guestsLabel = new Span("Guests");
-        guestsLabel.getStyle().set("font-size", "0.875rem").set("color", "var(--color-text-secondary)");
+        guestsLabel.addClassName("my-bookings-date-label");
         Span guestsValue = new Span(booking.guests() + " guests");
-        guestsValue.getStyle().set("font-weight", "600");
+        guestsValue.addClassName("my-bookings-date-value");
         guestsBox.add(guestsLabel, guestsValue);
         
         dates.add(checkInBox, checkOutBox, guestsBox);
@@ -174,15 +154,9 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
         rightSide.setAlignItems(FlexComponent.Alignment.END);
         
         H3 price = new H3("$" + booking.amount());
-        price.getStyle()
-            .set("margin", "0")
-            .set("color", "var(--color-primary)");
+        price.addClassName("my-bookings-price");
         
         Paragraph nights = new Paragraph("3 nights");
-        nights.getStyle()
-            .set("margin", "0")
-            .set("font-size", "0.875rem")
-            .set("color", "var(--color-text-secondary)");
         
         HorizontalLayout actions = new HorizontalLayout();
         actions.setSpacing(true);
@@ -190,7 +164,7 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
         
         Button modifyBtn = new Button("Modify", VaadinIcon.EDIT.create());
         Button cancelBtn = new Button("Cancel", VaadinIcon.TRASH.create());
-        cancelBtn.getStyle().set("color", "#ef4444");
+        cancelBtn.addClassName("my-bookings-cancel-button");
         
         if (isUpcoming) {
             actions.add(modifyBtn, cancelBtn);

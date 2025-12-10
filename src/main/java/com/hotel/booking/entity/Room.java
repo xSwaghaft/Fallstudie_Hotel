@@ -7,6 +7,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -15,6 +17,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 //Matthias Lohr
 @Entity
@@ -33,16 +37,16 @@ public class Room {
     private Integer floor;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "category_id", nullable = false) // DB-Spaltenname
+    @JoinColumn(name = "category_id", nullable = true) // Kann NULL sein wenn Kategorie gelöscht wird
     @JsonBackReference
     private RoomCategory category;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private RoomStatus status;
 
-    @Column(name = "price", nullable = false) //Hat der Raum, oder nur die Kategorie einen Preis?
-    private Double price;
-
-    @Column(name = "availability", nullable = false)
-    private String availability;  // Changed to String für Available/Maintenance/Occupied
+    @Column(name = "active", nullable = false)
+    private Boolean active;
 
     @Column(name = "information")
     private String information;
@@ -61,10 +65,10 @@ public class Room {
     }
 
     // Constructor with parameters
-    public Room(RoomCategory category, Double price, String availability) {
+    public Room(RoomCategory category, RoomStatus status, Boolean active) {
         this.category = category;
-        this.price = price;
-        this.availability = availability;
+        this.status = status;
+        this.active = active;
     }
 
     // Getters and Setters
@@ -100,20 +104,20 @@ public class Room {
         this.category = category;
     }
 
-    public Double getPrice() {
-        return price;
+    public RoomStatus getStatus() {
+        return status;
     }
 
-    public void setPrice(Double price) {
-        this.price = price;
+    public void setStatus(RoomStatus status) {
+        this.status = status;
     }
 
-    public String getAvailability() {
-        return availability;
+    public Boolean getActive() {
+        return active;
     }
 
-    public void setAvailability(String availability) {
-        this.availability = availability;
+    public void setActive(Boolean active) {
+        this.active = active;
     }
 
     public String getInformation() {
@@ -124,13 +128,30 @@ public class Room {
         this.information = information;
     }
 
+    // ==================== JPA Lifecycle Hooks ====================
+
+    /**
+     * Synchronisiert das active-Flag basierend auf dem Status:
+     * - INACTIVE → active = false
+     * - Alles andere → active = true
+     */
+    @PrePersist
+    @PreUpdate
+    private void syncActiveFlag() {
+        if (status != null) {
+            this.active = !RoomStatus.INACTIVE.equals(status);
+        }
+    }
+
+    // ==================== Object Methods ====================
+
     @Override
     public String toString() {
-    return "Room{" +
-        "id=" + room_id +
-        ", category=" + (category != null ? category.toString() : "null") +
-        ", price=" + price +
-        ", availability=" + availability +
-        '}';
+        return "Room{" +
+            "id=" + room_id +
+            ", category=" + (category != null ? category.toString() : "null") +
+            ", status=" + status +
+            ", active=" + active +
+            '}';
     }
 }

@@ -24,7 +24,9 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 @Route(value = "dashboard", layout = MainLayout.class)
+@PageTitle("Dashboard")
 @CssImport("./themes/hotel/styles.css")
+@CssImport("./themes/hotel/views/dashboard.css")
 public class DashboardView extends VerticalLayout implements BeforeEnterObserver {
 
     private final SessionService sessionService;
@@ -62,10 +64,8 @@ public class DashboardView extends VerticalLayout implements BeforeEnterObserver
         String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy"));
         
         H1 title = new H1("Dashboard");
-        title.getStyle().set("margin", "0"); // Entferne Standard-Margin (kein extra Abstand)
         
         Paragraph subtitle = new Paragraph("Overview of hotel operations - " + dateStr);
-        subtitle.getStyle().set("margin", "0");
         
         Div headerLeft = new Div(title, subtitle);
         
@@ -175,11 +175,10 @@ public class DashboardView extends VerticalLayout implements BeforeEnterObserver
         cardHeader.setWidthFull();
         cardHeader.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
         cardHeader.setAlignItems(FlexComponent.Alignment.CENTER);
-        cardHeader.getStyle().set("margin-bottom", "0.5rem");
+        cardHeader.addClassName("kpi-card-header");
         
         // Value
         H2 valueHeading = new H2(value);
-        valueHeading.getStyle().set("margin", "0");
         
         card.add(cardHeader, valueHeading);
         return card;
@@ -195,25 +194,17 @@ public class DashboardView extends VerticalLayout implements BeforeEnterObserver
         cardHeader.setWidthFull();
         cardHeader.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
         cardHeader.setAlignItems(FlexComponent.Alignment.CENTER);
-        cardHeader.getStyle().set("margin-bottom", "1rem");
+        cardHeader.addClassName("recent-bookings-header");
         
         Div headerLeft = new Div();
         H3 title = new H3("Recent Bookings");
-        title.getStyle().set("margin", "0");
         
         Paragraph subtitle = new Paragraph("Latest booking activity and status");
-        subtitle.getStyle().set("margin", "0");
         
         headerLeft.add(title, subtitle);
         
         Button viewAll = new Button("View All");
-        viewAll.getStyle()
-            .set("color", "var(--color-primary)")
-            .set("background", "transparent")
-            .set("border", "none")
-            .set("cursor", "pointer")
-            .set("font-weight", "500")
-            .set("padding", "0");
+        viewAll.addClassName("view-all-button");
         viewAll.addClickListener(e -> UI.getCurrent().navigate(BookingManagementView.class));
         
         cardHeader.add(headerLeft, viewAll);

@@ -171,8 +171,8 @@ public class createNewBookingForm extends FormLayout{
         formBooking = new Booking("", LocalDate.now(), LocalDate.now().plusDays(1), BookingStatus.PENDING, user, null);
         //Feld nur für Manager oder Receptionist sichtbar, nur beim neu anlegen
         userByEmailField.setVisible(
-        (sessionService.getCurrentRole() != UserRole.MANAGER 
-        || sessionService.getCurrentRole() != UserRole.RECEPTIONIST));
+        (sessionService.getCurrentRole() == UserRole.MANAGER 
+        || sessionService.getCurrentRole() == UserRole.RECEPTIONIST));
     } else {
         formBooking = existingBooking;
         roomCategorySelect.setVisible(false);
@@ -199,6 +199,11 @@ public class createNewBookingForm extends FormLayout{
             formBooking.setGuest(foundUser);
             }}
         binder.writeBean(formBooking);
+        
+        // Stelle sicher, dass der Gast immer gesetzt ist
+        if (formBooking.getGuest() == null) {
+            formBooking.setGuest(user);
+        }
     }
     
 }

@@ -3,14 +3,16 @@ package com.hotel.booking.view;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.entity.User;
 import com.hotel.booking.service.UserService;
+import com.hotel.booking.view.components.AddUserForm;
+import com.hotel.booking.view.components.CardFactory;
 import com.hotel.booking.security.SessionService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.*;
-import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.*;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.TextField;
@@ -26,7 +28,10 @@ import java.util.List;
 
 
 @Route(value = "user-management", layout = MainLayout.class)
+@PageTitle("User Management")
 @CssImport("./themes/hotel/styles.css")
+@CssImport("./themes/hotel/views/card-factory.css")
+@CssImport("./themes/hotel/views/user-management.css")
 public class UserManagementView extends VerticalLayout implements BeforeEnterObserver {
 
     private final SessionService sessionService;
@@ -50,14 +55,13 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
 
     private Component createHeader() {
         H1 title = new H1("User Management");
-        title.getStyle().set("margin", "0");
+        title.addClassName("user-management-header-title");
         
         Paragraph subtitle = new Paragraph("Manage system users and their permissions");
-        
-
-        subtitle.getStyle().set("margin", "0");
+        subtitle.addClassName("user-management-header-subtitle");
         
         Div headerLeft = new Div(title, subtitle);
+        headerLeft.addClassName("user-management-header");
         
         Button addUser = new Button("Add User", VaadinIcon.PLUS.create());
         addUser.addClassName("primary-button");
@@ -72,45 +76,15 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
     }
 
     private Component createStatsRow() {
-        HorizontalLayout row = new HorizontalLayout();
-        row.setWidthFull();
-        row.setSpacing(true);
-
-        Div card1 = createStatCard("Total Users", String.valueOf(users.size()), VaadinIcon.USERS);
-        Div card2 = createStatCard("Active Users", 
-                String.valueOf(users.stream().filter(User::isActive).count()), VaadinIcon.CHECK_CIRCLE);
-        Div card3 = createStatCard("Employees", 
-                String.valueOf(users.stream().filter(u -> u.getRole() == UserRole.MANAGER || u.getRole() == UserRole.RECEPTIONIST).count()), VaadinIcon.USER_STAR);
-        Div card4 = createStatCard("Guests", 
-                String.valueOf(users.stream().filter(u -> "GUEST".equals(u.getRole().name())).count()), VaadinIcon.USER);
-        
-        row.add(card1, card2, card3, card4);
-        row.expand(card1, card2, card3, card4);
-
-        return row;
-    }
-
-    private Div createStatCard(String label, String value, VaadinIcon iconType) {
-        Div card = new Div();
-        card.addClassName("kpi-card");
-        
-        Span labelSpan = new Span(label);
-        labelSpan.addClassName("kpi-card-title");
-        
-        Icon icon = iconType.create();
-        icon.addClassName("kpi-card-icon");
-        
-        HorizontalLayout cardHeader = new HorizontalLayout(labelSpan, icon);
-        cardHeader.setWidthFull();
-        cardHeader.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-        cardHeader.setAlignItems(FlexComponent.Alignment.CENTER);
-        cardHeader.getStyle().set("margin-bottom", "0.5rem");
-        
-        H2 valueHeading = new H2(value);
-        valueHeading.getStyle().set("margin", "0");
-        
-        card.add(cardHeader, valueHeading);
-        return card;
+        return CardFactory.createStatsRow(
+            CardFactory.createStatCard("Total Users", String.valueOf(users.size()), VaadinIcon.USERS),
+            CardFactory.createStatCard("Active Users", 
+                    String.valueOf(users.stream().filter(User::isActive).count()), VaadinIcon.CHECK_CIRCLE),
+            CardFactory.createStatCard("Employees", 
+                    String.valueOf(users.stream().filter(u -> u.getRole() == UserRole.MANAGER || u.getRole() == UserRole.RECEPTIONIST).count()), VaadinIcon.USER_STAR),
+            CardFactory.createStatCard("Guests", 
+                    String.valueOf(users.stream().filter(u -> "GUEST".equals(u.getRole().name())).count()), VaadinIcon.USER)
+        );
     }
 
     private Component createFilters() {
@@ -119,10 +93,10 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
         card.setWidthFull();
         
         H3 title = new H3("Search & Filter");
-        title.getStyle().set("margin", "0 0 0.5rem 0");
+        title.addClassName("user-filter-title");
         
         Paragraph subtitle = new Paragraph("Find specific users quickly");
-        subtitle.getStyle().set("margin", "0 0 1rem 0");
+        subtitle.addClassName("user-filter-subtitle");
 
         searchField = new TextField("Search");
         searchField.setPlaceholder("Username, email, or name...");
@@ -176,7 +150,7 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
         card.setWidthFull();
         
         H3 title = new H3("All Users");
-        title.getStyle().set("margin", "0 0 1rem 0");
+        title.addClassName("user-card-title");
 
         grid.addColumn(User::getId)
             .setHeader("ID")
@@ -231,23 +205,12 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
 
     private Component createRoleBadge(User user) {
         Span badge = new Span(user.getRole().name());
-        badge.getStyle()
-            .set("padding", "0.25rem 0.75rem")
-            .set("border-radius", "0.5rem")
-            .set("font-size", "0.875rem")
-            .set("font-weight", "600")
-            .set("text-transform", "capitalize");
+        badge.addClassName("role-badge-base");
         
         switch (user.getRole().name()) {
-            case "MANAGER" -> badge.getStyle()
-                .set("background", "#fef3c7")
-                .set("color", "#f59e0b");
-            case "RECEPTIONIST" -> badge.getStyle()
-                .set("background", "#dbeafe")
-                .set("color", "#3b82f6");
-            case "GUEST" -> badge.getStyle()
-                .set("background", "#f3f4f6")
-                .set("color", "#6b7280");
+            case "MANAGER" -> badge.addClassName("role-badge-manager");
+            case "RECEPTIONIST" -> badge.addClassName("role-badge-receptionist");
+            case "GUEST" -> badge.addClassName("role-badge-guest");
         }
         
         return badge;
@@ -264,6 +227,9 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
         HorizontalLayout actions = new HorizontalLayout();
         actions.setSpacing(true);
         
+        User currentUser = sessionService.getCurrentUser();
+        boolean isCurrentUser = currentUser != null && currentUser.getId().equals(user.getId());
+        
         Button viewBtn = new Button(VaadinIcon.EYE.create());
         viewBtn.addClickListener(e -> openUserDetailsDialog(user));
         
@@ -271,7 +237,8 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
         editBtn.addClickListener(e -> openUserDialog(user));
         
         Button deleteBtn = new Button(VaadinIcon.TRASH.create());
-        deleteBtn.getStyle().set("color", "#ef4444");
+        deleteBtn.addClassName("user-delete-action-btn");
+        deleteBtn.setEnabled(!isCurrentUser); // Deaktiviere Button wenn aktueller User
         deleteBtn.addClickListener(e -> confirmDelete(user));
         
         actions.add(viewBtn, editBtn, deleteBtn);
@@ -341,19 +308,41 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
         HorizontalLayout row = new HorizontalLayout();
         row.setWidthFull();
         row.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-        row.getStyle().set("padding", "0.75rem 0").set("border-bottom", "1px solid #e5e7eb");
+        row.addClassName("detail-row");
         
         Span labelSpan = new Span(label);
-        labelSpan.getStyle().set("font-weight", "600").set("color", "var(--color-text-secondary)");
+        labelSpan.addClassName("detail-row-label");
         
         Span valueSpan = new Span(value);
-        valueSpan.getStyle().set("color", "var(--color-text-primary)");
+        valueSpan.addClassName("detail-row-value");
         
         row.add(labelSpan, valueSpan);
         return row;
     }
 
     private void confirmDelete(User user) {
+        // Prüfe, ob der aktuelle User versucht, sich selbst zu löschen
+        User currentUser = sessionService.getCurrentUser();
+        if (currentUser != null && currentUser.getId().equals(user.getId())) {
+            Notification.show("You cannot delete your own account while logged in", 3000, Notification.Position.TOP_CENTER);
+            return;
+        }
+
+        UserService.DeleteAction action = userService.getDeletionAction(user.getId());
+        
+        // Wenn durch Bookings blockiert
+        if (action.isBlocked) {
+            Dialog errorDialog = new Dialog();
+            errorDialog.setHeaderTitle(action.dialogTitle);
+            Paragraph message = new Paragraph(action.errorMessage);
+            message.addClassName("dialog-message");
+            Button okBtn = new Button("OK", e -> errorDialog.close());
+            errorDialog.add(message);
+            errorDialog.getFooter().add(okBtn);
+            errorDialog.open();
+            return;
+        }
+
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle("Confirm Delete");
         dialog.setWidth("400px");
@@ -364,11 +353,17 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
         Button confirmBtn = new Button("Yes, Delete");
         confirmBtn.addClassName("logout-btn-header");
         confirmBtn.addClickListener(e -> {
-            userService.delete(user); // Use the service to delete the user from the database
-            users.remove(user);
-            grid.getDataProvider().refreshAll();
-            dialog.close();
-            Notification.show("User deleted successfully");
+            try {
+                userService.delete(user);
+                users.remove(user);
+                grid.getDataProvider().refreshAll();
+                dialog.close();
+                Notification.show("User deleted successfully", 3000, Notification.Position.BOTTOM_START)
+                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+            } catch (Exception ex) {
+                Notification.show("Error deleting user: " + ex.getMessage(), 5000, Notification.Position.TOP_CENTER);
+                ex.printStackTrace();
+            }
         });
 
         Button cancelBtn = new Button("Cancel");

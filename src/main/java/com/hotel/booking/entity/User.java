@@ -2,7 +2,6 @@ package com.hotel.booking.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
 
 import java.io.Serializable;
 import java.time.LocalDate;
@@ -36,7 +35,6 @@ public class User implements Serializable {
 
     // E-Mail-Adresse des Benutzers
     @Column(length = 100)
-    @Email
     private String email;
 
     // Vorname des Benutzers
@@ -74,8 +72,9 @@ public class User implements Serializable {
 
     // Zugeordneter Guest (1:1 Beziehung, optional)
     // @JsonIgnore verhindert Endlosschleifen bei JSON-Serialisierung
+    // Kein cascade - Guest wird manuell verwaltet und nicht automatisch gelöscht
     @JsonIgnore
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
     private Guest guest;
 
     // Standard-Konstruktor für JPA

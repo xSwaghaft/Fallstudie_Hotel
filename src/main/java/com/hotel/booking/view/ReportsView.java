@@ -22,7 +22,9 @@ import java.time.LocalDate;
 import java.util.Locale;
 
 @Route(value = "reports", layout = MainLayout.class)
+@PageTitle("Reports & Analytics")
 @CssImport("./themes/hotel/styles.css")
+@CssImport("./themes/hotel/views/reports.css")
 public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
 
     private final SessionService sessionService;
@@ -50,7 +52,7 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
 
     private Component createHeader() {
         H1 title = new H1("Reports & Analytics");
-        title.getStyle().set("margin", "0");
+        title.addClassName("reports-header-title");
         
         Paragraph subtitle = new Paragraph("Month-over-Month KPI Insights");
         subtitle.getStyle().set("margin", "0");
@@ -60,8 +62,6 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
         
         HorizontalLayout header = new HorizontalLayout(headerLeft);
         header.setWidthFull();
-        header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-        header.setAlignItems(FlexComponent.Alignment.CENTER);
         
         return header;
     }
@@ -72,7 +72,7 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
         card.setWidthFull();
         
         H3 title = new H3("Report Filters");
-        title.getStyle().set("margin", "0 0 0.5rem 0");
+        title.addClassName("reports-filters-title");
         
         Paragraph subtitle = new Paragraph("Select date range - Current Period vs. Previous Month");
         subtitle.getStyle().set("margin", "0 0 1rem 0");
@@ -90,7 +90,7 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
         Button generateBtn = new Button("Generate Report");
         generateBtn.addClickListener(e -> refreshKpiArea());
         generateBtn.addClassName("primary-button");
-        generateBtn.getStyle().set("margin-top", "1rem");
+        generateBtn.addClassName("reports-filter-button");
 
         card.add(title, subtitle, form, generateBtn);
         return card;
@@ -171,19 +171,21 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
         icon.getStyle().set("color", color);
         
         HorizontalLayout cardHeader = new HorizontalLayout(titleSpan, icon);
+        cardHeader.addClassName("kpi-card-header");
         cardHeader.setWidthFull();
-        cardHeader.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
         
         // Value
         H2 valueHeading = new H2(value);
-        valueHeading.getStyle().set("margin", "0.5rem 0");
+        valueHeading.addClassName("kpi-card-value");
         
         // Trend
         Span trendSpan = new Span(trend);
-        trendSpan.getStyle()
-            .set("font-size", "0.875rem")
-            .set("color", isPositive ? "#10b981" : "#6b7280")
-            .set("font-weight", "500");
+        trendSpan.addClassName("kpi-card-trend");
+        if (isPositive) {
+            trendSpan.addClassName("positive");
+        } else {
+            trendSpan.addClassName("neutral");
+        }
         
         card.add(cardHeader, valueHeading, trendSpan);
         return card;

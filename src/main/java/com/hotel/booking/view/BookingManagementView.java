@@ -27,7 +27,9 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 @Route(value = "bookings", layout = MainLayout.class)
+@PageTitle("Booking Management")
 @CssImport("./themes/hotel/styles.css")
+@CssImport("./themes/hotel/views/booking-management.css")
 public class BookingManagementView extends VerticalLayout implements BeforeEnterObserver {
 
     private final SessionService sessionService;
@@ -52,10 +54,9 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
 
     private Component createHeader() {
         H1 title = new H1("Booking Management");
-        title.getStyle().set("margin", "0");
         
         Paragraph subtitle = new Paragraph("Manage all hotel bookings and reservations");
-        subtitle.getStyle().set("margin", "0");
+        subtitle.addClassName("booking-subtitle");
         
         Div headerLeft = new Div(title, subtitle);
         
@@ -107,10 +108,10 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         card.setWidthFull(); // WICHTIG: Card nutzt volle Breite
         
         H3 title = new H3("Search & Filter");
-        title.getStyle().set("margin", "0 0 0.5rem 0");
+        title.addClassName("booking-section-title");
         
         Paragraph subtitle = new Paragraph("Find specific bookings quickly");
-        subtitle.getStyle().set("margin", "0 0 1rem 0");
+        subtitle.addClassName("booking-subtitle");
 
         TextField search = new TextField("Search");
         search.setPlaceholder("Booking ID, Guest name...");
@@ -147,7 +148,10 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         card.setWidthFull();
         
         H3 title = new H3("All Bookings");
-        title.getStyle().set("margin", "0 0 1rem 0");
+        title.addClassName("booking-section-title");
+
+        //Matthias Lohr
+        Grid<Booking> grid = new Grid<>(Booking.class, false);
         
         grid.addColumn(Booking::getBookingNumber)
             .setHeader("Booking ID")
@@ -239,9 +243,9 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         
         actions.add(viewBtn, editBtn);
         
-        if ("confirmed".equals(booking.getStatus().name())) {
+        if (booking.getStatus() != null && "CONFIRMED".equals(booking.getStatus().name())) {
             Button checkInBtn = new Button("Check In", VaadinIcon.SIGN_IN.create());
-            checkInBtn.addClickListener(e -> Notification.show("Checked in " + booking.getId()));
+            checkInBtn.addClickListener(e -> Notification.show("Checked in " + booking.getBookingNumber()));
             actions.add(checkInBtn);
         }
         
@@ -250,48 +254,46 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
 
     private void openDetails(Booking b) {
         Dialog d = new Dialog();
-        d.setHeaderTitle("Booking Details - " + b.getId());
+        d.setHeaderTitle("Booking Details - " + b.getBookingNumber());
         d.setWidth("800px");
 
         Tabs tabs = new Tabs(new Tab("Details"), new Tab("Payments"), new Tab("History"), new Tab("Extras"));
         
         Div details = new Div();
-        details.add(new Paragraph("Guest Name: " + b.getGuest()));
-        // details.add(new Paragraph("Email: " + b.getUser().getEmail()));
-        // details.add(new Paragraph("Phone: " + b.getPhone()));
-        // details.add(new Paragraph("Room: " + b.getRoom() + " - " + b.getRoomType()));
-        // details.add(new Paragraph("Check-in: " + b.getCheckIn().format(GERMAN_DATE_FORMAT)));
-        // details.add(new Paragraph("Check-out: " + b.getCheckOut().format(GERMAN_DATE_FORMAT)));
-        // details.add(new Paragraph("Total: €" + b.getAmount()));
+        details.add(new Paragraph("Guest Name: " + (b.getGuest() != null ? b.getGuest().getFullName() : "N/A")));
+        details.add(new Paragraph("Booking Number: " + b.getBookingNumber()));
+        details.add(new Paragraph("Check-in: " + b.getCheckInDate().format(GERMAN_DATE_FORMAT)));
+        details.add(new Paragraph("Check-out: " + b.getCheckOutDate().format(GERMAN_DATE_FORMAT)));
+        details.add(new Paragraph("Guests: " + b.getAmount()));
+        details.add(new Paragraph("Status: " + b.getStatus()));
 
-        // Div payments = new Div(new Paragraph("Initial Payment - 28.10.2025 - €" + b.getAmount()),
-        //         new Paragraph("Status: " + b.getPaymentStatus()));
+        Div payments = new Div(new Paragraph("Payment information not available"));
 
         Div history = new Div(new Paragraph("Booking confirmed - 28.10.2025 10:30"),
                 new Paragraph("Booking created - 28.10.2025 10:25"));
 
-        Div extras = new Div(new Paragraph("No additional services requested"));
+        Div extras = new Div(new Paragraph(b.getExtras().isEmpty() ? "No additional services requested" : b.getExtras().size() + " services added"));
 
-        // Div pages = new Div(details, payments, history, extras);
-        // pages.getStyle().set("minHeight", "200px");
-        // payments.setVisible(false); 
-        // history.setVisible(false); 
-        // extras.setVisible(false);
+        Div pages = new Div(details, payments, history, extras);
+        pages.addClassName("booking-details-container");
+        payments.setVisible(false); 
+        history.setVisible(false); 
+        extras.setVisible(false);
 
         tabs.addSelectedChangeListener(ev -> {
             details.setVisible(tabs.getSelectedIndex() == 0);
-        //     payments.setVisible(tabs.getSelectedIndex() == 1);
-        //     history.setVisible(tabs.getSelectedIndex() == 2);
+            payments.setVisible(tabs.getSelectedIndex() == 1);
+            history.setVisible(tabs.getSelectedIndex() == 2);
             extras.setVisible(tabs.getSelectedIndex() == 3);
         });
 
         Button checkIn = new Button("Check In", e -> { d.close(); Notification.show("Checked in"); });
-        Button edit = new Button("Edit Booking", e -> Notification.show("Edit not implemented"));
+        Button edit = new Button("Edit Booking", e -> { d.close(); openAddBookingDialog(b); });
         Button cancel = new Button("Cancel", e -> d.close());
 
-        // d.add(new VerticalLayout(tabs, pages));
-        // d.getFooter().add(new HorizontalLayout(checkIn, edit, cancel));
-        // d.open();
+        d.add(new VerticalLayout(tabs, pages));
+        d.getFooter().add(new HorizontalLayout(checkIn, edit, cancel));
+        d.open();
     }
 
     @Override

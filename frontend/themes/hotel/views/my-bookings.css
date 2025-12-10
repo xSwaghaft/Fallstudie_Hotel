@@ -1,0 +1,38 @@
+/* =========================================================
+   MY BOOKINGS VIEW - STYLES
+   ========================================================= */
+
+.my-bookings-card {
+  display: flex;
+  gap: 1.5rem;
+  position: relative;
+}
+
+.my-bookings-status-badge {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 10;
+}
+
+.my-bookings-image {
+  width: 200px;
+  height: 150px;
+  border-radius: 0.75rem;
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
+}
+
+.my-bookings-content {
+  flex: 1;
+}
+
+.my-bookings-price {
+  margin: 0;
+  color: var(--color-primary);
+}
+
+.my-bookings-cancel-button {
+  color: #ef4444;
+}

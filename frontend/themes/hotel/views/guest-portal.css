@@ -1,0 +1,61 @@
+/* =========================================================
+   GUEST PORTAL VIEW - STYLES
+   ========================================================= */
+
+.guest-portal-rooms-wrapper {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.guest-portal-room-card {
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.guest-portal-room-image {
+  width: 100%;
+  height: 200px;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.guest-portal-available-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.guest-portal-room-content {
+  padding: 1.25rem;
+}
+
+.guest-portal-room-header {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.guest-portal-price-large {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.guest-portal-amenities {
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.guest-portal-booking-summary {
+  background: #f9fafb;
+  margin-bottom: 1rem;
+}

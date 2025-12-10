@@ -13,24 +13,24 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.*;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.router.*;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Route(value = "my-reviews", layout = MainLayout.class)
+@PageTitle("My Reviews")
 @CssImport("./themes/hotel/styles.css")
+@CssImport("./themes/hotel/views/my-reviews.css")
 public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver {
 
     private final SessionService sessionService;
     private static final DateTimeFormatter GERMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
     record Stay(String bookingId, String roomType, String roomNumber, 
-                LocalDate checkIn, LocalDate checkOut, boolean hasReview, 
+                LocalDate checkIn, LocalDate checkOut, boolean hasReview,
                 Integer rating, String reviewText, LocalDate reviewDate) {}
 
-    @Autowired
     public MyReviewsView(SessionService sessionService) {
         this.sessionService = sessionService;
         setSpacing(true);
@@ -42,10 +42,8 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
 
     private Component createHeader() {
         H1 title = new H1("My Reviews");
-        title.getStyle().set("margin", "0");
         
         Paragraph subtitle = new Paragraph("Rate your stays and share your experience");
-        subtitle.getStyle().set("margin", "0");
         
         return new Div(title, subtitle);
     }
@@ -54,6 +52,7 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
         HorizontalLayout row = new HorizontalLayout();
         row.setWidthFull();
         row.setSpacing(true);
+        row.addClassName("stats-row");
 
         Div card1 = createStatCard("Total Stays", "5", VaadinIcon.BED);
         Div card2 = createStatCard("Reviews Written", "3", VaadinIcon.COMMENT);
@@ -77,13 +76,12 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
         icon.addClassName("kpi-card-icon");
         
         HorizontalLayout cardHeader = new HorizontalLayout(titleSpan, icon);
+        cardHeader.addClassName("kpi-card-header");
         cardHeader.setWidthFull();
         cardHeader.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
         cardHeader.setAlignItems(FlexComponent.Alignment.CENTER);
-        cardHeader.getStyle().set("margin-bottom", "0.5rem");
         
         H2 valueHeading = new H2(value);
-        valueHeading.getStyle().set("margin", "0");
         
         card.add(cardHeader, valueHeading);
         return card;
@@ -92,10 +90,7 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
     private Component createStaysGrid() {
         Div container = new Div();
         container.setWidthFull();
-        container.getStyle()
-            .set("display", "flex")
-            .set("flex-direction", "column")
-            .set("gap", "1rem");
+        container.addClassName("stays-container");
 
         List<Stay> stays = getMockStays();
         
@@ -112,45 +107,43 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
         card.setWidthFull();
 
         HorizontalLayout mainLayout = new HorizontalLayout();
+        mainLayout.addClassName("stay-card-main-layout");
         mainLayout.setWidthFull();
         mainLayout.setAlignItems(FlexComponent.Alignment.START);
-        mainLayout.getStyle().set("gap", "1.5rem");
 
         // Left side - Stay Info
         VerticalLayout leftSide = new VerticalLayout();
+        leftSide.addClassName("stay-card-left");
         leftSide.setSpacing(false);
         leftSide.setPadding(false);
-        leftSide.getStyle().set("flex", "1");
 
         H4 roomTitle = new H4(stay.roomType() + " - Room " + stay.roomNumber());
-        roomTitle.getStyle().set("margin", "0 0 0.5rem 0");
 
         Paragraph bookingId = new Paragraph("Booking ID: " + stay.bookingId());
-        bookingId.getStyle()
-            .set("margin", "0")
-            .set("font-size", "0.875rem")
-            .set("color", "var(--color-text-secondary)");
+        bookingId.addClassName("stay-card-booking-id");
 
         HorizontalLayout dates = new HorizontalLayout();
+        dates.addClassName("stay-card-dates");
         dates.setSpacing(true);
-        dates.getStyle().set("margin-top", "1rem");
 
         VerticalLayout checkInBox = new VerticalLayout();
+        checkInBox.addClassName("stay-date-box");
         checkInBox.setSpacing(false);
         checkInBox.setPadding(false);
         Span checkInLabel = new Span("Check-in");
-        checkInLabel.getStyle().set("font-size", "0.875rem").set("color", "var(--color-text-secondary)");
+        checkInLabel.addClassName("stay-date-label");
         Span checkInDate = new Span(stay.checkIn().format(GERMAN_DATE_FORMAT));
-        checkInDate.getStyle().set("font-weight", "600");
+        checkInDate.addClassName("stay-date-value");
         checkInBox.add(checkInLabel, checkInDate);
 
         VerticalLayout checkOutBox = new VerticalLayout();
+        checkOutBox.addClassName("stay-date-box");
         checkOutBox.setSpacing(false);
         checkOutBox.setPadding(false);
         Span checkOutLabel = new Span("Check-out");
-        checkOutLabel.getStyle().set("font-size", "0.875rem").set("color", "var(--color-text-secondary)");
+        checkOutLabel.addClassName("stay-date-label");
         Span checkOutDate = new Span(stay.checkOut().format(GERMAN_DATE_FORMAT));
-        checkOutDate.getStyle().set("font-weight", "600");
+        checkOutDate.addClassName("stay-date-value");
         checkOutBox.add(checkOutLabel, checkOutDate);
 
         dates.add(checkInBox, checkOutBox);
@@ -159,32 +152,24 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
 
         // Right side - Review Section
         VerticalLayout rightSide = new VerticalLayout();
+        rightSide.addClassName("stay-card-right");
         rightSide.setSpacing(false);
         rightSide.setPadding(false);
-        rightSide.getStyle().set("flex", "1");
 
         if (stay.hasReview()) {
             // Show existing review
             Div reviewHeader = new Div();
-            reviewHeader.getStyle()
-                .set("display", "flex")
-                .set("justify-content", "space-between")
-                .set("align-items", "center")
-                .set("margin-bottom", "0.5rem");
+            reviewHeader.addClassName("review-header");
 
             HorizontalLayout stars = createStarRating(stay.rating());
             
             Span reviewDateSpan = new Span("Reviewed on " + stay.reviewDate().format(GERMAN_DATE_FORMAT));
-            reviewDateSpan.getStyle()
-                .set("font-size", "0.875rem")
-                .set("color", "var(--color-text-secondary)");
+            reviewDateSpan.addClassName("review-date");
 
             reviewHeader.add(stars, reviewDateSpan);
 
             Paragraph reviewText = new Paragraph(stay.reviewText());
-            reviewText.getStyle()
-                .set("margin", "0.5rem 0 1rem 0")
-                .set("color", "var(--color-text-secondary)");
+            reviewText.addClassName("review-text");
 
             Button editBtn = new Button("Edit Review", VaadinIcon.EDIT.create());
             editBtn.addClickListener(e -> openReviewDialog(stay, true));
@@ -193,9 +178,7 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
         } else {
             // Show "Leave Review" button
             Paragraph noReview = new Paragraph("You haven't reviewed this stay yet");
-            noReview.getStyle()
-                .set("margin", "0 0 1rem 0")
-                .set("color", "var(--color-text-secondary)");
+            noReview.addClassName("no-review-text");
 
             Button leaveReviewBtn = new Button("Leave a Review", VaadinIcon.COMMENT.create());
             leaveReviewBtn.addClassName("primary-button");
@@ -212,8 +195,8 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
 
     private HorizontalLayout createStarRating(Integer rating) {
         HorizontalLayout stars = new HorizontalLayout();
+        stars.addClassName("star-rating");
         stars.setSpacing(false);
-        stars.getStyle().set("gap", "0.25rem");
 
         if (rating != null) {
             for (int i = 1; i <= 5; i++) {
@@ -232,31 +215,25 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
         dialog.setWidth("600px");
 
         VerticalLayout content = new VerticalLayout();
+        content.addClassName("review-dialog-content");
 
         H4 stayInfo = new H4(stay.roomType() + " - " + stay.bookingId());
-        stayInfo.getStyle().set("margin", "0 0 1rem 0");
+        stayInfo.addClassName("review-dialog-stay-info");
 
         // Star Rating Selection
         Paragraph ratingLabel = new Paragraph("Your Rating");
-        ratingLabel.getStyle()
-            .set("margin", "0")
-            .set("font-weight", "600");
+        ratingLabel.addClassName("review-dialog-rating-label");
 
         HorizontalLayout starSelection = new HorizontalLayout();
+        starSelection.addClassName("review-dialog-star-selection");
         starSelection.setSpacing(true);
-        starSelection.getStyle().set("margin", "0.5rem 0 1rem 0");
 
         int[] selectedRating = {isEdit ? stay.rating() : 0};
 
         for (int i = 1; i <= 5; i++) {
             final int rating = i;
             Button starBtn = new Button(rating <= selectedRating[0] ? "⭐" : "☆");
-            starBtn.getStyle()
-                .set("font-size", "2rem")
-                .set("background", "transparent")
-                .set("border", "none")
-                .set("cursor", "pointer")
-                .set("padding", "0.25rem");
+            starBtn.addClassName("star-button");
             
             starBtn.addClickListener(e -> {
                 selectedRating[0] = rating;
@@ -272,6 +249,7 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
 
         // Review Text
         TextArea reviewTextArea = new TextArea("Your Review");
+        reviewTextArea.addClassName("review-textarea");
         reviewTextArea.setPlaceholder("Share your experience with this stay...");
         reviewTextArea.setWidthFull();
         reviewTextArea.setHeight("150px");
@@ -301,6 +279,8 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
 
         Button cancelBtn = new Button("Cancel");
         cancelBtn.addClickListener(e -> dialog.close());
+
+        content.add(stayInfo, ratingLabel, starSelection, reviewTextArea);
 
         dialog.add(content);
         dialog.getFooter().add(new HorizontalLayout(cancelBtn, submitBtn));
