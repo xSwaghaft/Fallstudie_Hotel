@@ -1,335 +1,332 @@
 package com.hotel.booking.view;
 
+import com.hotel.booking.entity.Booking;
+import com.hotel.booking.entity.Feedback;
+import com.hotel.booking.entity.User;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
+import com.hotel.booking.service.BookingService;
+import com.hotel.booking.service.FeedbackService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.dialog.Dialog;
-import com.vaadin.flow.component.html.*;
+import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.orderedlayout.*;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.TextArea;
-import com.vaadin.flow.router.*;
+import com.vaadin.flow.data.binder.Binder;
+import com.vaadin.flow.data.binder.ValidationException;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
+import com.vaadin.flow.router.Route;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
+// @Route: registriert die View unter /my-reviews im MainLayout.
+// @CssImport: bindet globale und Guest-spezifische Styles ein.
 @Route(value = "my-reviews", layout = MainLayout.class)
 @CssImport("./themes/hotel/styles.css")
+@CssImport("./themes/hotel/guest.css")
 public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver {
 
     private final SessionService sessionService;
-    private static final DateTimeFormatter GERMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+    private final BookingService bookingService;
+    private final FeedbackService feedbackService;
 
-    record Stay(String bookingId, String roomType, String roomNumber, 
-                LocalDate checkIn, LocalDate checkOut, boolean hasReview, 
-                Integer rating, String reviewText, LocalDate reviewDate) {}
+    private List<Booking> bookings;
 
     @Autowired
-    public MyReviewsView(SessionService sessionService) {
+    public MyReviewsView(SessionService sessionService,
+                         BookingService bookingService,
+                         FeedbackService feedbackService) {
         this.sessionService = sessionService;
+        this.bookingService = bookingService;
+        this.feedbackService = feedbackService;
+
         setSpacing(true);
         setPadding(true);
         setSizeFull();
+        setWidthFull();
+        getStyle().set("overflow-x", "hidden");
 
-        add(createHeader(), createStatsRow(), createStaysGrid());
+        bookings = loadBookings();
+
+        add(new H1("Meine Reviews"));
+        add(createStatsRow(bookings));
+        add(createReviewsList());
+        add(createBookingsWithoutReview());
     }
 
-    private Component createHeader() {
-        H1 title = new H1("My Reviews");
-        title.getStyle().set("margin", "0");
-        
-        Paragraph subtitle = new Paragraph("Rate your stays and share your experience");
-        subtitle.getStyle().set("margin", "0");
-        
-        return new Div(title, subtitle);
-    }
-
-    private Component createStatsRow() {
+    // Baut die KPI-Leiste mit Anzahl/Status/Ø-Bewertung der Reviews.
+    private Component createStatsRow(List<Booking> bookings) {
         HorizontalLayout row = new HorizontalLayout();
-        row.setWidthFull();
         row.setSpacing(true);
+        row.addClassName("reviews-stats-row");
 
-        Div card1 = createStatCard("Total Stays", "5", VaadinIcon.BED);
-        Div card2 = createStatCard("Reviews Written", "3", VaadinIcon.COMMENT);
-        Div card3 = createStatCard("Pending Reviews", "2", VaadinIcon.CLOCK);
-        Div card4 = createStatCard("Average Rating", "4.7", VaadinIcon.STAR);
-        
-        row.add(card1, card2, card3, card4);
-        row.expand(card1, card2, card3, card4);
+        int total = bookings.size();
+        int written = (int) bookings.stream().filter(b -> b.getFeedback() != null).count();
+        int pending = total - written;
+
+        var avgOpt = bookings.stream()
+                .map(Booking::getFeedback)
+                .filter(f -> f != null && f.getRating() != null)
+                .mapToInt(Feedback::getRating)
+                .average();
+
+        Double average = avgOpt.isPresent() ? avgOpt.getAsDouble() : null;
+
+        row.add(createStatCard("Total", String.valueOf(total)));
+        row.add(createStatCard("Geschrieben", String.valueOf(written)));
+        row.add(createStatCard("Ausstehend", String.valueOf(pending)));
+        row.add(createStatCard("Durchschnitt", average != null ? String.format(Locale.GERMANY, "%.1f", average) : "—"));
 
         return row;
     }
 
-    private Div createStatCard(String title, String value, VaadinIcon iconType) {
+    // Erzeugt eine einzelne KPI-Kachel mit Icon, Label und Wert.
+    private Div createStatCard(String label, String value) {
         Div card = new Div();
-        card.addClassName("kpi-card");
+        card.addClassName("review-stat-card");
         
-        Span titleSpan = new Span(title);
-        titleSpan.addClassName("kpi-card-title");
+        Icon icon = getIconForLabel(label);
+        if (icon != null) {
+            icon.addClassName("review-stat-icon");
+            card.add(icon);
+        }
         
-        Icon icon = iconType.create();
-        icon.addClassName("kpi-card-icon");
-        
-        HorizontalLayout cardHeader = new HorizontalLayout(titleSpan, icon);
-        cardHeader.setWidthFull();
-        cardHeader.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-        cardHeader.setAlignItems(FlexComponent.Alignment.CENTER);
-        cardHeader.getStyle().set("margin-bottom", "0.5rem");
-        
-        H2 valueHeading = new H2(value);
-        valueHeading.getStyle().set("margin", "0");
-        
-        card.add(cardHeader, valueHeading);
+        Paragraph labelP = new Paragraph(label);
+        labelP.addClassName("review-stat-label");
+        Paragraph valueP = new Paragraph(value);
+        valueP.addClassName("review-stat-value");
+        card.add(labelP, valueP);
         return card;
     }
+    
+    // Wählt das passende Icon je nach KPI-Bezeichnung.
+    private Icon getIconForLabel(String label) {
+        return switch (label) {
+            case "Total" -> VaadinIcon.CLIPBOARD_TEXT.create();
+            case "Geschrieben" -> VaadinIcon.CHECK_CIRCLE.create();
+            case "Ausstehend" -> VaadinIcon.CLOCK.create();
+            case "Durchschnitt" -> VaadinIcon.STAR.create();
+            default -> null;
+        };
+    }
 
-    private Component createStaysGrid() {
+    // Listet alle Buchungen mit bereits vorhandenem Feedback als Karten auf.
+    private Component createReviewsList() {
         Div container = new Div();
-        container.setWidthFull();
-        container.getStyle()
-            .set("display", "flex")
-            .set("flex-direction", "column")
-            .set("gap", "1rem");
+        container.addClassName("reviews-list-container");
 
-        List<Stay> stays = getMockStays();
-        
-        for (Stay stay : stays) {
-            container.add(createStayCard(stay));
+        List<Booking> bookingsWithReview = bookings.stream()
+                .filter(b -> b.getFeedback() != null)
+                .collect(Collectors.toList());
+
+        if (bookingsWithReview.isEmpty()) {
+            Paragraph empty = new Paragraph("Noch keine Reviews vorhanden.");
+            empty.addClassName("reviews-empty-message");
+            container.add(empty);
+            return container;
         }
+
+        bookingsWithReview.forEach(booking -> {
+            if (booking.getFeedback() != null) {
+                container.add(createReviewCard(booking));
+            }
+        });
 
         return container;
     }
 
-    private Component createStayCard(Stay stay) {
+    // Baut eine einzelne Review-Karte mit Buchungsinfo, Sternen und Kommentar.
+    private Div createReviewCard(Booking booking) {
         Div card = new Div();
-        card.addClassName("card");
-        card.setWidthFull();
+        card.addClassName("review-card");
 
-        HorizontalLayout mainLayout = new HorizontalLayout();
-        mainLayout.setWidthFull();
-        mainLayout.setAlignItems(FlexComponent.Alignment.START);
-        mainLayout.getStyle().set("gap", "1.5rem");
-
-        // Left side - Stay Info
-        VerticalLayout leftSide = new VerticalLayout();
-        leftSide.setSpacing(false);
-        leftSide.setPadding(false);
-        leftSide.getStyle().set("flex", "1");
-
-        H4 roomTitle = new H4(stay.roomType() + " - Room " + stay.roomNumber());
-        roomTitle.getStyle().set("margin", "0 0 0.5rem 0");
-
-        Paragraph bookingId = new Paragraph("Booking ID: " + stay.bookingId());
-        bookingId.getStyle()
-            .set("margin", "0")
-            .set("font-size", "0.875rem")
-            .set("color", "var(--color-text-secondary)");
-
-        HorizontalLayout dates = new HorizontalLayout();
-        dates.setSpacing(true);
-        dates.getStyle().set("margin-top", "1rem");
-
-        VerticalLayout checkInBox = new VerticalLayout();
-        checkInBox.setSpacing(false);
-        checkInBox.setPadding(false);
-        Span checkInLabel = new Span("Check-in");
-        checkInLabel.getStyle().set("font-size", "0.875rem").set("color", "var(--color-text-secondary)");
-        Span checkInDate = new Span(stay.checkIn().format(GERMAN_DATE_FORMAT));
-        checkInDate.getStyle().set("font-weight", "600");
-        checkInBox.add(checkInLabel, checkInDate);
-
-        VerticalLayout checkOutBox = new VerticalLayout();
-        checkOutBox.setSpacing(false);
-        checkOutBox.setPadding(false);
-        Span checkOutLabel = new Span("Check-out");
-        checkOutLabel.getStyle().set("font-size", "0.875rem").set("color", "var(--color-text-secondary)");
-        Span checkOutDate = new Span(stay.checkOut().format(GERMAN_DATE_FORMAT));
-        checkOutDate.getStyle().set("font-weight", "600");
-        checkOutBox.add(checkOutLabel, checkOutDate);
-
-        dates.add(checkInBox, checkOutBox);
-
-        leftSide.add(roomTitle, bookingId, dates);
-
-        // Right side - Review Section
-        VerticalLayout rightSide = new VerticalLayout();
-        rightSide.setSpacing(false);
-        rightSide.setPadding(false);
-        rightSide.getStyle().set("flex", "1");
-
-        if (stay.hasReview()) {
-            // Show existing review
-            Div reviewHeader = new Div();
-            reviewHeader.getStyle()
-                .set("display", "flex")
-                .set("justify-content", "space-between")
-                .set("align-items", "center")
-                .set("margin-bottom", "0.5rem");
-
-            HorizontalLayout stars = createStarRating(stay.rating());
-            
-            Span reviewDateSpan = new Span("Reviewed on " + stay.reviewDate().format(GERMAN_DATE_FORMAT));
-            reviewDateSpan.getStyle()
-                .set("font-size", "0.875rem")
-                .set("color", "var(--color-text-secondary)");
-
-            reviewHeader.add(stars, reviewDateSpan);
-
-            Paragraph reviewText = new Paragraph(stay.reviewText());
-            reviewText.getStyle()
-                .set("margin", "0.5rem 0 1rem 0")
-                .set("color", "var(--color-text-secondary)");
-
-            Button editBtn = new Button("Edit Review", VaadinIcon.EDIT.create());
-            editBtn.addClickListener(e -> openReviewDialog(stay, true));
-
-            rightSide.add(reviewHeader, reviewText, editBtn);
-        } else {
-            // Show "Leave Review" button
-            Paragraph noReview = new Paragraph("You haven't reviewed this stay yet");
-            noReview.getStyle()
-                .set("margin", "0 0 1rem 0")
-                .set("color", "var(--color-text-secondary)");
-
-            Button leaveReviewBtn = new Button("Leave a Review", VaadinIcon.COMMENT.create());
-            leaveReviewBtn.addClassName("primary-button");
-            leaveReviewBtn.addClickListener(e -> openReviewDialog(stay, false));
-
-            rightSide.add(noReview, leaveReviewBtn);
+        Feedback feedback = booking.getFeedback();
+        if (feedback == null) {
+            return card;
         }
 
-        mainLayout.add(leftSide, rightSide);
-        card.add(mainLayout);
+        String roomInfo = booking.getRoomCategory() != null
+                ? booking.getRoomCategory().getName()
+                : "Zimmer";
+        if (booking.getRoom() != null) {
+            roomInfo += " #" + booking.getRoom().getRoomNumber();
+        }
+
+        Div header = new Div();
+        header.addClassName("review-card-header");
+        
+        H3 bookingNumber = new H3(booking.getBookingNumber());
+        bookingNumber.addClassName("review-booking-number");
+
+        Paragraph room = new Paragraph(roomInfo);
+        room.addClassName("review-room");
+        
+        header.add(bookingNumber, room);
+
+        Div stars = createStars(feedback.getRating());
+        stars.addClassName("review-stars");
+
+        Paragraph comment = new Paragraph(feedback.getComment() != null ? feedback.getComment() : "");
+        comment.addClassName("review-comment");
+
+        Button editButton = new Button("Bearbeiten");
+        editButton.addClassName("review-edit-button");
+        editButton.addClickListener(e -> openReviewDialog(booking, feedback));
+
+        card.add(header, stars, comment, editButton);
+        return card;
+    }
+
+    // Rendert Sternsymbole basierend auf der übergebenen Bewertung (1-5).
+    private Div createStars(Integer rating) {
+        Div starsDiv = new Div();
+        starsDiv.addClassName("review-stars-container");
+        if (rating != null) {
+            for (int i = 1; i <= 5; i++) {
+                Span star = new Span("★");
+                star.addClassName("review-star");
+                if (i > rating) {
+                    star.addClassName("empty");
+                } else {
+                    star.addClassName("filled");
+                }
+                starsDiv.add(star);
+            }
+        }
+        return starsDiv;
+    }
+
+    // Zeigt Buchungen ohne Feedback und bietet Buttons zum Hinzufügen einer Review.
+    private Component createBookingsWithoutReview() {
+        VerticalLayout layout = new VerticalLayout();
+        layout.setSpacing(true);
+        layout.setPadding(false);
+
+        List<Booking> bookingsWithoutReview = bookings.stream()
+                .filter(b -> b.getFeedback() == null)
+                .collect(Collectors.toList());
+
+        if (bookingsWithoutReview.isEmpty()) {
+            return new Div();
+        }
+
+        Div card = new Div();
+        card.addClassName("reviews-pending-card");
+        H3 title = new H3("Buchungen ohne Review");
+        card.add(title);
+
+        bookingsWithoutReview.forEach(booking -> {
+            String roomInfo = booking.getRoomCategory() != null
+                    ? booking.getRoomCategory().getName()
+                    : "Zimmer";
+            if (booking.getRoom() != null) {
+                roomInfo += " #" + booking.getRoom().getRoomNumber();
+            }
+
+            Div item = new Div();
+            item.addClassName("reviews-pending-item");
+            Paragraph info = new Paragraph("Buchung " + booking.getBookingNumber() + " - " + roomInfo);
+            Button addButton = new Button("Review hinzufügen");
+            addButton.addClassName("primary-button");
+            addButton.addClickListener(e -> openReviewDialog(booking, null));
+            item.add(info, addButton);
+            card.add(item);
+        });
 
         return card;
     }
 
-    private HorizontalLayout createStarRating(Integer rating) {
-        HorizontalLayout stars = new HorizontalLayout();
-        stars.setSpacing(false);
-        stars.getStyle().set("gap", "0.25rem");
-
-        if (rating != null) {
-            for (int i = 1; i <= 5; i++) {
-                Span star = new Span(i <= rating ? "⭐" : "☆");
-                star.getStyle().set("font-size", "1.25rem");
-                stars.add(star);
-            }
-        }
-
-        return stars;
-    }
-
-    private void openReviewDialog(Stay stay, boolean isEdit) {
+    // Öffnet den Dialog zum Erstellen oder Bearbeiten einer Review.
+    private void openReviewDialog(Booking booking, Feedback existingFeedback) {
         Dialog dialog = new Dialog();
-        dialog.setHeaderTitle(isEdit ? "Edit Your Review" : "Leave a Review");
-        dialog.setWidth("600px");
+        dialog.setHeaderTitle(existingFeedback != null ? "Review bearbeiten" : "Review hinzufügen");
 
-        VerticalLayout content = new VerticalLayout();
+        boolean isNew = (existingFeedback == null);
+        Feedback feedback = isNew ? new Feedback() : existingFeedback;
 
-        H4 stayInfo = new H4(stay.roomType() + " - " + stay.bookingId());
-        stayInfo.getStyle().set("margin", "0 0 1rem 0");
+        if (feedback == null) {
+            return;
+        }
 
-        // Star Rating Selection
-        Paragraph ratingLabel = new Paragraph("Your Rating");
-        ratingLabel.getStyle()
-            .set("margin", "0")
-            .set("font-weight", "600");
+        if (isNew) {
+            feedback.setBooking(booking);
+        }
 
-        HorizontalLayout starSelection = new HorizontalLayout();
-        starSelection.setSpacing(true);
-        starSelection.getStyle().set("margin", "0.5rem 0 1rem 0");
+        Binder<Feedback> binder = new Binder<>(Feedback.class);
 
-        int[] selectedRating = {isEdit ? stay.rating() : 0};
+        Select<Integer> ratingSelect = new Select<>();
+        ratingSelect.setLabel("Bewertung");
+        ratingSelect.setItems(1, 2, 3, 4, 5);
 
-        for (int i = 1; i <= 5; i++) {
-            final int rating = i;
-            Button starBtn = new Button(rating <= selectedRating[0] ? "⭐" : "☆");
-            starBtn.getStyle()
-                .set("font-size", "2rem")
-                .set("background", "transparent")
-                .set("border", "none")
-                .set("cursor", "pointer")
-                .set("padding", "0.25rem");
-            
-            starBtn.addClickListener(e -> {
-                selectedRating[0] = rating;
-                // Update all stars
-                for (int j = 0; j < 5; j++) {
-                    Button btn = (Button) starSelection.getComponentAt(j);
-                    btn.setText(j < rating ? "⭐" : "☆");
+        TextArea commentArea = new TextArea("Kommentar");
+        commentArea.setMaxLength(1000);
+
+        binder.forField(ratingSelect)
+                .asRequired("Bewertung erforderlich")
+                .bind(Feedback::getRating, Feedback::setRating);
+
+        binder.forField(commentArea)
+                .bind(f -> f.getComment() != null ? f.getComment() : "",
+                      (f, value) -> f.setComment(value != null ? value : ""));
+
+        binder.readBean(feedback);
+
+        Button saveButton = new Button("Speichern");
+        Button cancelButton = new Button("Abbrechen");
+
+        saveButton.addClickListener(e -> {
+            try {
+                binder.writeBean(feedback);
+                if (feedback.getCreatedAt() == null) {
+                    feedback.setCreatedAt(LocalDateTime.now());
                 }
-            });
-            
-            starSelection.add(starBtn);
-        }
-
-        // Review Text
-        TextArea reviewTextArea = new TextArea("Your Review");
-        reviewTextArea.setPlaceholder("Share your experience with this stay...");
-        reviewTextArea.setWidthFull();
-        reviewTextArea.setHeight("150px");
-        
-        if (isEdit && stay.reviewText() != null) {
-            reviewTextArea.setValue(stay.reviewText());
-        }
-
-        content.add(stayInfo, ratingLabel, starSelection, reviewTextArea);
-
-        Button submitBtn = new Button(isEdit ? "Update Review" : "Submit Review");
-        submitBtn.addClassName("primary-button");
-        submitBtn.addClickListener(e -> {
-            if (selectedRating[0] == 0) {
-                Notification.show("Please select a rating", 3000, Notification.Position.MIDDLE);
-                return;
+                feedbackService.save(feedback);
+                Notification.show(isNew ? "Review hinzugefügt!" : "Review aktualisiert!");
+                bookings = loadBookings();
+                removeAll();
+                add(new H1("Meine Reviews"));
+                add(createStatsRow(bookings));
+                add(createReviewsList());
+                add(createBookingsWithoutReview());
+                dialog.close();
+            } catch (ValidationException ex) {
+                Notification.show("Bitte Eingaben prüfen");
             }
-            if (reviewTextArea.isEmpty()) {
-                Notification.show("Please write a review", 3000, Notification.Position.MIDDLE);
-                return;
-            }
-            
-            dialog.close();
-            Notification.show(isEdit ? "Review updated successfully!" : "Thank you for your review!", 
-                            3000, Notification.Position.MIDDLE);
         });
 
-        Button cancelBtn = new Button("Cancel");
-        cancelBtn.addClickListener(e -> dialog.close());
-
-        dialog.add(content);
-        dialog.getFooter().add(new HorizontalLayout(cancelBtn, submitBtn));
+        cancelButton.addClickListener(e -> dialog.close());
+        FormLayout formLayout = new FormLayout(ratingSelect, commentArea);
+        dialog.add(formLayout, new HorizontalLayout(saveButton, cancelButton));
         dialog.open();
     }
 
-    private List<Stay> getMockStays() {
-        return List.of(
-            new Stay("BK001", "Deluxe Room", "302", 
-                    LocalDate.of(2025, 11, 5), LocalDate.of(2025, 11, 8),
-                    false, null, null, null),
-            new Stay("BK006", "Suite", "501", 
-                    LocalDate.of(2024, 12, 20), LocalDate.of(2024, 12, 25),
-                    true, 5, "Amazing stay! The suite was luxurious and the service was impeccable. Will definitely return!", 
-                    LocalDate.of(2024, 12, 26)),
-            new Stay("BK008", "Deluxe Room", "310", 
-                    LocalDate.of(2024, 8, 10), LocalDate.of(2024, 8, 14),
-                    true, 4, "Great room with beautiful city views. Staff was friendly and helpful.", 
-                    LocalDate.of(2024, 8, 15)),
-            new Stay("BK012", "Standard Room", "205", 
-                    LocalDate.of(2024, 6, 15), LocalDate.of(2024, 6, 18),
-                    true, 5, "Perfect for a budget-friendly stay. Clean, comfortable, and convenient location.", 
-                    LocalDate.of(2024, 6, 19)),
-            new Stay("BK015", "Suite", "402", 
-                    LocalDate.of(2024, 3, 10), LocalDate.of(2024, 3, 13),
-                    false, null, null, null)
-        );
+    // Lädt vergangene Buchungen des aktuellen Nutzers, um Reviews anzuzeigen.
+    private List<Booking> loadBookings() {
+        User user = sessionService.getCurrentUser();
+        if (user == null) {
+            return List.of();
+        }
+        return bookingService.findPastBookingsForGuest(user.getId());
     }
 
+    // Zugriffsschutz: erlaubt nur eingeloggte Gäste, sonst Redirect zum Login.
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         if (!sessionService.isLoggedIn() || !sessionService.hasRole(UserRole.GUEST)) {

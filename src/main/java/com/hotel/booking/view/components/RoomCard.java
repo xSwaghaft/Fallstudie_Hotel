@@ -13,11 +13,13 @@ import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 
+// Präsentationskomponente für ein einzelnes Zimmer (Karte mit Bild, Preis, Titel).
 public class RoomCard extends Div {
     
     private final Room room;
     private final List<RoomImage> images;
     
+    // Konstruktor: setzt Zimmer und Bilder, initialisiert die Karte.
     public RoomCard(Room room, List<RoomImage> images) {
         this.room = room;
         this.images = images != null ? images : List.of();
@@ -26,6 +28,7 @@ public class RoomCard extends Div {
         buildCard();
     }
     
+    // Baut die sichtbare Zimmerkarte mit Titel, Preis und Primärbild.
     private void buildCard() {
         // Image Container - nur primäres Bild
         Div imageContainer = new Div();
@@ -72,6 +75,7 @@ public class RoomCard extends Div {
         add(imageContainer, content);
     }
     
+    // Hängt einen bereitgestellten Aktions-Button unten an den Karten-Content an.
     public void setBookButton(Button bookButton) {
         VerticalLayout content = (VerticalLayout) getChildren()
             .filter(c -> c.getClass() == VerticalLayout.class)
@@ -84,6 +88,7 @@ public class RoomCard extends Div {
         }
     }
     
+    // Öffnet eine Galerie-Dialogansicht mit allen Bildern des Zimmers.
     private void openGallery() {
         if (images == null || images.isEmpty()) {
             return;
@@ -111,6 +116,7 @@ public class RoomCard extends Div {
         galleryDialog.open();
     }
     
+    // Zeigt ein einzelnes Bild in großem Dialog an.
     private void openImageDialog(RoomImage image) {
         Dialog imageDialog = new Dialog();
         imageDialog.setWidth("90%");
@@ -130,6 +136,7 @@ public class RoomCard extends Div {
         imageDialog.open();
     }
     
+    // Liefert das referenzierte Zimmerobjekt.
     public Room getRoom() {
         return room;
     }

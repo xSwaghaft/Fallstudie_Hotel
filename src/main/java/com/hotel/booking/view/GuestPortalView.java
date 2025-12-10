@@ -29,6 +29,8 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
 
+// @Route: registriert das Gäste-Portal unter /guest-portal im MainLayout.
+// @CssImport: lädt globale und Guest-spezifische Styles.
 @Route(value = "guest-portal", layout = MainLayout.class)
 @CssImport("./themes/hotel/styles.css")
 @CssImport("./themes/hotel/guest.css")
@@ -66,6 +68,7 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
         add(new H1("Zimmer suchen"), createSearchCard(), roomGrid);
     }
 
+    // Baut die Suchkarte mit Datum-, Gäste- und Typ-Filtern.
     private Div createSearchCard() {
         Div card = new Div();
         card.addClassName("guest-search-card");
@@ -116,6 +119,7 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
         return card;
     }
 
+    // Führt die Suche aus und befüllt das RoomGrid mit verfügbaren Zimmern.
     private void executeSearch() {
         LocalDate in = checkIn.getValue();
         LocalDate out = checkOut.getValue();
@@ -123,7 +127,8 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
         String typeValue = type.getValue();
 
         if (in == null || out == null || guestsValue == null) {
-            roomGrid.setRooms(new ArrayList<>(), null, null);
+            // Keine vollständigen Filter -> leere Liste ohne Handler
+            roomGrid.setRooms(new ArrayList<>(), null, null, null);
             return;
         }
 
@@ -136,9 +141,11 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
             Notification.show("Keine Zimmer im gewählten Zeitraum verfügbar.");
         }
 
-        roomGrid.setRooms(rooms, in, out);
+        // Übergibt Räume mit Datum an den aktiven (Default-)Handler
+        roomGrid.setRooms(rooms, in, out, null);
     }
 
+    // Zugriffsschutz: nur eingeloggte Gäste dürfen das Portal sehen.
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         if (!sessionService.isLoggedIn() || !sessionService.hasRole(UserRole.GUEST)) {

@@ -27,6 +27,8 @@ import com.vaadin.flow.spring.annotation.UIScope;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
+// @SpringComponent: macht diese Vaadin-Komponente als Spring-Bean verfügbar.
+// @UIScope: Bean lebt pro UI-Instanz (Thread-sicher für Vaadin-UI-Scope).
 @SpringComponent
 @UIScope
 public class RoomGrid extends Div {
@@ -39,6 +41,7 @@ public class RoomGrid extends Div {
     private RoomActionHandler actionHandler;
 
     @Autowired
+    // Konstruktor: setzt Services und Grundstyling des Grids.
     public RoomGrid(SessionService sessionService,
                     BookingService bookingService,
                     RoomCategoryService roomCategoryService,
@@ -51,19 +54,15 @@ public class RoomGrid extends Div {
         setWidthFull();
     }
     
+    // Schnittstelle für konfigurierbare Aktionen (z. B. Buchen, Bearbeiten).
     public interface RoomActionHandler {
         void handleRoomAction(Room room, LocalDate checkIn, LocalDate checkOut);
         String getButtonText();
     }
 
-    public void setRooms(List<Room> rooms) {
-        setRooms(rooms, null, null);
-    }
 
-    public void setRooms(List<Room> rooms, LocalDate checkIn, LocalDate checkOut) {
-        setRooms(rooms, checkIn, checkOut, null);
-    }
     
+    // Zentrales Setter: rendert Karten, optional mit Handler (ansonsten Default).
     public void setRooms(List<Room> rooms, LocalDate checkIn, LocalDate checkOut, RoomActionHandler handler) {
         removeAll();
         RoomActionHandler activeHandler = handler != null ? handler : this.actionHandler;
@@ -89,6 +88,7 @@ public class RoomGrid extends Div {
         }
     }
 
+    // Standard-Handler für Gäste: öffnet Buchungsdialog mit Button "Buchen".
     public void setDefaultBookingHandler() {
         this.actionHandler = new RoomActionHandler() {
             @Override
@@ -103,6 +103,7 @@ public class RoomGrid extends Div {
         };
     }
     
+    // Öffnet den Dialog zum Buchen eines Zimmers inklusive Formular und Preisinfo.
     private void openBookingDialog(Room room, LocalDate checkIn, LocalDate checkOut) {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle("Buchung bestätigen");
@@ -134,7 +135,7 @@ public class RoomGrid extends Div {
             formBooking.setRoomCategory(room.getCategory());
         }
         Integer max = room.getCategory() != null ? room.getCategory().getMaxOccupancy() : null;
-        int defaultGuests = 2;
+        int defaultGuests = 1;
         if (max != null && max > 0) {
             defaultGuests = Math.min(defaultGuests, max);
         }
