@@ -154,9 +154,16 @@ public class createNewBookingForm extends FormLayout{
 
         // Guests
         binder.forField(guestNumber)
-                .asRequired("Guests required")
-                .withValidator(n -> n > 0, "Guests must be > 0")
-                .bind(Booking::getAmount, Booking::setAmount);
+            .asRequired("Guests required")
+            .withValidator(n -> n > 0, "Guests must be > 0")
+            .withValidator(n -> {
+                //Prüft, ob die Gästeanzahl zur ausgewählten Kategorie passt
+                RoomCategory selected = roomCategorySelect.getValue();
+                if (selected == null || n == null) return true;
+                Integer max = selected.getMaxOccupancy();
+                return max == null || n <= max;
+            }, "Too many guests for selected category")
+            .bind(Booking::getAmount, Booking::setAmount);
 
         // Check-In
         binder.forField(checkInDate)
