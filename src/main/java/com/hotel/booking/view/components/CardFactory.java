@@ -236,4 +236,38 @@ public class CardFactory {
 
         return card;
     }
+
+    //Matthias Lohr
+    public Div createKpiCard(String title, String value, VaadinIcon iconType, 
+                                   String color, String trend, boolean isPositive) {
+        Div card = new Div();
+        card.addClassName("kpi-card");
+        
+        // Header
+        Span titleSpan = new Span(title);
+        titleSpan.addClassName("kpi-card-title");
+        
+        Icon icon = iconType.create();
+        icon.getStyle().set("color", color);
+        
+        HorizontalLayout cardHeader = new HorizontalLayout(titleSpan, icon);
+        cardHeader.addClassName("kpi-card-header");
+        cardHeader.setWidthFull();
+        
+        // Value
+        H2 valueHeading = new H2(value);
+        valueHeading.addClassName("kpi-card-value");
+        
+        // Trend
+        Span trendSpan = new Span(trend);
+        trendSpan.addClassName("kpi-card-trend");
+        if (isPositive) {
+            trendSpan.addClassName("positive");
+        } else {
+            trendSpan.addClassName("neutral");
+        }
+        
+        card.add(cardHeader, valueHeading, trendSpan);
+        return card;
+    }
 }

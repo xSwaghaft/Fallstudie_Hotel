@@ -237,9 +237,10 @@ public class createNewBookingForm extends FormLayout{
     }
 
     public void writeBean() throws ValidationException {
+        //Prüft und validiert die E-Mail, sodass auf den eigenen User gebucht wird, wenn die E-Mail frei oder falsch ist
         if (userByEmailField.isVisible()) {
         String email = userByEmailField.getValue();
-        if (email != null && !email.isBlank()) {
+        if (email != null && !email.isBlank() && formService.existsByEmail(email)) {
             User foundUser = formService.findUserByEmail(email);
             formBooking.setGuest(foundUser);
             }}

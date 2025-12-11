@@ -4,7 +4,6 @@ import com.hotel.booking.entity.User;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.repository.UserRepository;
 import com.hotel.booking.repository.GuestRepository;
-import com.hotel.booking.repository.ReportRepository;
 import com.hotel.booking.repository.BookingModificationRepository;
 import com.hotel.booking.repository.BookingCancellationRepository;
 import com.hotel.booking.repository.BookingRepository;
@@ -29,19 +28,17 @@ public class UserService {
     
     private final UserRepository userRepository;
     private final GuestRepository guestRepository;
-    private final ReportRepository reportRepository;
     private final BookingModificationRepository bookingModificationRepository;
     private final BookingCancellationRepository bookingCancellationRepository;
     private final BookingRepository bookingRepository;
     private final BcryptPasswordEncoder passwordEncoder;
 
     public UserService(UserRepository userRepository, GuestRepository guestRepository, 
-                       ReportRepository reportRepository, BookingModificationRepository bookingModificationRepository,
+                       BookingModificationRepository bookingModificationRepository,
                        BookingCancellationRepository bookingCancellationRepository, BookingRepository bookingRepository,
                        BcryptPasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.guestRepository = guestRepository;
-        this.reportRepository = reportRepository;
         this.bookingModificationRepository = bookingModificationRepository;
         this.bookingCancellationRepository = bookingCancellationRepository;
         this.bookingRepository = bookingRepository;
@@ -245,13 +242,6 @@ public class UserService {
         }
         
         User userToDelete = userOpt.get();
-        
-        // 1. Lösche alle Reports, die von diesem User erstellt wurden
-        List<com.hotel.booking.entity.Report> reports = reportRepository.findByCreatedBy(userToDelete);
-        if (!reports.isEmpty()) {
-            reportRepository.deleteAll(reports);
-            log.info("Gelöschte {} Reports die von User {} erstellt wurden", reports.size(), userToDelete.getUsername());
-        }
         
         // 2. Entkopple den User vom zugehörigen Guest (1:1 Beziehung)
         // Der Guest wird NICHT gelöscht - nur vom User entkoppelt, damit die Historie erhalten bleibt
