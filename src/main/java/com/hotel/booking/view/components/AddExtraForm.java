@@ -3,6 +3,8 @@ package com.hotel.booking.view.components;
 import com.hotel.booking.entity.BookingExtra;
 import com.hotel.booking.service.BookingExtraService;
 import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.textfield.NumberField;
+import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 
@@ -12,8 +14,8 @@ public class AddExtraForm extends FormLayout {
     private final BookingExtraService extraService;
 
     private final TextField nameField = new TextField("Name");
-    private final com.vaadin.flow.component.textfield.TextArea descriptionField = new com.vaadin.flow.component.textfield.TextArea("Description");
-    private final com.vaadin.flow.component.textfield.NumberField priceField = new com.vaadin.flow.component.textfield.NumberField("Price (€)");
+    private final TextArea descriptionField = new TextArea("Description");
+    private final NumberField priceField = new NumberField("Price (€)");
 
     public AddExtraForm(BookingExtraService extraService) {
         this.extraService = extraService;
@@ -52,7 +54,6 @@ public class AddExtraForm extends FormLayout {
                 extraService.saveBookingExtra(getExtra());
                 return true;
             } catch (Exception e) {
-                // Fehlerbehandlung ggf. hier
                 return false;
             }
         }
