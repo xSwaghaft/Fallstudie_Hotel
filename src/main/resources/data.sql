@@ -120,12 +120,12 @@ UPDATE bookings SET invoice_id = 7 WHERE id = 8;
 
 -- ---------- Room extras (BookingExtra) (mind. 5 Einträge) ----------
 -- ---------- Room extras (BookingExtra) (mind. 5 Einträge) ----------
-INSERT INTO room_extras (name, description, price, extra_type) VALUES
-('Frühstück','Buffetfrühstück inklusive',12.50,'BREAKFAST'),
-('Parkplatz','Tagesparkplatz',8.00,'PARKING'),
-('Zusatzbett','Aufstellbett pro Nacht',25.00,'EXTRA_BED'),
-('WLAN Premium','Highspeed Internet',5.00,'WIFI'),
-('SPA Zugang','Tagespass für SPA',20.00,'SPA');
+INSERT INTO room_extras (name, description, price) VALUES
+('Frühstück','Buffetfrühstück inklusive',12.50),
+('Parkplatz','Tagesparkplatz',8.00),
+('Zusatzbett','Aufstellbett pro Nacht',25.00),
+('WLAN Premium','Highspeed Internet',5.00),
+('SPA Zugang','Tagespass für SPA',20.00);
 
 
 -- ---------- booking_extra (Zuordnungen Buchung <-> Extras) ----------

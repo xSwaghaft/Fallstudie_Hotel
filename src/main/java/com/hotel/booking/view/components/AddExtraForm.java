@@ -14,19 +14,17 @@ public class AddExtraForm extends FormLayout {
     private final TextField nameField = new TextField("Name");
     private final com.vaadin.flow.component.textfield.TextArea descriptionField = new com.vaadin.flow.component.textfield.TextArea("Description");
     private final com.vaadin.flow.component.textfield.NumberField priceField = new com.vaadin.flow.component.textfield.NumberField("Price (€)");
-    private final com.vaadin.flow.component.combobox.ComboBox<com.hotel.booking.entity.ExtraTypeEnum> typeField = new com.vaadin.flow.component.combobox.ComboBox<>("Type");
 
     public AddExtraForm(BookingExtraService extraService) {
         this.extraService = extraService;
 
-        typeField.setItems(com.hotel.booking.entity.ExtraTypeEnum.values());
-        typeField.setRequired(true);
+
         priceField.setMin(0.0);
         priceField.setStep(0.01);
         priceField.setRequiredIndicatorVisible(true);
         nameField.setRequired(true);
 
-        add(nameField, descriptionField, priceField, typeField);
+        add(nameField, descriptionField, priceField);
 
         binder.forField(nameField)
             .asRequired("Name is required")
@@ -38,10 +36,6 @@ public class AddExtraForm extends FormLayout {
         binder.forField(priceField)
             .asRequired("Price is required")
             .bind(BookingExtra::getPrice, BookingExtra::setPrice);
-
-        binder.forField(typeField)
-            .asRequired("Type is required")
-            .bind(BookingExtra::getExtraType, BookingExtra::setExtraType);
     }
 
     public void setExtra(BookingExtra extra) {

@@ -13,7 +13,13 @@ import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.BookingFormService;
 import com.vaadin.flow.component.checkbox.CheckboxGroup;
 import com.vaadin.flow.component.datepicker.DatePicker;
+import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
+import com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.IntegerField;
@@ -22,6 +28,7 @@ import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
 
 //Matthias Lohr
+@CssImport("./themes/hotel/views/booking-management.css")
 public class createNewBookingForm extends FormLayout{
 
     final Binder<Booking> binder = new Binder<>(Booking.class);
@@ -50,32 +57,15 @@ public class createNewBookingForm extends FormLayout{
         this.configureBinder();
         this.setBooking(existingBooking);
 
-        this.add(displayCategoryField, userByEmailField, roomCategorySelect, checkInDate, checkOutDate, guestNumber, extras);
-    }
+        // Extras-CheckboxGroup und statische Liste nebeneinander - Horizontal Layout (Einfacher als mit Spalten des Formulars)
+        HorizontalLayout extrasRow = new HorizontalLayout();
+        extrasRow.setWidthFull();
+        extrasRow.setAlignItems(Alignment.END);
+        extras.setWidth("300px");
+        VerticalLayout extrasListBox = createExtrasListBox();
+        extrasRow.add(extras, extrasListBox);
 
-    //Konstruktor für die GuestView - Kategorie kann übergeben werden
-    public createNewBookingForm(User user, SessionService sessionService, Booking existingBooking, BookingFormService formService, RoomCategory category) {
-        this.user = user;
-        this.sessionService = sessionService;
-        this.formService = formService;
-        this.formBooking = existingBooking;
-
-        this.configureFields();
-        this.configureBinder();
-        this.setBooking(existingBooking);
-
-        this.add(displayCategoryField, userByEmailField, roomCategorySelect, checkInDate, checkOutDate, guestNumber, extras);
-
-        // Wenn eine feste Kategorie übergeben wurde, zeige sie im Feld an
-        if (category != null) {
-            roomCategorySelect.setVisible(false);
-            displayCategoryField.setVisible(true);
-            displayCategoryField.setReadOnly(true);
-            displayCategoryField.setValue(category.getName());
-            if (formBooking != null) {
-                formBooking.setRoomCategory(category);
-            }
-        }
+        this.add(displayCategoryField, userByEmailField, roomCategorySelect, checkInDate, checkOutDate, guestNumber, extrasRow);
     }
 
     //Konstruktor für RoomGrid - Kategorie, CheckIn und CheckOut können übergeben werden
@@ -90,7 +80,15 @@ public class createNewBookingForm extends FormLayout{
         this.configureBinder();
         this.setBooking(existingBooking);
 
-        this.add(displayCategoryField, userByEmailField, roomCategorySelect, checkInDate, checkOutDate, guestNumber, extras);
+        // Extras-CheckboxGroup und statische Liste nebeneinander
+        HorizontalLayout extrasRow = new HorizontalLayout();
+        extrasRow.setWidthFull();
+        extrasRow.setAlignItems(Alignment.END);
+        extras.setWidth("300px");
+        VerticalLayout extrasListBox = createExtrasListBox();
+        extrasRow.add(extras, extrasListBox);
+
+        this.add(displayCategoryField, userByEmailField, roomCategorySelect, checkInDate, checkOutDate, guestNumber, extrasRow);
 
         // Wenn eine feste Kategorie übergeben wurde, zeige sie im Feld an
         if (category != null) {
@@ -251,5 +249,21 @@ public class createNewBookingForm extends FormLayout{
             formBooking.setGuest(user);
         }
     }
-    
+
+    // Zeigt alle verfügbaren Extras als Name-Preis-Liste
+    //Matthias Lohr
+    private VerticalLayout createExtrasListBox() {
+        VerticalLayout listBox = new VerticalLayout();
+        listBox.addClassName("extras-list-box");
+        for (BookingExtra extra : formService.getAllBookingExtras()) {
+            HorizontalLayout row = new HorizontalLayout();
+            row.setWidthFull();
+            row.setJustifyContentMode(JustifyContentMode.BETWEEN);
+            Span name = new Span(extra.getName());
+            Span price = new Span(extra.getPrice() != null ? String.format("%.2f €", extra.getPrice()) : "-");
+            row.add(name, price);
+            listBox.add(row);
+        }
+        return listBox;
+    } 
 }
