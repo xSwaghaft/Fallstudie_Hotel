@@ -592,7 +592,7 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
         dialog.setHeaderTitle("Add Extra");
         dialog.setWidth("500px");
 
-        AddExtraForm form = new AddExtraForm(extraService);
+        AddExtraForm form = new AddExtraForm(extraService, null);
         form.setExtra(new BookingExtra());
 
         Button saveBtn = new Button("Add Extra");
@@ -612,7 +612,7 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
         Button cancelBtn = new Button("Cancel");
         cancelBtn.addClickListener(e -> dialog.close());
 
-        HorizontalLayout buttonLayout = new HorizontalLayout(cancelBtn, saveBtn);
+        HorizontalLayout buttonLayout = new HorizontalLayout(saveBtn, cancelBtn);
         buttonLayout.setSpacing(true);
         dialog.add(form, buttonLayout);
         dialog.open();

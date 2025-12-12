@@ -279,12 +279,11 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
             extras.setVisible(tabs.getSelectedIndex() == 3);
         });
 
-        Button checkIn = new Button("Check In", e -> { d.close(); Notification.show("Checked in"); });
         Button edit = new Button("Edit Booking", e -> { d.close(); openAddBookingDialog(b); });
         Button cancel = new Button("Cancel", e -> d.close());
 
         d.add(new VerticalLayout(tabs, pages));
-        d.getFooter().add(new HorizontalLayout(checkIn, edit, cancel));
+        d.getFooter().add(new HorizontalLayout(edit, cancel));
         d.open();
     }
 

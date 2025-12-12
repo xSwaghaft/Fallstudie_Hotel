@@ -8,7 +8,11 @@ import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 
+//Simples Formular zum Anlegen von Extras
+//Matthias Lohr
 public class AddExtraForm extends FormLayout {
+
+    private BookingExtra bookingExtra;
 
     private final Binder<BookingExtra> binder = new Binder<>(BookingExtra.class);
     private final BookingExtraService extraService;
@@ -17,8 +21,9 @@ public class AddExtraForm extends FormLayout {
     private final TextArea descriptionField = new TextArea("Description");
     private final NumberField priceField = new NumberField("Price (€)");
 
-    public AddExtraForm(BookingExtraService extraService) {
+    public AddExtraForm(BookingExtraService extraService, BookingExtra bookingExtra) {
         this.extraService = extraService;
+        this.bookingExtra = bookingExtra;
 
 
         priceField.setMin(0.0);
@@ -38,14 +43,21 @@ public class AddExtraForm extends FormLayout {
         binder.forField(priceField)
             .asRequired("Price is required")
             .bind(BookingExtra::getPrice, BookingExtra::setPrice);
+        
+        setExtra(bookingExtra);
     }
 
     public void setExtra(BookingExtra extra) {
-        binder.setBean(extra);
+        if(bookingExtra == null) {
+            bookingExtra = new BookingExtra();
+        } else {
+            bookingExtra = extra;
+        }
+        binder.readBean(bookingExtra);
     }
 
     public BookingExtra getExtra() {
-        return binder.getBean();
+        return bookingExtra;
     }
 
     public boolean writeBeanIfValid() {
