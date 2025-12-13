@@ -60,7 +60,6 @@ public class BookingService {
         booking.validateDates();
         calculateBookingPrice(booking); 
         booking.validateDates(); // nutzt deine Validierung in der Entity
-        booking.setTotalPrice(calculateTotalPrice());
         return bookingRepository.save(booking);
     }
 
@@ -157,40 +156,60 @@ public class BookingService {
 
 
     //wahrscheinlich weg Viktor Götting Sucht die verfügbaren räume nach Kategorie inder gesuchten Zeit und sortiert alle aus die mehr gäste brauchen als MaxOccupancy zulässt
-    public List<Room> availableRoomsSearch(LocalDate checkIn, LocalDate checkOut , int oppacity, String category ){
-
-        List<Room> searchedRooms ;
-        RoomCategory roomCategory;
-        List<Room> available = new ArrayList<>();
-
-        if(category == null || category.equals("All Types")){
-            searchedRooms = roomRepository.findAll();
-        }else{
-            roomCategory = roomCategoryRepository.findByName(category);
-            // Null-Check: Wenn Kategorie nicht existiert, leere Liste zurückgeben
-            if (roomCategory == null) {
-                return available; // Leere Liste, da Kategorie nicht gefunden wurde
-            }
-            searchedRooms = roomRepository.findByCategory(roomCategory);
-        }
-        for (Room room : searchedRooms) {
-            boolean overlaps = bookingRepository.existsByRoom_IdAndCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(
-                room.getId(),
-                checkOut,
-                checkIn
-            );
-            if (!overlaps) {
-                // Null-Check für room.getCategory() und getMaxOccupancy()
-                if (room.getCategory() != null && room.getCategory().getMaxOccupancy() != null 
-                    && oppacity <= room.getCategory().getMaxOccupancy()) {
-                    available.add(room);
-                }
-            }
-        }
-
-        return available;
-        
+    public List<RoomCategory> availableRoomsSearch(
+        LocalDate checkIn,
+        LocalDate checkOut,
+        int occupancy,
+        String categoryName
+) {
+    if (checkIn == null || checkOut == null || !checkOut.isAfter(checkIn)) {
+        return List.of();
     }
+
+    // 1) Welche Kategorien sollen überhaupt geprüft werden?
+    List<RoomCategory> categoriesToCheck;
+
+    if (categoryName == null || categoryName.equals("All Types")) {
+        categoriesToCheck = roomCategoryRepository.findAll();
+    } else {
+        // Variante A: findByName liefert Optional<RoomCategory> (empfohlen)
+        // Wenn dein Repo aktuell RoomCategory zurückgibt, sag Bescheid, dann passe ich es 1:1 an.
+        var opt = roomCategoryRepository.findByName(categoryName);
+        if (opt.isEmpty()) return List.of();
+        categoriesToCheck = List.of(opt.get());
+    }
+
+    // 2) Rooms zu diesen Kategorien holen
+    List<Room> rooms = roomRepository.findByCategoryIn(categoriesToCheck);
+
+    // 3) Kategorien sammeln, die mindestens 1 freies Zimmer mit genug Kapazität haben
+    var availableCategories = new java.util.LinkedHashSet<RoomCategory>();
+
+    for (Room room : rooms) {
+        if (room == null || room.getCategory() == null || room.getCategory().getMaxOccupancy() == null) {
+            continue;
+        }
+
+        if (occupancy > room.getCategory().getMaxOccupancy()) {
+            continue;
+        }
+
+        boolean overlaps = bookingRepository
+                .existsByRoom_IdAndCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(
+                        room.getId(),
+                        checkOut,
+                        checkIn
+                );
+
+        if (!overlaps) {
+            availableCategories.add(room.getCategory());
+        }
+    }
+
+    return new ArrayList<>(availableCategories);
+}
+
+
     
 
     //In diesem Service, da die Methode so nur fürs Booking verwendet wird
