@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,8 +30,10 @@ public class BookingService {
     private final RoomRepository roomRepository;
     private final RoomCategoryRepository roomCategoryRepository;
     
+    
 
 
+   
     public BookingService(BookingRepository bookingRepository, RoomRepository roomRepository, RoomCategoryRepository roomCategoryRepository) {
         this.bookingRepository = bookingRepository;
         this.roomRepository = roomRepository;
@@ -54,6 +57,8 @@ public class BookingService {
     public Booking save(Booking booking) {
         booking.setBookingNumber(generateBookingNumber());
         booking.setRoom(assignRoom(booking));
+        booking.validateDates();
+        calculateBookingPrice(booking); 
         booking.validateDates(); // nutzt deine Validierung in der Entity
         booking.setTotalPrice(calculateTotalPrice());
         return bookingRepository.save(booking);
@@ -162,6 +167,10 @@ public class BookingService {
             searchedRooms = roomRepository.findAll();
         }else{
             roomCategory = roomCategoryRepository.findByName(category);
+            // Null-Check: Wenn Kategorie nicht existiert, leere Liste zurückgeben
+            if (roomCategory == null) {
+                return available; // Leere Liste, da Kategorie nicht gefunden wurde
+            }
             searchedRooms = roomRepository.findByCategory(roomCategory);
         }
         for (Room room : searchedRooms) {
@@ -171,8 +180,11 @@ public class BookingService {
                 checkIn
             );
             if (!overlaps) {
-                if(oppacity <= room.getCategory().getMaxOccupancy())
-                 available.add(room);
+                // Null-Check für room.getCategory() und getMaxOccupancy()
+                if (room.getCategory() != null && room.getCategory().getMaxOccupancy() != null 
+                    && oppacity <= room.getCategory().getMaxOccupancy()) {
+                    available.add(room);
+                }
             }
         }
 
@@ -182,6 +194,7 @@ public class BookingService {
     
 
     //In diesem Service, da die Methode so nur fürs Booking verwendet wird
+    //Zählt alle Buchungen in einem Zeitraum - für den Report
     //Matthias Lohr
     public int getNumberOfBookingsInPeriod(LocalDate from, LocalDate to){
         List<Booking> bookings = bookingRepository.findByCreatedAtLessThanEqualAndCreatedAtGreaterThanEqual(to, from);
@@ -194,10 +207,7 @@ public class BookingService {
         return bookingRepository.findByCreatedAtLessThanEqualAndCreatedAtGreaterThanEqual(to, from);
     }
 
-    //Hier soll der gesamtpreis berechnet werden - (Preis x Tage) + (Extra + Extra1 ...) - Vorübergehend 100€
-    private BigDecimal calculateTotalPrice() {
-        return new BigDecimal(100.00);
-    }
+   
 
 
     //Viktor Götting Sucht alle vergangenen CONFIRMED Buchungen für einen Gast
@@ -219,38 +229,46 @@ public class BookingService {
         return bookingRepository.findByGuest_Id(guestId);
     }
 
-    //Viktor Götting berechnet den Gesamtpreis der Buchung
+    // Viktor Götting berechnet den Gesamtpreis der Buchung
     public void calculateBookingPrice(Booking booking) {
-        if (booking.getCheckInDate() == null || booking.getCheckOutDate() == null) {
-            booking.setTotalPrice(BigDecimal.ZERO);
-            return;
-        }
 
-        long nights = booking.getCheckOutDate().toEpochDay() - booking.getCheckInDate().toEpochDay();
-        if (nights <= 0) {
-            booking.setTotalPrice(BigDecimal.ZERO);
-            return;
-        }
-
-        BigDecimal total = BigDecimal.ZERO;
-
-        // Preis pro Nacht
-        if (booking.getRoomCategory() != null && booking.getRoomCategory().getPricePerNight() != null) {
-            BigDecimal pricePerNight = booking.getRoomCategory().getPricePerNight();
-            total = total.add(pricePerNight.multiply(BigDecimal.valueOf(nights)));
-        }
-
-        // Extras pro Gast
-        if (booking.getExtras() != null && booking.getAmount() != null) {
-            for (BookingExtra extra : booking.getExtras()) {
-                if (extra != null && extra.getPrice() != null) {
-                    BigDecimal extraPrice = BigDecimal.valueOf(extra.getPrice());
-                    total = total.add(extraPrice.multiply(BigDecimal.valueOf(booking.getAmount())));
-                }
-            }
-        }
-
-        booking.setTotalPrice(total.setScale(2, RoundingMode.HALF_UP));
+    if (booking.getCheckInDate() == null || booking.getCheckOutDate() == null) {
+        booking.setTotalPrice(BigDecimal.ZERO);
+        return;
     }
+
+    long nights = booking.getCheckOutDate().toEpochDay() - booking.getCheckInDate().toEpochDay();
+    if (nights <= 0) {
+        booking.setTotalPrice(BigDecimal.ZERO);
+        return;
+    }
+
+    BigDecimal total = BigDecimal.ZERO;
+
+    // Preis pro Nacht
+    if (booking.getRoomCategory() != null && booking.getRoomCategory().getPricePerNight() != null) {
+        BigDecimal pricePerNight = booking.getRoomCategory().getPricePerNight();
+        total = total.add(pricePerNight.multiply(BigDecimal.valueOf(nights)));
+    }
+
+    // Extras
+    int persons = (booking.getAmount() != null && booking.getAmount() > 0) ? booking.getAmount() : 1;
+    BigDecimal guestCount = BigDecimal.valueOf(persons);
+
+    BigDecimal extrasTotal = (booking.getExtras() == null ? java.util.Set.<BookingExtra>of() : booking.getExtras())
+        .stream()
+        .filter(extra -> extra != null && extra.getPrice() != null)
+        .map(extra -> {
+            BigDecimal extraPrice = BigDecimal.valueOf(extra.getPrice());
+            return extra.isPerPerson()
+                    ? extraPrice.multiply(guestCount)
+                    : extraPrice;
+        })
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+    total = total.add(extrasTotal);
+
+    booking.setTotalPrice(total.setScale(2, RoundingMode.HALF_UP));
+}
 
 }

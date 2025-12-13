@@ -107,12 +107,7 @@ public class Booking {
                 foreignKey = @ForeignKey(name = "fk_booking_room_category"))
     private RoomCategory roomCategory = new RoomCategory();
 
-    /**
-     * Optionale Rechnung zur Buchung.
-     * <p>
-     * Wenn die Gegenseite das FK hält, nutze {@code mappedBy="booking"}.
-     * </p>
-     */
+    /** Zugehörige Rechnung. */
 
     @OneToOne(mappedBy = "booking", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Invoice invoice;
@@ -264,54 +259,6 @@ public class Booking {
         }
     }
 
-    // ------------------------------------------------------------
-    // Hilfs- und Konsistenzmethoden
-    // ------------------------------------------------------------
-
-    /**
-     * Fügt eine Zahlung hinzu und hält die bidirektionale Beziehung konsistent.
-     * 
-     * @param payment Zahlung, die dieser Buchung zugeordnet wird
-     */
-
-    public void addPayment(Payment payment) {
-    if (payment == null) return;
-    payments.add(payment);
-    payment.setBooking(this);
-    }
-
-    /**
-     * Entfernt eine Zahlung und hält die bidirektionale Beziehung konsistent.
-     * 
-     * @param payment Zahlung, die entfernt werden soll
-     */
-
-    public void removePayment(Payment payment) {
-    if (payment == null) return;
-    payments.remove(payment);
-    if (payment.getBooking() == this) {
-    payment.setBooking(null);
-    }
-    }
-
-    /**
-     * Fügt ein Extra hinzu und hält die bidirektionale Beziehung konsistent.
-     * 
-     * @param extra Extra, das hinzugefügt wird
-     */
-    public void addExtra(BookingExtra extra) {
-    if (extra == null) return;
-    extras.add(extra);
-    if (!extra.getBookings().contains(this)) {
-        extra.getBookings().add(this);
-    }
-}
-
-public void removeExtra(BookingExtra extra) {
-    if (extra == null) return;
-    extras.remove(extra);
-    extra.getBookings().remove(this);
-}
 
     /**
      * Einfache Validierung: stellt sicher, dass das Check-out nach dem Check-in

@@ -89,7 +89,7 @@ INSERT IGNORE INTO guests (id, user_id, email, first_name, last_name, address, p
 (4,2,'maria.schmidt@example.com','Maria','Schmidt','Hamburger Weg 3, 20095 Hamburg','+491521234567','1991-12-20'),
 (5,5,'sofia.garcia@example.com','Sofia','Garcia','Calle Mayor 5, 28013 Madrid','+34111234567','1995-11-11');
 
--- ---------- Bookings (mind. 6 Einträge) ----------
+
 -- ---------- Bookings (mind. 6 Einträge) ----------
 INSERT IGNORE INTO bookings
 (id, booking_number, amount, check_in_date, check_out_date, status,
@@ -121,12 +121,15 @@ VALUES
 
 
 -- ---------- Room extras (BookingExtra) (mind. 5 Einträge) ----------
-INSERT INTO room_extras (name, description, price, extra_type) VALUES
-('Frühstück','Buffetfrühstück inklusive',12.50,'BREAKFAST'),
-('Parkplatz','Tagesparkplatz',8.00,'PARKING'),
-('Zusatzbett','Aufstellbett pro Nacht',25.00,'EXTRA_BED'),
-('WLAN Premium','Highspeed Internet',5.00,'WIFI'),
-('SPA Zugang','Tagespass für SPA',20.00,'SPA');
+INSERT INTO room_extras (name, description, price, extra_type, per_person) VALUES
+-- pro Person
+('Frühstück','Buffetfrühstück inklusive',12.50,'BREAKFAST', 1),
+('SPA Zugang','Tagespass für SPA',20.00,'SPA', 1),
+
+-- einmal pro Buchung
+('Parkplatz','Tagesparkplatz',8.00,'PARKING', 0),
+('Zusatzbett','Aufstellbett pro Nacht',25.00,'EXTRA_BED', 0),
+('WLAN Premium','Highspeed Internet',5.00,'WIFI', 0);
 
 
 -- ---------- booking_extra (Zuordnungen Buchung <-> Extras) ----------
