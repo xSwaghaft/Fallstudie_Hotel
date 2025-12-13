@@ -90,18 +90,26 @@ INSERT IGNORE INTO guests (id, user_id, email, first_name, last_name, address, p
 (5,5,'sofia.garcia@example.com','Sofia','Garcia','Calle Mayor 5, 28013 Madrid','+34111234567','1995-11-11');
 
 -- ---------- Bookings (mind. 6 Einträge) ----------
-INSERT IGNORE INTO bookings (id, booking_number, amount, check_in_date, check_out_date, status, total_price, guest_id, room_id, invoice_id, room_category_id, created_at) VALUES
-(1,'20251120-A1B2C3D4',2,'2025-11-20','2025-11-22','CONFIRMED',159.80,1,1,NULL,1,'2025-11-01'),
-(2,'20251110-E5F6G7H8',1,'2025-11-10','2025-11-12','CANCELLED',129.90,2,3,NULL,2,'2025-11-02'),
-(3,'20251201-I9J0K1L2',3,'2025-12-01','2025-12-04','CONFIRMED',479.70,3,5,NULL,5,'2025-11-21'),
-(4,'20251115-M3N4O5P6',1,'2025-11-15','2025-11-16','CONFIRMED',249.00,4,4,NULL,3,'2025-11-14'),
-(5,'20251220-Q7R8S9T0',2,'2025-12-20','2025-12-25','CANCELLED',319.80,5,3,NULL,2,'2025-11-10'),
-(6,'20251205-U1V2W3X4',1,'2025-12-05','2025-12-06','PENDING',49.90,1,6,NULL,4,'2025-11-25'),
-(7,'20241010-G1H2I3J4',2,'2024-10-10','2024-10-15','CONFIRMED',649.50,5,3,NULL,2,'2024-10-01'),
-(8,'20240915-K5L6M7N8',1,'2024-09-15','2024-09-20','CONFIRMED',249.00,5,4,NULL,3,'2024-09-10');
+-- ---------- Bookings (mind. 6 Einträge) ----------
+INSERT IGNORE INTO bookings
+(id, booking_number, amount, check_in_date, check_out_date, status,
+ total_price, guest_id, room_id, room_category_id, created_at)
+VALUES
+(1,'20251120-A1B2C3D4',2,'2025-11-20','2025-11-22','CONFIRMED',159.80,1,1,1,'2025-11-01'),
+(2,'20251110-E5F6G7H8',1,'2025-11-10','2025-11-12','CANCELLED',129.90,2,3,2,'2025-11-02'),
+(3,'20251201-I9J0K1L2',3,'2025-12-01','2025-12-04','CONFIRMED',479.70,3,5,5,'2025-11-21'),
+(4,'20251115-M3N4O5P6',1,'2025-11-15','2025-11-16','CONFIRMED',249.00,4,4,3,'2025-11-14'),
+(5,'20251220-Q7R8S9T0',2,'2025-12-20','2025-12-25','CANCELLED',319.80,5,3,2,'2025-11-10'),
+(6,'20251205-U1V2W3X4',1,'2025-12-05','2025-12-06','PENDING',49.90,1,6,4,'2025-11-25'),
+(7,'20241010-G1H2I3J4',2,'2024-10-10','2024-10-15','CONFIRMED',649.50,5,3,2,'2024-10-01'),
+(8,'20240915-K5L6M7N8',1,'2024-09-15','2024-09-20','CONFIRMED',249.00,5,4,3,'2024-09-10');
+
 
 -- ---------- Invoices (mind. 5 Einträge) ----------
-INSERT IGNORE INTO invoices (id, invoice_number, amount, issued_at, payment_method, status, booking_id) VALUES
+-- ---------- Invoices (mind. 5 Einträge) ----------
+INSERT IGNORE INTO invoices
+(id, invoice_number, amount, issued_at, payment_method, status, booking_id)
+VALUES
 (1,'INV-20251101-001',159.80,'2025-11-01 11:05:00','CARD','PAID',1),
 (2,'INV-20251102-002',129.90,'2025-11-02 09:10:00','CARD','PENDING',2),
 (3,'INV-20251103-003',479.70,'2025-11-21 16:25:00','TRANSFER','PAID',3),
@@ -110,16 +118,8 @@ INSERT IGNORE INTO invoices (id, invoice_number, amount, issued_at, payment_meth
 (6,'INV-20241010-006',649.50,'2024-10-10 10:00:00','CARD','PAID',7),
 (7,'INV-20240915-007',249.00,'2024-09-15 09:00:00','CARD','PAID',8);
 
--- Update bookings: invoice_id (sicherstellen, falls NULL beim Insert)
-UPDATE bookings SET invoice_id = 1 WHERE id = 1;
-UPDATE bookings SET invoice_id = 2 WHERE id = 2;
-UPDATE bookings SET invoice_id = 3 WHERE id = 3;
-UPDATE bookings SET invoice_id = 4 WHERE id = 4;
-UPDATE bookings SET invoice_id = 5 WHERE id = 5;
-UPDATE bookings SET invoice_id = 6 WHERE id = 7;
-UPDATE bookings SET invoice_id = 7 WHERE id = 8;
 
--- ---------- Room extras (BookingExtra) (mind. 5 Einträge) ----------
+
 -- ---------- Room extras (BookingExtra) (mind. 5 Einträge) ----------
 INSERT INTO room_extras (name, description, price, extra_type) VALUES
 ('Frühstück','Buffetfrühstück inklusive',12.50,'BREAKFAST'),

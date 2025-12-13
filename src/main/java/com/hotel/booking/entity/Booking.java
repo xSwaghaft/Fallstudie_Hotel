@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -113,9 +114,7 @@ public class Booking {
      * </p>
      */
 
-    @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    @JoinColumn(name = "invoice_id",
-    foreignKey = @ForeignKey(name = "fk_booking_invoice"))
+    @OneToOne(mappedBy = "booking", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Invoice invoice;
 
     /** Zahlungen, die auf diese Buchung verbucht wurden. */
