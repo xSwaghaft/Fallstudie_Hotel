@@ -64,7 +64,7 @@ public class Booking {
     private Long id;
 
     /** Öffentliche Buchungsnummer. */
-    @Column(name = "booking_number", nullable = false, unique = true, length = 64)
+    @Column(name = "booking_number", nullable = false, length = 64)
     private String bookingNumber;
 
     /** Menge/Anzahl */
@@ -116,7 +116,8 @@ public class Booking {
 
     @OneToMany(mappedBy = "booking",
     cascade = CascadeType.ALL,
-    orphanRemoval = true)
+    orphanRemoval = true,
+    fetch = FetchType.LAZY)
     private List<Payment> payments = new ArrayList<>();
 
     /** Zusatzleistungen (Extras) dieser Buchung. */
