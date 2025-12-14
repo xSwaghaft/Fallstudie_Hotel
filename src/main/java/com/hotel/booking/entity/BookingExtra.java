@@ -5,7 +5,6 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -39,12 +38,13 @@ public class BookingExtra {
     @Column(name = "extra_type", nullable = false)
     private ExtraTypeEnum extraType;
 
+    @Column(name = "per_person", nullable = false)
+    private boolean perPerson = true;
+
     @JsonIgnore
     @ManyToMany(mappedBy = "extras")
     private List<Booking> bookings = new ArrayList<>();
-    
-    @Column(name = "per_person", nullable = false)
-    private boolean perPerson = true;
+
 
     // Default constructor
     public BookingExtra() {
@@ -100,19 +100,19 @@ public class BookingExtra {
         this.price = price;
     }
 
-    public boolean isPerPerson() {
-        return perPerson;
-    }
-
-    public void setPerPerson(boolean perPerson) {
-        this.perPerson = perPerson;
-    }
-
     public ExtraTypeEnum getExtraType() {
         return extraType;
     }
 
     public void setExtraType(ExtraTypeEnum extraType) {
         this.extraType = extraType;
+    }
+
+    public boolean isPerPerson() {
+        return perPerson;
+    }
+
+    public void setPerPerson(boolean perPerson) {
+        this.perPerson = perPerson;
     }
 }

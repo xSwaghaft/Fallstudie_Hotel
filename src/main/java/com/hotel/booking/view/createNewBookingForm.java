@@ -53,8 +53,10 @@ public class createNewBookingForm extends FormLayout{
         this.add(displayCategoryField, userByEmailField, roomCategorySelect, checkInDate, checkOutDate, guestNumber, extras);
     }
 
-    //Konstruktor für die GuestView - Kategorie kann übergeben werden
-    public createNewBookingForm(User user, SessionService sessionService, Booking existingBooking, BookingFormService formService, RoomCategory category) {
+    
+    // Constructor for pre-filled booking forms (e.g., from GuestPortalView)
+    public createNewBookingForm(User user, SessionService sessionService, Booking existingBooking, BookingFormService formService, 
+                                 RoomCategory category, LocalDate checkIn, LocalDate checkOut, Integer occupancy) {
         this.user = user;
         this.sessionService = sessionService;
         this.formService = formService;
@@ -65,6 +67,9 @@ public class createNewBookingForm extends FormLayout{
         this.setBooking(existingBooking);
 
         this.add(displayCategoryField, userByEmailField, roomCategorySelect, checkInDate, checkOutDate, guestNumber, extras);
+
+        // Get maxOccupancy once if category is provided
+        Integer maxOccupancy = category != null ? category.getMaxOccupancy() : null;
 
         // Wenn eine feste Kategorie übergeben wurde, zeige sie im Feld an
         if (category != null) {
@@ -75,31 +80,10 @@ public class createNewBookingForm extends FormLayout{
             if (formBooking != null) {
                 formBooking.setRoomCategory(category);
             }
-        }
-    }
-
-    //Konstruktor für RoomGrid - Kategorie, CheckIn und CheckOut können übergeben werden
-    public createNewBookingForm(User user, SessionService sessionService, Booking existingBooking, BookingFormService formService, 
-                                 RoomCategory category, LocalDate checkIn, LocalDate checkOut) {
-        this.user = user;
-        this.sessionService = sessionService;
-        this.formService = formService;
-        this.formBooking = existingBooking;
-
-        this.configureFields();
-        this.configureBinder();
-        this.setBooking(existingBooking);
-
-        this.add(displayCategoryField, userByEmailField, roomCategorySelect, checkInDate, checkOutDate, guestNumber, extras);
-
-        // Wenn eine feste Kategorie übergeben wurde, zeige sie im Feld an
-        if (category != null) {
-            roomCategorySelect.setVisible(false);
-            displayCategoryField.setVisible(true);
-            displayCategoryField.setReadOnly(true);
-            displayCategoryField.setValue(category.getName());
-            if (formBooking != null) {
-                formBooking.setRoomCategory(category);
+            
+            // Setze Maximum basierend auf MaxOccupancy der Kategorie
+            if (maxOccupancy != null && maxOccupancy > 0) {
+                guestNumber.setMax(maxOccupancy);
             }
         }
 
@@ -114,6 +98,18 @@ public class createNewBookingForm extends FormLayout{
             checkOutDate.setValue(checkOut);
             if (formBooking != null) {
                 formBooking.setCheckOutDate(checkOut);
+            }
+        }
+        
+        // Setze Occupancy, wenn übergeben
+        if (occupancy != null && occupancy > 0) {
+            int guestsToSet = occupancy;
+            if (maxOccupancy != null && occupancy > maxOccupancy) {
+                guestsToSet = maxOccupancy;
+            }
+            guestNumber.setValue(guestsToSet);
+            if (formBooking != null) {
+                formBooking.setAmount(guestsToSet);
             }
         }
         

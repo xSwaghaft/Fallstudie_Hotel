@@ -109,7 +109,9 @@ public class Booking {
 
     /** Zugehörige Rechnung. */
 
-    @OneToOne(mappedBy = "booking", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @JoinColumn(name = "invoice_id",
+            foreignKey = @ForeignKey(name = "fk_booking_invoice"))
     private Invoice invoice;
 
     /** Zahlungen, die auf diese Buchung verbucht wurden. */

@@ -1,6 +1,5 @@
 package com.hotel.booking.repository;
 
-import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -21,5 +20,4 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
 
     // Count rooms by category
     long countByCategory(RoomCategory category);
-    LocalDate findByCategoryIn(RoomCategory category);
 }

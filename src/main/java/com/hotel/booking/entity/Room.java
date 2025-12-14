@@ -53,7 +53,7 @@ public class Room {
     private String information;
 
 
-    // TODO: Mapping überprüfen
+   
     @JsonIgnore
     @ManyToMany
     @JoinTable(
