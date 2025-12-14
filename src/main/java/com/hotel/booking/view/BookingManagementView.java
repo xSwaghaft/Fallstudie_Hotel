@@ -4,6 +4,9 @@ import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.Invoice;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
+import com.hotel.booking.entity.BookingCancellation;
+import com.hotel.booking.entity.User;
+import com.hotel.booking.service.BookingCancellationService;
 import com.hotel.booking.service.BookingFormService;
 import com.hotel.booking.service.BookingService;
 import com.vaadin.flow.component.Component;
@@ -37,16 +40,18 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
     private final BookingService bookingService;
     private final BookingFormService formService;
     private final com.hotel.booking.service.BookingModificationService modificationService;
+    private final BookingCancellationService bookingCancellationService;
 
     private static final DateTimeFormatter GERMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
     Grid<Booking> grid = new Grid<>(Booking.class, false);
 
-    public BookingManagementView(SessionService sessionService, BookingService bookingService, BookingFormService formService, com.hotel.booking.service.BookingModificationService modificationService) {
+    public BookingManagementView(SessionService sessionService, BookingService bookingService, BookingFormService formService, com.hotel.booking.service.BookingModificationService modificationService, BookingCancellationService bookingCancellationService) {
         this.sessionService = sessionService;
         this.bookingService = bookingService;
         this.formService = formService;
         this.modificationService = modificationService;
+        this.bookingCancellationService = bookingCancellationService;
 
         setSpacing(true);
         setPadding(true);
@@ -102,19 +107,12 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
 
         Button saveButton = new Button("Save", e -> {
             try {
-                // Wenn wir eine bestehende Buchung bearbeiten, legen wir Snapshot-Container an.
-                // Erklärung: Binder schreibt möglicherweise direkt in dasselbe Objekt. Deshalb
-                // speichern wir die alten Werte in AtomicReference-Containern, bevor wir überschreiben.
+                // Bei bestehenden Buchungen vorherige Werte als Snapshot merken
                 final java.util.concurrent.atomic.AtomicReference<java.time.LocalDate> prevCheckInRef = new java.util.concurrent.atomic.AtomicReference<>();
-                // Vorheriges Check-In-Datum
                 final java.util.concurrent.atomic.AtomicReference<java.time.LocalDate> prevCheckOutRef = new java.util.concurrent.atomic.AtomicReference<>();
-                // Vorheriges Check-Out-Datum
                 final java.util.concurrent.atomic.AtomicReference<Integer> prevAmountRef = new java.util.concurrent.atomic.AtomicReference<>();
-                // Vorherige Gästezahl
                 final java.util.concurrent.atomic.AtomicReference<java.math.BigDecimal> prevTotalRef = new java.util.concurrent.atomic.AtomicReference<>();
-                // Vorheriger Gesamtpreis
                 final java.util.concurrent.atomic.AtomicReference<java.util.Set<com.hotel.booking.entity.BookingExtra>> prevExtrasRef = new java.util.concurrent.atomic.AtomicReference<>();
-                // Vorherige Extras-Menge
                 if (existingBooking != null) {
                     prevCheckInRef.set(existingBooking.getCheckInDate());
                     prevCheckOutRef.set(existingBooking.getCheckOutDate());
@@ -123,81 +121,61 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
                     prevExtrasRef.set(existingBooking.getExtras());
                 }
 
-                // Schreibe die Benutzer-Eingaben vom Formular in das Booking-Objekt.
-                // Erklärung: `writeBean()` validiert und überträgt alle gebundenen Felder in `formBooking`.
                 form.writeBean(); // Überträgt die Formulardaten in das Booking-Objekt
                 Booking updated = form.getBooking();
 
                 // Preis neu berechnen (nutze vorhandene Methode)
-                // Erklärung: Die Methode berücksichtigt Anzahl Nächte, Kategoriepreis und Extras.
                 bookingService.calculateBookingPrice(updated);
 
-                // Erzeuge ein Vorschau-Dialogfenster, das „Vorher / Nachher“ zeigt.
-                // Erklärung: Dies ist der Zweitschritt vor der finalen Bestätigung.
+                // Preview Dialog (Vorher / Nachher)
                 Dialog preview = new Dialog();
-                // Setze den passenden Titel je nachdem ob es sich um Edit oder Create handelt.
                 preview.setHeaderTitle(existingBooking != null ? "Confirm Booking Changes" : "Confirm New Booking");
-                // Inhaltliche Container für die Vorschau
                 VerticalLayout content = new VerticalLayout();
                 if (existingBooking != null) {
-                    // Kopf: Kennzeichnung des „Vorher“-Blocks
                     content.add(new Paragraph("-- Before --"));
-                    // Lese die Snapshot-Werte aus den AtomicReferences
                     java.time.LocalDate prevCheckIn = prevCheckInRef.get();
                     java.time.LocalDate prevCheckOut = prevCheckOutRef.get();
                     Integer prevAmount = prevAmountRef.get();
                     java.math.BigDecimal prevTotal = prevTotalRef.get();
                     java.util.Set<com.hotel.booking.entity.BookingExtra> prevExtras = prevExtrasRef.get();
-                    // Füge die vorherigen Werte als Paragraphen hinzu (lesbares Format)
                     content.add(new Paragraph("Check-in: " + (prevCheckIn != null ? prevCheckIn.format(GERMAN_DATE_FORMAT) : "N/A")));
                     content.add(new Paragraph("Check-out: " + (prevCheckOut != null ? prevCheckOut.format(GERMAN_DATE_FORMAT) : "N/A")));
                     content.add(new Paragraph("Guests: " + (prevAmount != null ? prevAmount : "N/A")));
                     content.add(new Paragraph("Total Price: " + (prevTotal != null ? prevTotal.toString() : "N/A")));
-                    // Baue eine lesbare String-Repräsentation der vorherigen Extras
                     String prevExtrasStr = "none";
                     if (prevExtras != null && !prevExtras.isEmpty()) {
-                        // Mappe jedes Extra auf dessen Namen und join mit Komma
                         prevExtrasStr = prevExtras.stream().map(x -> x.getName()).collect(java.util.stream.Collectors.joining(", "));
                     }
                     content.add(new Paragraph("Extras: " + prevExtrasStr));
                 }
 
-                // After-Block: Zeigt die aktuell eingegebenen/neu berechneten Werte
                 content.add(new Paragraph("-- After --"));
                 content.add(new Paragraph("Check-in: " + (updated.getCheckInDate() != null ? updated.getCheckInDate().format(GERMAN_DATE_FORMAT) : "N/A")));
                 content.add(new Paragraph("Check-out: " + (updated.getCheckOutDate() != null ? updated.getCheckOutDate().format(GERMAN_DATE_FORMAT) : "N/A")));
                 content.add(new Paragraph("Guests: " + (updated.getAmount() != null ? updated.getAmount() : "N/A")));
                 content.add(new Paragraph("Total Price: " + (updated.getTotalPrice() != null ? updated.getTotalPrice().toString() : "N/A")));
-                // Baue die Darstellung der neuen Extras
                 String newExtrasStr = "none";
                 if (updated.getExtras() != null && !updated.getExtras().isEmpty()) {
-                    // Mappe auf Namen und füge zu einem String zusammen
                     newExtrasStr = updated.getExtras().stream().map(x -> x.getName()).collect(java.util.stream.Collectors.joining(", "));
                 }
                 content.add(new Paragraph("Extras: " + newExtrasStr));
 
                 Button confirm = new Button("Confirm", ev -> {
                     try {
-                        // Wenn es eine bestehende Buchung war, zeichne die alten Werte in der Audit-Tabelle auf.
-                        // Erklärung: `recordChangesFromSnapshot` nimmt die Snapshot-Werte und das nachher-Objekt,
-                        // erstellt für jede Änderung einen BookingModification-Eintrag und persistiert ihn.
+                        // Falls vorhanden, protokolliere alte Werte
                         if (existingBooking != null) {
                                 modificationService.recordChangesFromSnapshot(existingBooking,
                                     prevCheckInRef.get(), prevCheckOutRef.get(), prevAmountRef.get(), prevTotalRef.get(), prevExtrasRef.get(),
                                     updated, sessionService.getCurrentUser(), null);
                         }
 
-                        // Speichere die geänderte/neue Buchung via Service
                         bookingService.save(updated);
-                        // Schließe Dialoge nach erfolgreichem Speichern
                         dialog.close();
                         preview.close();
-                        // Aktualisiere das Grid mit aktuellen Daten
+                        // Refresh Grid
                         grid.setItems(bookingService.findAll());
-                        // Kurze Benachrichtigung über Erfolg
                         Notification.show("Booking saved successfully.", 3000, Notification.Position.BOTTOM_START);
                     } catch (Exception ex) {
-                        // Falls beim Speichern ein Fehler auftritt, zeige eine aussagekräftige Nachricht
                         String msg = ex.getMessage() != null ? ex.getMessage() : "Fehler beim Speichern der Buchung.";
                         Notification.show(msg, 6000, Notification.Position.MIDDLE);
                     }
@@ -368,8 +346,107 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
             checkInBtn.addClickListener(e -> Notification.show("Checked in " + booking.getBookingNumber()));
             actions.add(checkInBtn);
         }
+
+        // Cancel button: visible/usable for PENDING or MODIFIED bookings
+        if (booking.getStatus() != null && (booking.getStatus() == com.hotel.booking.entity.BookingStatus.PENDING || booking.getStatus() == com.hotel.booking.entity.BookingStatus.MODIFIED)) {
+            Button cancelBtn = new Button("Cancel", VaadinIcon.CLOSE.create());
+            cancelBtn.addClickListener(e -> confirmAndCancelBooking(booking));
+            actions.add(cancelBtn);
+        }
         
         return actions;
+    }
+
+    // Führt die Stornierung mit Bestätigungsdialog, Berechnung der 48h/50% Regel
+    private void confirmAndCancelBooking(Booking b) {
+        // Only allow cancellation via this action for bookings with PENDING or MODIFIED status
+        if (b.getStatus() == null || (b.getStatus() != com.hotel.booking.entity.BookingStatus.PENDING && b.getStatus() != com.hotel.booking.entity.BookingStatus.MODIFIED)) {
+            Notification.show("Nur Buchungen mit Status 'Pending' oder 'Modified' können hier storniert werden.", 4000, Notification.Position.MIDDLE);
+            return;
+        }
+
+        try {
+            java.time.LocalDateTime now = java.time.LocalDateTime.now();
+            java.time.LocalDateTime checkInAtStart = b.getCheckInDate().atStartOfDay();
+            long hoursBefore = java.time.Duration.between(now, checkInAtStart).toHours();
+
+            java.math.BigDecimal penalty = java.math.BigDecimal.ZERO;
+            boolean hasPenalty = false;
+            if (b.getTotalPrice() != null && hoursBefore < 48) {
+                penalty = b.getTotalPrice().multiply(new java.math.BigDecimal("0.5")).setScale(2, java.math.RoundingMode.HALF_UP);
+                hasPenalty = true;
+            }
+
+            if (hasPenalty) {
+                final java.math.BigDecimal penaltyFinal = penalty;
+                Dialog confirm = new Dialog();
+                confirm.setHeaderTitle("Stornierung bestätigen");
+                VerticalLayout cnt = new VerticalLayout();
+                cnt.add(new Paragraph("Sie stornieren weniger als 48 Stunden vor Check-in."));
+                cnt.add(new Paragraph("Es fällt eine Strafe in Höhe von 50% des Gesamtpreises an: " + String.format("%.2f €", penaltyFinal)));
+                cnt.add(new Paragraph("Möchten Sie die Stornierung mit der Strafe bestätigen?"));
+
+                Button confirmBtn = new Button("Bestätigen", ev -> {
+                    try {
+                        b.setStatus(com.hotel.booking.entity.BookingStatus.CANCELLED);
+                        bookingService.save(b);
+
+                        BookingCancellation bc = new BookingCancellation();
+                        bc.setBooking(b);
+                        bc.setCancelledAt(java.time.LocalDateTime.now());
+                        bc.setReason("Storniert vom Management innerhalb 48 Stunden");
+                        bc.setCancellationFee(penaltyFinal);
+                        User current = sessionService.getCurrentUser();
+                        if (current != null) {
+                            bc.setHandledBy(current);
+                        }
+                        bookingCancellationService.save(bc);
+
+                        confirm.close();
+                        grid.setItems(bookingService.findAll());
+                        Notification.show("Buchung storniert. Strafe: " + String.format("%.2f €", penaltyFinal), 4000, Notification.Position.BOTTOM_START);
+                    } catch (Exception ex) {
+                        Notification.show(ex.getMessage() != null ? ex.getMessage() : "Fehler beim Stornieren", 5000, Notification.Position.MIDDLE);
+                    }
+                });
+
+                Button backBtn = new Button("Zurück", ev -> confirm.close());
+                confirm.add(cnt, new HorizontalLayout(confirmBtn, backBtn));
+                confirm.open();
+            } else {
+                Dialog confirm = new Dialog();
+                confirm.setHeaderTitle("Stornierung bestätigen");
+                confirm.add(new Paragraph("Möchten Sie die Buchung wirklich stornieren?"));
+                Button confirmBtn = new Button("Ja, stornieren", ev -> {
+                    try {
+                        b.setStatus(com.hotel.booking.entity.BookingStatus.CANCELLED);
+                        bookingService.save(b);
+
+                        BookingCancellation bc = new BookingCancellation();
+                        bc.setBooking(b);
+                        bc.setCancelledAt(java.time.LocalDateTime.now());
+                        bc.setReason("Storniert vom Management");
+                        bc.setCancellationFee(java.math.BigDecimal.ZERO);
+                        User current = sessionService.getCurrentUser();
+                        if (current != null) {
+                            bc.setHandledBy(current);
+                        }
+                        bookingCancellationService.save(bc);
+
+                        confirm.close();
+                        grid.setItems(bookingService.findAll());
+                        Notification.show("Buchung wurde storniert.", 3000, Notification.Position.BOTTOM_START);
+                    } catch (Exception ex) {
+                        Notification.show(ex.getMessage() != null ? ex.getMessage() : "Fehler beim Stornieren", 5000, Notification.Position.MIDDLE);
+                    }
+                });
+                Button backBtn = new Button("Abbrechen", ev -> confirm.close());
+                confirm.add(new VerticalLayout(new Paragraph("Keine Strafe fällig."), new HorizontalLayout(confirmBtn, backBtn)));
+                confirm.open();
+            }
+        } catch (Exception ex) {
+            Notification.show(ex.getMessage() != null ? ex.getMessage() : "Fehler beim Stornieren", 5000, Notification.Position.MIDDLE);
+        }
     }
 
     private void openDetails(Booking b) {
@@ -386,6 +463,22 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         details.add(new Paragraph("Check-out: " + b.getCheckOutDate().format(GERMAN_DATE_FORMAT)));
         details.add(new Paragraph("Guests: " + b.getAmount()));
         details.add(new Paragraph("Status: " + b.getStatus()));
+
+        // Wenn storniert: zeige die zuletzt gespeicherte Stornogebühr und Grund an
+        if (b.getStatus() == com.hotel.booking.entity.BookingStatus.CANCELLED && b.getId() != null) {
+            try {
+                bookingCancellationService.findLatestByBookingId(b.getId()).ifPresent(bc -> {
+                    if (bc.getCancellationFee() != null) {
+                        details.add(new Paragraph("Stornogebühr: " + String.format("%.2f €", bc.getCancellationFee())));
+                    }
+                    if (bc.getReason() != null && !bc.getReason().isBlank()) {
+                        details.add(new Paragraph("Storno-Grund: " + bc.getReason()));
+                    }
+                });
+            } catch (Exception ex) {
+                // ignore
+            }
+        }
 
         Div payments = new Div(new Paragraph("Payment information not available"));
 
@@ -443,6 +536,38 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
             }
         } else {
             history.add(new Paragraph("No modification history available."));
+        }
+
+        // Wenn es eine Stornierung gab, zeige diese prominent in der History (wer, wann, Grund, Gebühr)
+        if (b.getId() != null) {
+            try {
+                bookingCancellationService.findLatestByBookingId(b.getId()).ifPresent(bc -> {
+                    VerticalLayout cancelBox = new VerticalLayout();
+                    cancelBox.getStyle().set("padding", "8px");
+                    cancelBox.getStyle().set("margin-bottom", "6px");
+                    cancelBox.getStyle().set("border", "1px solid #f5c6cb");
+
+                    java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+                    String who = "system";
+                    if (bc.getHandledBy() != null) {
+                        who = bc.getHandledBy().getFullName() != null && !bc.getHandledBy().getFullName().isBlank() ? bc.getHandledBy().getFullName() : bc.getHandledBy().getEmail();
+                    }
+
+                    cancelBox.add(new Paragraph(bc.getCancelledAt().format(dtf) + " — " + who + " (cancellation)"));
+                    cancelBox.add(new Paragraph("Booking cancelled."));
+                    if (bc.getReason() != null && !bc.getReason().isBlank()) {
+                        cancelBox.add(new Paragraph("Reason: " + bc.getReason()));
+                    }
+                    if (bc.getCancellationFee() != null) {
+                        cancelBox.add(new Paragraph("Cancellation fee: " + String.format("%.2f €", bc.getCancellationFee())));
+                    }
+
+                    // Füge die Storno-Eintragung an den Anfang der History ein
+                    history.addComponentAtIndex(0, cancelBox);
+                });
+            } catch (Exception ex) {
+                // ignore any errors when loading cancellation info
+            }
         }
 
         Div extras = new Div(new Paragraph(b.getExtras().isEmpty() ? "No additional services requested" : b.getExtras().size() + " services added"));

@@ -22,12 +22,12 @@ import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.dialog.Dialog;
-import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.router.*;
 import com.hotel.booking.entity.BookingExtra;
+import com.hotel.booking.entity.BookingCancellation;
 import com.hotel.booking.entity.Invoice;
+import com.hotel.booking.service.BookingCancellationService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
@@ -53,13 +53,16 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
     private Tabs tabs;
     private Div contentArea;
     private List<Booking> allBookings;
+    // Cancellation data persisted via BookingCancellation entity (use BookingCancellationService)
+    private final BookingCancellationService bookingCancellationService;
 
     @Autowired
-    public MyBookingsView(SessionService sessionService, BookingService bookingService, BookingFormService formService, BookingModificationService modificationService) {
+    public MyBookingsView(SessionService sessionService, BookingService bookingService, BookingFormService formService, BookingModificationService modificationService, BookingCancellationService bookingCancellationService) {
         this.sessionService = sessionService;
         this.bookingService = bookingService;
         this.formService = formService;
         this.modificationService = modificationService;
+        this.bookingCancellationService = bookingCancellationService;
         setSpacing(true);
         setPadding(true);
         setSizeFull();
@@ -188,6 +191,18 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
         details.add(createDetailItem("Check-in", booking.getCheckInDate().format(GERMAN_DATE_FORMAT)));
         details.add(createDetailItem("Check-out", booking.getCheckOutDate().format(GERMAN_DATE_FORMAT)));
         details.add(createDetailItem("Gäste", booking.getAmount() != null ? String.valueOf(booking.getAmount()) : "-"));
+        // Wenn bereits storniert: Suche letzte BookingCancellation und zeige die berechnete Strafe an
+        if (booking.getStatus() == BookingStatus.CANCELLED && booking.getId() != null) {
+            try {
+                bookingCancellationService.findLatestByBookingId(booking.getId()).ifPresent(bc -> {
+                    if (bc.getCancellationFee() != null) {
+                        details.add(createDetailItem("Strafe", String.format("%.2f €", bc.getCancellationFee())));
+                    }
+                });
+            } catch (Exception ex) {
+                // Fehler beim Lesen der Storno-Info darf die Karte nicht komplett brechen
+            }
+        }
         
         // Berechne Preis pro Nacht für Anzeige
         String pricePerNightText = calculatePricePerNight(booking);
@@ -298,22 +313,117 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
                 dialog.open();
             });
 
-            Button cancelButton = new Button("Stornieren");
-            cancelButton.addClassName("secondary-button");
-            // Stornierungs-Handler: einfache lokale Änderung des Status und Save
-            cancelButton.addClickListener(e -> {
+                // Cancel button only available to guest when booking is PENDING or MODIFIED and not paid
+                if ((booking.getStatus() == BookingStatus.PENDING || booking.getStatus() == BookingStatus.MODIFIED)
+                    && (booking.getInvoice() == null || booking.getInvoice().getInvoiceStatus() != Invoice.PaymentStatus.PAID)) {
+                Button cancelButton = new Button("Stornieren");
+                cancelButton.addClassName("secondary-button");
+                // Stornierungs-Handler: prüft 48h-Regel, zeigt Bestätigung (inkl. Strafe) und speichert lokal die Strafe
+                cancelButton.addClickListener(e -> {
+                    // Prevent cancelling if invoice was paid in the meantime (extra safety)
+                    if (booking.getInvoice() != null && booking.getInvoice().getInvoiceStatus() == Invoice.PaymentStatus.PAID) {
+                        Notification.show("Diese Buchung wurde bereits bezahlt und kann nicht storniert werden.", 4000, Notification.Position.MIDDLE);
+                        return;
+                    }
                 try {
-                    booking.setStatus(BookingStatus.CANCELLED);
-                    bookingService.save(booking);
-                    allBookings = loadAllBookingsForCurrentUser();
-                    updateContent();
-                    Notification.show("Buchung wurde storniert.", 3000, Notification.Position.BOTTOM_START);
+                    // Prüfe, ob Storno innerhalb von 48 Stunden vor Check-in liegt
+                    java.time.LocalDateTime now = java.time.LocalDateTime.now();
+                    java.time.LocalDateTime checkInAtStart = booking.getCheckInDate().atStartOfDay();
+                    long hoursBefore = java.time.Duration.between(now, checkInAtStart).toHours();
+
+                    java.math.BigDecimal penalty = java.math.BigDecimal.ZERO;
+                    boolean hasPenalty = false;
+                    if (booking.getTotalPrice() != null && hoursBefore < 48) {
+                        penalty = booking.getTotalPrice().multiply(new java.math.BigDecimal("0.5"));
+                        // Runde auf 2 Nachkommastellen
+                        penalty = penalty.setScale(2, java.math.RoundingMode.HALF_UP);
+                        hasPenalty = true;
+                    }
+
+                    if (hasPenalty) {
+                        final java.math.BigDecimal penaltyFinal = penalty;
+                        Dialog confirm = new Dialog();
+                        confirm.setHeaderTitle("Stornierung bestätigen");
+                        VerticalLayout cnt = new VerticalLayout();
+                        cnt.add(new Paragraph("Du stornierst weniger als 48 Stunden vor Check-in."));
+                        cnt.add(new Paragraph("Es fällt eine Strafe in Höhe von 50% des Gesamtpreises an: " + String.format("%.2f €", penaltyFinal)));
+                        cnt.add(new Paragraph("Möchtest du die Stornierung mit der Strafe bestätigen?"));
+
+                        Button confirmBtn = new Button("Bestätigen", ev -> {
+                            try {
+                                booking.setStatus(BookingStatus.CANCELLED);
+                                bookingService.save(booking);
+
+                                // Persistiere die Stornierungsinformation über BookingCancellation
+                                BookingCancellation bc = new BookingCancellation();
+                                bc.setBooking(booking);
+                                bc.setCancelledAt(java.time.LocalDateTime.now());
+                                bc.setReason("Storniert vom Gast innerhalb 48 Stunden");
+                                bc.setCancellationFee(penaltyFinal);
+                                // set handledBy to current user if available
+                                User current = sessionService.getCurrentUser();
+                                if (current != null) {
+                                    bc.setHandledBy(current);
+                                }
+                                bookingCancellationService.save(bc);
+
+                                confirm.close();
+                                // Refresh lokal geladene Liste und UI
+                                allBookings = loadAllBookingsForCurrentUser();
+                                updateContent();
+                                Notification.show("Buchung storniert. Strafe: " + String.format("%.2f €", penaltyFinal), 4000, Notification.Position.BOTTOM_START);
+                            } catch (Exception ex) {
+                                Notification.show(ex.getMessage() != null ? ex.getMessage() : "Fehler beim Stornieren", 5000, Notification.Position.MIDDLE);
+                            }
+                        });
+
+                        Button backBtn = new Button("Zurück", ev -> confirm.close());
+                        confirm.add(cnt, new HorizontalLayout(confirmBtn, backBtn));
+                        confirm.open();
+                    } else {
+                        // Kein Straf-Fall -> normale Bestätigung
+                        Dialog confirm = new Dialog();
+                        confirm.setHeaderTitle("Stornierung bestätigen");
+                        confirm.add(new Paragraph("Möchtest du die Buchung wirklich stornieren?"));
+                        Button confirmBtn = new Button("Ja, stornieren", ev -> {
+                            try {
+                                booking.setStatus(BookingStatus.CANCELLED);
+                                bookingService.save(booking);
+
+                                // Persistiere den Cancellation-Eintrag (ohne Strafe)
+                                BookingCancellation bc = new BookingCancellation();
+                                bc.setBooking(booking);
+                                bc.setCancelledAt(java.time.LocalDateTime.now());
+                                bc.setReason("Storniert vom Gast");
+                                bc.setCancellationFee(java.math.BigDecimal.ZERO);
+                                User current = sessionService.getCurrentUser();
+                                if (current != null) {
+                                    bc.setHandledBy(current);
+                                }
+                                bookingCancellationService.save(bc);
+
+                                allBookings = loadAllBookingsForCurrentUser();
+                                updateContent();
+                                Notification.show("Buchung wurde storniert.", 3000, Notification.Position.BOTTOM_START);
+                                confirm.close();
+                            } catch (Exception ex) {
+                                Notification.show(ex.getMessage() != null ? ex.getMessage() : "Fehler beim Stornieren", 5000, Notification.Position.MIDDLE);
+                            }
+                        });
+                        Button backBtn = new Button("Abbrechen", ev -> confirm.close());
+                        confirm.add(new VerticalLayout(new Paragraph("Keine Strafe fällig."), new HorizontalLayout(confirmBtn, backBtn)));
+                        confirm.open();
+                    }
                 } catch (Exception ex) {
                     Notification.show(ex.getMessage() != null ? ex.getMessage() : "Fehler beim Stornieren", 5000, Notification.Position.MIDDLE);
                 }
             });
 
-            buttonsLayout.add(modifyButton, cancelButton);
+                buttonsLayout.add(modifyButton, cancelButton);
+            } else {
+                // If cancel button not available, only show modify (if applicable)
+                buttonsLayout.add(modifyButton);
+            }
         } else if ("Vergangen".equals(tabLabel)) {
             RouterLink reviewLink = new RouterLink("Review schreiben", MyReviewsView.class);
             reviewLink.addClassName("primary-button");
@@ -389,6 +499,22 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
         // Cancellation policy shown in Details as before
         details.add(new Paragraph("Stornobedingungen: Stornierungen bis 48 Stunden vor Check-in sind kostenfrei. Bei späteren Stornierungen werden 50% des Gesamtpreises berechnet."));
 
+        // Wenn die Buchung bereits storniert wurde, zeige die gespeicherte Stornogebühr und Grund an (falls vorhanden)
+        if (booking.getStatus() == BookingStatus.CANCELLED && booking.getId() != null) {
+            try {
+                bookingCancellationService.findLatestByBookingId(booking.getId()).ifPresent(bc -> {
+                    if (bc.getCancellationFee() != null) {
+                        details.add(new Paragraph("Stornogebühr: " + String.format("%.2f €", bc.getCancellationFee())));
+                    }
+                    if (bc.getReason() != null && !bc.getReason().isBlank()) {
+                        details.add(new Paragraph("Storno-Grund: " + bc.getReason()));
+                    }
+                });
+            } catch (Exception ex) {
+                // ignore read errors to keep dialog usable
+            }
+        }
+
         // Payments tab
         Div payments = new Div();
         if (booking.getInvoice() != null) {
@@ -455,6 +581,37 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
             }
         } else {
             history.add(new Paragraph("No modification history available."));
+        }
+
+        // Wenn es eine Stornierung gab, zeige diese prominent in der History (wer, wann, Grund, Gebühr)
+        if (booking.getId() != null) {
+            try {
+                bookingCancellationService.findLatestByBookingId(booking.getId()).ifPresent(bc -> {
+                    VerticalLayout cancelBox = new VerticalLayout();
+                    cancelBox.getStyle().set("padding", "8px");
+                    cancelBox.getStyle().set("margin-bottom", "6px");
+                    cancelBox.getStyle().set("border", "1px solid #f5c6cb");
+
+                    java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+                    String who = "guest";
+                    if (bc.getHandledBy() != null) {
+                        who = bc.getHandledBy().getFullName() != null && !bc.getHandledBy().getFullName().isBlank() ? bc.getHandledBy().getFullName() : bc.getHandledBy().getEmail();
+                    }
+
+                    cancelBox.add(new Paragraph(bc.getCancelledAt().format(dtf) + " — " + who + " (cancellation)"));
+                    cancelBox.add(new Paragraph("Booking cancelled."));
+                    if (bc.getReason() != null && !bc.getReason().isBlank()) {
+                        cancelBox.add(new Paragraph("Reason: " + bc.getReason()));
+                    }
+                    if (bc.getCancellationFee() != null) {
+                        cancelBox.add(new Paragraph("Cancellation fee: " + String.format("%.2f €", bc.getCancellationFee())));
+                    }
+
+                    history.addComponentAtIndex(0, cancelBox);
+                });
+            } catch (Exception ex) {
+                // ignore any errors when loading cancellation info
+            }
         }
 
         // Extras tab
