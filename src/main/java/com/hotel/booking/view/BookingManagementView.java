@@ -1,6 +1,7 @@
 package com.hotel.booking.view;
 
 import com.hotel.booking.entity.Booking;
+import com.hotel.booking.entity.Invoice;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.BookingFormService;
@@ -35,15 +36,17 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
     private final SessionService sessionService;
     private final BookingService bookingService;
     private final BookingFormService formService;
+    private final com.hotel.booking.service.BookingModificationService modificationService;
 
     private static final DateTimeFormatter GERMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
     Grid<Booking> grid = new Grid<>(Booking.class, false);
 
-    public BookingManagementView(SessionService sessionService, BookingService bookingService, BookingFormService formService) {
+    public BookingManagementView(SessionService sessionService, BookingService bookingService, BookingFormService formService, com.hotel.booking.service.BookingModificationService modificationService) {
         this.sessionService = sessionService;
         this.bookingService = bookingService;
         this.formService = formService;
+        this.modificationService = modificationService;
 
         setSpacing(true);
         setPadding(true);
@@ -79,15 +82,132 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         dialog.setHeaderTitle(existingBooking != null ? "Edit Booking" : "New Booking");
         dialog.setWidth("600px");
 
+        // Wenn vorhandene Buchung bezahlt ist, keine Änderungen erlauben
+        if (existingBooking != null && existingBooking.getInvoice() != null
+                && existingBooking.getInvoice().getInvoiceStatus() == Invoice.PaymentStatus.PAID) {
+            Notification.show("Änderung nicht möglich: Buchung bereits bezahlt.", 4000, Notification.Position.MIDDLE);
+            return;
+        }
+
+        /**
+         * Öffnet das Booking-Formular (Neu/ Edit).
+         *
+         * Verhalten:
+         * - Fügt eine zweistufige Speicherung hinzu: Formular -> Preview (Vorher/Nachher) -> Confirm.
+         * - Bei Bestätigung werden alte Werte protokolliert (über `BookingModificationService`)
+         *   und die Änderung gespeichert. Fehler beim Speichern werden in einer
+         *   Notification mit der konkreten Fehlermeldung angezeigt.
+         */
         createNewBookingForm form = new createNewBookingForm(sessionService.getCurrentUser(), sessionService, existingBooking, formService);
 
         Button saveButton = new Button("Save", e -> {
             try {
-                form.writeBean(); // Überträgt die Formulardaten in das User-Objekt
-                bookingService.save(form.getBooking()); // Speichert das User-Objekt aus dem Formular in der Datenbank
-                dialog.close();
-                grid.setItems(bookingService.findAll());
-                Notification.show("Booking saved successfully.", 3000, Notification.Position.BOTTOM_START);
+                // Wenn wir eine bestehende Buchung bearbeiten, legen wir Snapshot-Container an.
+                // Erklärung: Binder schreibt möglicherweise direkt in dasselbe Objekt. Deshalb
+                // speichern wir die alten Werte in AtomicReference-Containern, bevor wir überschreiben.
+                final java.util.concurrent.atomic.AtomicReference<java.time.LocalDate> prevCheckInRef = new java.util.concurrent.atomic.AtomicReference<>();
+                // Vorheriges Check-In-Datum
+                final java.util.concurrent.atomic.AtomicReference<java.time.LocalDate> prevCheckOutRef = new java.util.concurrent.atomic.AtomicReference<>();
+                // Vorheriges Check-Out-Datum
+                final java.util.concurrent.atomic.AtomicReference<Integer> prevAmountRef = new java.util.concurrent.atomic.AtomicReference<>();
+                // Vorherige Gästezahl
+                final java.util.concurrent.atomic.AtomicReference<java.math.BigDecimal> prevTotalRef = new java.util.concurrent.atomic.AtomicReference<>();
+                // Vorheriger Gesamtpreis
+                final java.util.concurrent.atomic.AtomicReference<java.util.Set<com.hotel.booking.entity.BookingExtra>> prevExtrasRef = new java.util.concurrent.atomic.AtomicReference<>();
+                // Vorherige Extras-Menge
+                if (existingBooking != null) {
+                    prevCheckInRef.set(existingBooking.getCheckInDate());
+                    prevCheckOutRef.set(existingBooking.getCheckOutDate());
+                    prevAmountRef.set(existingBooking.getAmount());
+                    prevTotalRef.set(existingBooking.getTotalPrice());
+                    prevExtrasRef.set(existingBooking.getExtras());
+                }
+
+                // Schreibe die Benutzer-Eingaben vom Formular in das Booking-Objekt.
+                // Erklärung: `writeBean()` validiert und überträgt alle gebundenen Felder in `formBooking`.
+                form.writeBean(); // Überträgt die Formulardaten in das Booking-Objekt
+                Booking updated = form.getBooking();
+
+                // Preis neu berechnen (nutze vorhandene Methode)
+                // Erklärung: Die Methode berücksichtigt Anzahl Nächte, Kategoriepreis und Extras.
+                bookingService.calculateBookingPrice(updated);
+
+                // Erzeuge ein Vorschau-Dialogfenster, das „Vorher / Nachher“ zeigt.
+                // Erklärung: Dies ist der Zweitschritt vor der finalen Bestätigung.
+                Dialog preview = new Dialog();
+                // Setze den passenden Titel je nachdem ob es sich um Edit oder Create handelt.
+                preview.setHeaderTitle(existingBooking != null ? "Confirm Booking Changes" : "Confirm New Booking");
+                // Inhaltliche Container für die Vorschau
+                VerticalLayout content = new VerticalLayout();
+                if (existingBooking != null) {
+                    // Kopf: Kennzeichnung des „Vorher“-Blocks
+                    content.add(new Paragraph("-- Before --"));
+                    // Lese die Snapshot-Werte aus den AtomicReferences
+                    java.time.LocalDate prevCheckIn = prevCheckInRef.get();
+                    java.time.LocalDate prevCheckOut = prevCheckOutRef.get();
+                    Integer prevAmount = prevAmountRef.get();
+                    java.math.BigDecimal prevTotal = prevTotalRef.get();
+                    java.util.Set<com.hotel.booking.entity.BookingExtra> prevExtras = prevExtrasRef.get();
+                    // Füge die vorherigen Werte als Paragraphen hinzu (lesbares Format)
+                    content.add(new Paragraph("Check-in: " + (prevCheckIn != null ? prevCheckIn.format(GERMAN_DATE_FORMAT) : "N/A")));
+                    content.add(new Paragraph("Check-out: " + (prevCheckOut != null ? prevCheckOut.format(GERMAN_DATE_FORMAT) : "N/A")));
+                    content.add(new Paragraph("Guests: " + (prevAmount != null ? prevAmount : "N/A")));
+                    content.add(new Paragraph("Total Price: " + (prevTotal != null ? prevTotal.toString() : "N/A")));
+                    // Baue eine lesbare String-Repräsentation der vorherigen Extras
+                    String prevExtrasStr = "none";
+                    if (prevExtras != null && !prevExtras.isEmpty()) {
+                        // Mappe jedes Extra auf dessen Namen und join mit Komma
+                        prevExtrasStr = prevExtras.stream().map(x -> x.getName()).collect(java.util.stream.Collectors.joining(", "));
+                    }
+                    content.add(new Paragraph("Extras: " + prevExtrasStr));
+                }
+
+                // After-Block: Zeigt die aktuell eingegebenen/neu berechneten Werte
+                content.add(new Paragraph("-- After --"));
+                content.add(new Paragraph("Check-in: " + (updated.getCheckInDate() != null ? updated.getCheckInDate().format(GERMAN_DATE_FORMAT) : "N/A")));
+                content.add(new Paragraph("Check-out: " + (updated.getCheckOutDate() != null ? updated.getCheckOutDate().format(GERMAN_DATE_FORMAT) : "N/A")));
+                content.add(new Paragraph("Guests: " + (updated.getAmount() != null ? updated.getAmount() : "N/A")));
+                content.add(new Paragraph("Total Price: " + (updated.getTotalPrice() != null ? updated.getTotalPrice().toString() : "N/A")));
+                // Baue die Darstellung der neuen Extras
+                String newExtrasStr = "none";
+                if (updated.getExtras() != null && !updated.getExtras().isEmpty()) {
+                    // Mappe auf Namen und füge zu einem String zusammen
+                    newExtrasStr = updated.getExtras().stream().map(x -> x.getName()).collect(java.util.stream.Collectors.joining(", "));
+                }
+                content.add(new Paragraph("Extras: " + newExtrasStr));
+
+                Button confirm = new Button("Confirm", ev -> {
+                    try {
+                        // Wenn es eine bestehende Buchung war, zeichne die alten Werte in der Audit-Tabelle auf.
+                        // Erklärung: `recordChangesFromSnapshot` nimmt die Snapshot-Werte und das nachher-Objekt,
+                        // erstellt für jede Änderung einen BookingModification-Eintrag und persistiert ihn.
+                        if (existingBooking != null) {
+                                modificationService.recordChangesFromSnapshot(existingBooking,
+                                    prevCheckInRef.get(), prevCheckOutRef.get(), prevAmountRef.get(), prevTotalRef.get(), prevExtrasRef.get(),
+                                    updated, sessionService.getCurrentUser(), null);
+                        }
+
+                        // Speichere die geänderte/neue Buchung via Service
+                        bookingService.save(updated);
+                        // Schließe Dialoge nach erfolgreichem Speichern
+                        dialog.close();
+                        preview.close();
+                        // Aktualisiere das Grid mit aktuellen Daten
+                        grid.setItems(bookingService.findAll());
+                        // Kurze Benachrichtigung über Erfolg
+                        Notification.show("Booking saved successfully.", 3000, Notification.Position.BOTTOM_START);
+                    } catch (Exception ex) {
+                        // Falls beim Speichern ein Fehler auftritt, zeige eine aussagekräftige Nachricht
+                        String msg = ex.getMessage() != null ? ex.getMessage() : "Fehler beim Speichern der Buchung.";
+                        Notification.show(msg, 6000, Notification.Position.MIDDLE);
+                    }
+                });
+
+                Button back = new Button("Back", ev -> preview.close());
+                HorizontalLayout actions = new HorizontalLayout(confirm, back);
+                preview.add(content, actions);
+                preview.open();
+
             } catch (ValidationException ex) {
                 Notification.show("Please fix validation errors before saving.", 3000, Notification.Position.MIDDLE);
             }
@@ -150,8 +270,8 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         H3 title = new H3("All Bookings");
         title.addClassName("booking-section-title");
 
-        //Matthias Lohr
-        Grid<Booking> grid = new Grid<>(Booking.class, false);
+        //Verwende das Feld-Grid (nicht lokal), damit Aktualisierungen sichtbar werden
+        grid = new Grid<>(Booking.class, false);
         
         grid.addColumn(Booking::getBookingNumber)
             .setHeader("Booking ID")
@@ -269,8 +389,61 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
 
         Div payments = new Div(new Paragraph("Payment information not available"));
 
-        Div history = new Div(new Paragraph("Booking confirmed - 28.10.2025 10:30"),
-                new Paragraph("Booking created - 28.10.2025 10:25"));
+        Div history = new Div();
+        // Lade Modifikationen für diese Buchung und zeige sie gruppiert an (nach modifiedAt)
+        if (b.getId() != null) {
+            java.util.List<com.hotel.booking.entity.BookingModification> mods = modificationService.findByBookingId(b.getId());
+            if (mods.isEmpty()) {
+                history.add(new Paragraph("No modification history available."));
+            } else {
+                // Gruppiere nach modifiedAt (erzeugt pro Batch eine Gruppe)
+                java.util.Map<java.time.LocalDateTime, java.util.List<com.hotel.booking.entity.BookingModification>> grouped =
+                        mods.stream().collect(java.util.stream.Collectors.groupingBy(com.hotel.booking.entity.BookingModification::getModifiedAt, java.util.LinkedHashMap::new, java.util.stream.Collectors.toList()));
+
+                java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+
+                for (java.util.Map.Entry<java.time.LocalDateTime, java.util.List<com.hotel.booking.entity.BookingModification>> entry : grouped.entrySet()) {
+                    java.time.LocalDateTime ts = entry.getKey();
+                    java.util.List<com.hotel.booking.entity.BookingModification> group = entry.getValue();
+
+                    VerticalLayout groupBox = new VerticalLayout();
+                    groupBox.getStyle().set("padding", "8px");
+                    groupBox.getStyle().set("margin-bottom", "6px");
+                    groupBox.getStyle().set("border", "1px solid #eee");
+
+                    // Kopfzeile: Zeitpunkt + Bearbeiter (erster nicht-null)
+                    String who = "system";
+                    for (com.hotel.booking.entity.BookingModification m : group) {
+                        if (m.getHandledBy() != null) {
+                            who = (m.getHandledBy().getFullName() != null && !m.getHandledBy().getFullName().isBlank()) ? m.getHandledBy().getFullName() : m.getHandledBy().getEmail();
+                            break;
+                        }
+                    }
+                    groupBox.add(new Paragraph(ts.format(dtf) + " — " + who));
+
+                    // Liste der Feld-Änderungen in der Gruppe
+                    for (com.hotel.booking.entity.BookingModification m : group) {
+                        HorizontalLayout row = new HorizontalLayout();
+                        row.setWidthFull();
+                        Paragraph field = new Paragraph(m.getFieldChanged() + ": ");
+                        field.getStyle().set("font-weight", "600");
+                        Paragraph values = new Paragraph((m.getOldValue() != null ? m.getOldValue() : "<null>") + " → " + (m.getNewValue() != null ? m.getNewValue() : "<null>"));
+                        values.getStyle().set("margin-left", "8px");
+                        row.add(field, values);
+                        groupBox.add(row);
+                        if (m.getReason() != null && !m.getReason().isBlank()) {
+                            Span note = new Span("Reason: " + m.getReason());
+                            note.getElement().getStyle().set("font-style", "italic");
+                            groupBox.add(note);
+                        }
+                    }
+
+                    history.add(groupBox);
+                }
+            }
+        } else {
+            history.add(new Paragraph("No modification history available."));
+        }
 
         Div extras = new Div(new Paragraph(b.getExtras().isEmpty() ? "No additional services requested" : b.getExtras().size() + " services added"));
 
