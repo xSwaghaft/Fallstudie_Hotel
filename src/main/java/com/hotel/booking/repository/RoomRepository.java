@@ -1,12 +1,13 @@
 package com.hotel.booking.repository;
 
-import com.hotel.booking.entity.Room;
-import com.hotel.booking.entity.RoomCategory;
-import com.hotel.booking.entity.RoomStatus;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import com.hotel.booking.entity.Room;
+import com.hotel.booking.entity.RoomCategory;
+import com.hotel.booking.entity.RoomStatus;
 //Matthias Lohr
 @Repository
 public interface RoomRepository extends JpaRepository<Room, Long> {

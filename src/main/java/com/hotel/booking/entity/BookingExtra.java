@@ -31,9 +31,13 @@ public class BookingExtra {
     @Column(name = "price", nullable = false)
     private Double price;
 
+    @Column(name = "per_person", nullable = false)
+    private boolean perPerson = true;
+
     @JsonIgnore //Wenn eine bidiraktionale Beziehung besteht, muss eine Seite ignoriert werden, sonst Endlosschleife bei JSON Serialisierung
     @ManyToMany(mappedBy = "extras", fetch = FetchType.EAGER)
     private List<Booking> bookings = new ArrayList<>();
+
 
     // Default constructor
     public BookingExtra() {
@@ -86,5 +90,13 @@ public class BookingExtra {
 
     public void setPrice(Double price) {
         this.price = price;
+    }
+
+    public boolean isPerPerson() {
+        return perPerson;
+    }
+
+    public void setPerPerson(boolean perPerson) {
+        this.perPerson = perPerson;
     }
 }

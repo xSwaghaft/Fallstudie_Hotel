@@ -24,8 +24,9 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     // Find all invoices by status
     List<Invoice> findByInvoiceStatus(PaymentStatus status);
     
-    // Find all invoices for a specific booking (using temporary bookingId field)
-    Optional<Invoice> findByBookingId(Long bookingId);
+    // Find all invoices for a specific booking
+    @Query("SELECT i FROM Invoice i WHERE i.booking.id = :bookingId")
+    Optional<Invoice> findByBookingId(@Param("bookingId") Long bookingId);
     
     // Find invoices issued between dates
     List<Invoice> findByIssuedAtBetween(LocalDateTime start, LocalDateTime end);
@@ -34,9 +35,9 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     List<Invoice> findByInvoiceStatusAndPaidAtIsNull(PaymentStatus status);
     
     // Find all invoices for a specific room (via booking)
-    @Query("SELECT i FROM Invoice i WHERE i.booking.room.room_id = :roomId")
+    @Query("SELECT i FROM Invoice i WHERE i.booking.room.id = :roomId")
     List<Invoice> findByBookingRoomId(@Param("roomId") Long roomId);
     
-    // TODO: Activate when Booking entity is created
-    // Optional<Invoice> findByBooking(Booking booking);
+    // Find invoice by booking entity
+    Optional<Invoice> findByBooking(com.hotel.booking.entity.Booking booking);
 }

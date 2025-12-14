@@ -2,6 +2,7 @@ package com.hotel.booking.view.components;
 
 import com.hotel.booking.entity.BookingExtra;
 import com.hotel.booking.service.BookingExtraService;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextArea;
@@ -20,6 +21,7 @@ public class AddExtraForm extends FormLayout {
     private final TextField nameField = new TextField("Name");
     private final TextArea descriptionField = new TextArea("Description");
     private final NumberField priceField = new NumberField("Price (€)");
+    private final Checkbox perPersonCheckbox = new Checkbox("Per Person");
 
     public AddExtraForm(BookingExtraService extraService, BookingExtra bookingExtra) {
         this.extraService = extraService;
@@ -30,8 +32,10 @@ public class AddExtraForm extends FormLayout {
         priceField.setStep(0.01);
         priceField.setRequiredIndicatorVisible(true);
         nameField.setRequired(true);
+        
+        perPersonCheckbox.setValue(true); // Standardwert: true
 
-        add(nameField, descriptionField, priceField);
+        add(nameField, descriptionField, priceField, perPersonCheckbox);
 
         binder.forField(nameField)
             .asRequired("Name is required")
@@ -43,6 +47,9 @@ public class AddExtraForm extends FormLayout {
         binder.forField(priceField)
             .asRequired("Price is required")
             .bind(BookingExtra::getPrice, BookingExtra::setPrice);
+        
+        binder.forField(perPersonCheckbox)
+            .bind(BookingExtra::isPerPerson, BookingExtra::setPerPerson);
         
         setExtra(bookingExtra);
     }
