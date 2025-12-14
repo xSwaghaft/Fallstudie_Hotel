@@ -63,6 +63,7 @@ public class AddExtraForm extends FormLayout {
     public boolean writeBeanIfValid() {
         if (binder.validate().isOk()) {
             try {
+                binder.writeBean(bookingExtra);
                 extraService.saveBookingExtra(getExtra());
                 return true;
             } catch (Exception e) {
