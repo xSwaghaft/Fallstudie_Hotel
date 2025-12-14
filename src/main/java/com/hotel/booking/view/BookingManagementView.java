@@ -26,6 +26,7 @@ import com.vaadin.flow.router.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
+//Matthias Lohr
 @Route(value = "bookings", layout = MainLayout.class)
 @PageTitle("Booking Management")
 @CssImport("./themes/hotel/styles.css")
@@ -150,7 +151,6 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         H3 title = new H3("All Bookings");
         title.addClassName("booking-section-title");
 
-        //Matthias Lohr
         Grid<Booking> grid = new Grid<>(Booking.class, false);
         
         grid.addColumn(Booking::getBookingNumber)
@@ -160,15 +160,17 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         
         grid.addColumn(Booking::getAmount)
             .setHeader("People")
-            .setWidth("20px")
+            .setAutoWidth(true)
             .setFlexGrow(2);
         
         grid.addColumn(booking -> booking.getRoom().getRoomNumber())
             .setHeader("Room")
+            .setAutoWidth(true)
             .setFlexGrow(2);
 
         grid.addColumn(booking -> booking.getGuest().getFullName())
             .setHeader("Guest Name")
+            .setAutoWidth(true)
             .setFlexGrow(1);
         
         // Check-in mit deutschem Datumsformat
@@ -177,22 +179,17 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
             .setWidth("140px")
             .setFlexGrow(0);
         
-        // grid.addColumn(Booking::id)
-        //     .setHeader("ID")
-        //     .setAutoWidth(true)
-        //     .setFlexGrow(0);
-        
         // Check-out mit deutschem Datumsformat
         grid.addColumn(booking -> booking.getCheckOutDate().format(GERMAN_DATE_FORMAT))
             .setHeader("Check-out")
             .setAutoWidth(true)
             .setFlexGrow(0);
         
-        // // Amount in Euro
-        // grid.addColumn(booking -> "€" + booking.amount())
-        //     .setHeader("Amount")
-        //     .setAutoWidth(true)
-        //     .setFlexGrow(0);
+        // Amount in Euro
+        grid.addColumn(booking -> "€" + booking.getTotalPrice())
+            .setHeader("Amount")
+            .setAutoWidth(true)
+            .setFlexGrow(0);
         
         grid.addComponentColumn(this::createStatusBadge)
             .setHeader("Status")
@@ -243,12 +240,6 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         
         actions.add(viewBtn, editBtn);
         
-        if (booking.getStatus() != null && "CONFIRMED".equals(booking.getStatus().name())) {
-            Button checkInBtn = new Button("Check In", VaadinIcon.SIGN_IN.create());
-            checkInBtn.addClickListener(e -> Notification.show("Checked in " + booking.getBookingNumber()));
-            actions.add(checkInBtn);
-        }
-        
         return actions;
     }
 
@@ -262,6 +253,7 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         Div details = new Div();
         details.add(new Paragraph("Guest Name: " + (b.getGuest() != null ? b.getGuest().getFullName() : "N/A")));
         details.add(new Paragraph("Booking Number: " + b.getBookingNumber()));
+        details.add(new Paragraph("Total Price: €" + b.getTotalPrice()));
         details.add(new Paragraph("Check-in: " + b.getCheckInDate().format(GERMAN_DATE_FORMAT)));
         details.add(new Paragraph("Check-out: " + b.getCheckOutDate().format(GERMAN_DATE_FORMAT)));
         details.add(new Paragraph("Guests: " + b.getAmount()));
@@ -287,12 +279,11 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
             extras.setVisible(tabs.getSelectedIndex() == 3);
         });
 
-        Button checkIn = new Button("Check In", e -> { d.close(); Notification.show("Checked in"); });
         Button edit = new Button("Edit Booking", e -> { d.close(); openAddBookingDialog(b); });
         Button cancel = new Button("Cancel", e -> d.close());
 
         d.add(new VerticalLayout(tabs, pages));
-        d.getFooter().add(new HorizontalLayout(checkIn, edit, cancel));
+        d.getFooter().add(new HorizontalLayout(edit, cancel));
         d.open();
     }
 

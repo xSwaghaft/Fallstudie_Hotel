@@ -19,7 +19,6 @@ TRUNCATE TABLE room_images;
 TRUNCATE TABLE room_category;
 TRUNCATE TABLE room_extras;
 TRUNCATE TABLE users;
-TRUNCATE TABLE reports;
 SET FOREIGN_KEY_CHECKS=1;
 
 -- ---------- Users (mind. 5 Einträge) ----------
@@ -121,12 +120,12 @@ UPDATE bookings SET invoice_id = 7 WHERE id = 8;
 
 -- ---------- Room extras (BookingExtra) (mind. 5 Einträge) ----------
 -- ---------- Room extras (BookingExtra) (mind. 5 Einträge) ----------
-INSERT INTO room_extras (name, description, price, extra_type) VALUES
-('Frühstück','Buffetfrühstück inklusive',12.50,'BREAKFAST'),
-('Parkplatz','Tagesparkplatz',8.00,'PARKING'),
-('Zusatzbett','Aufstellbett pro Nacht',25.00,'EXTRA_BED'),
-('WLAN Premium','Highspeed Internet',5.00,'WIFI'),
-('SPA Zugang','Tagespass für SPA',20.00,'SPA');
+INSERT INTO room_extras (name, description, price) VALUES
+('Frühstück','Buffetfrühstück inklusive',12.50),
+('Parkplatz','Tagesparkplatz',8.00),
+('Zusatzbett','Aufstellbett pro Nacht',25.00),
+('WLAN Premium','Highspeed Internet',5.00),
+('SPA Zugang','Tagespass für SPA',20.00);
 
 
 -- ---------- booking_extra (Zuordnungen Buchung <-> Extras) ----------
@@ -184,14 +183,6 @@ INSERT IGNORE INTO feedback (id, booking_id, guest_id, rating, comment) VALUES
 (4,2,2,2,'Stornierung ergab Probleme mit Rückerstattung.'),
 (5,6,1,4,'Nettes Personal, Zimmer sauber.'),
 (6,7,5,5,'Fantastischer Aufenthalt! Das Deluxe Zimmer war wunderschön und der Service war ausgezeichnet.');
-
--- ---------- Reports (mind. 5 Einträge) ----------
-INSERT IGNORE INTO reports (id, title, description, created_by_user_id) VALUES
-(1,'Auslastung November','Monatliche Auslastung November 2025',1),
-(2,'Umsatz Dezember','Umsatzübersicht Dezember 2025',1),
-(3,'Kundenfeedback','Zusammenfassung Feedback November',2),
-(4,'Wartung','Technische Wartung geplant',2),
-(5,'Personaleinsatz','Einsatzplan Rezeption',3);
 
 -- ---------- Room Images (für Standard und Deluxe Kategorien) ----------
 INSERT IGNORE INTO room_images (image_path, alt_text, title, display_order, is_primary, category_id) VALUES

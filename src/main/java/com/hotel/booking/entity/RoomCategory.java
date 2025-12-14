@@ -46,19 +46,19 @@ public class RoomCategory {
     @Column(name = "active", nullable = false)
     private Boolean active;
 
-    @ElementCollection(fetch = FetchType.EAGER)
+    @ElementCollection(fetch = FetchType.EAGER) // Lade Amenities (keine eigene Entity deshalb die Annotiation) immer mit
     @Enumerated(EnumType.STRING)
     @JoinTable(name = "room_category_amenities", joinColumns = @JoinColumn(name = "category_id"))
     @Column(name = "amenity")
     private Set<Amenities> amenities = new HashSet<>();
 
     @OneToMany(mappedBy = "category")
-    @JsonManagedReference
+    @JsonManagedReference //Bidirektionale Beziehung. RoomCategory ist Parent. Die andere Seite bekommt @JsonBackReference
     private List<Room> rooms = new ArrayList<>();
 
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @OrderBy("displayOrder ASC, isPrimary DESC")
-    @JsonManagedReference
+    @JsonManagedReference //Bidirektionale Beziehung. RoomCategory ist Parent. Die andere Seite bekommt @JsonBackReference
     private List<RoomImage> images = new ArrayList<>();
 
 
