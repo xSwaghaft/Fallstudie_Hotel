@@ -13,7 +13,13 @@ import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.BookingFormService;
 import com.vaadin.flow.component.checkbox.CheckboxGroup;
 import com.vaadin.flow.component.datepicker.DatePicker;
+import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
+import com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.IntegerField;
@@ -22,6 +28,7 @@ import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
 
 //Matthias Lohr
+@CssImport("./themes/hotel/views/booking-management.css")
 public class createNewBookingForm extends FormLayout{
 
     final Binder<Booking> binder = new Binder<>(Booking.class);
@@ -50,10 +57,17 @@ public class createNewBookingForm extends FormLayout{
         this.configureBinder();
         this.setBooking(existingBooking);
 
-        this.add(displayCategoryField, userByEmailField, roomCategorySelect, checkInDate, checkOutDate, guestNumber, extras);
+        // Extras-CheckboxGroup und statische Liste nebeneinander - Horizontal Layout (Einfacher als mit Spalten des Formulars)
+        HorizontalLayout extrasRow = new HorizontalLayout();
+        extrasRow.setWidthFull();
+        extrasRow.setAlignItems(Alignment.END);
+        extras.setWidth("300px");
+        VerticalLayout extrasListBox = createExtrasListBox();
+        extrasRow.add(extras, extrasListBox);
+
+        this.add(displayCategoryField, userByEmailField, roomCategorySelect, checkInDate, checkOutDate, guestNumber, extrasRow);
     }
 
-    
     // Constructor for pre-filled booking forms (e.g., from GuestPortalView)
     public createNewBookingForm(User user, SessionService sessionService, Booking existingBooking, BookingFormService formService, 
                                  RoomCategory category, LocalDate checkIn, LocalDate checkOut, Integer occupancy) {
@@ -66,7 +80,15 @@ public class createNewBookingForm extends FormLayout{
         this.configureBinder();
         this.setBooking(existingBooking);
 
-        this.add(displayCategoryField, userByEmailField, roomCategorySelect, checkInDate, checkOutDate, guestNumber, extras);
+        // Extras-CheckboxGroup und statische Liste nebeneinander
+        HorizontalLayout extrasRow = new HorizontalLayout();
+        extrasRow.setWidthFull();
+        extrasRow.setAlignItems(Alignment.END);
+        extras.setWidth("300px");
+        VerticalLayout extrasListBox = createExtrasListBox();
+        extrasRow.add(extras, extrasListBox);
+
+        this.add(displayCategoryField, userByEmailField, roomCategorySelect, checkInDate, checkOutDate, guestNumber, extrasRow);
 
         // Get maxOccupancy once if category is provided
         Integer maxOccupancy = category != null ? category.getMaxOccupancy() : null;
@@ -152,9 +174,16 @@ public class createNewBookingForm extends FormLayout{
 
         // Guests
         binder.forField(guestNumber)
-                .asRequired("Guests required")
-                .withValidator(n -> n > 0, "Guests must be > 0")
-                .bind(Booking::getAmount, Booking::setAmount);
+            .asRequired("Guests required")
+            .withValidator(n -> n > 0, "Guests must be > 0")
+            .withValidator(n -> {
+                //Prüft, ob die Gästeanzahl zur ausgewählten Kategorie passt
+                RoomCategory selected = roomCategorySelect.getValue();
+                if (selected == null || n == null) return true;
+                Integer max = selected.getMaxOccupancy();
+                return max == null || n <= max;
+            }, "Too many guests for selected category")
+            .bind(Booking::getAmount, Booking::setAmount);
 
         // Check-In
         binder.forField(checkInDate)
@@ -233,9 +262,10 @@ public class createNewBookingForm extends FormLayout{
     }
 
     public void writeBean() throws ValidationException {
+        //Prüft und validiert die E-Mail, sodass auf den eigenen User gebucht wird, wenn die E-Mail frei oder falsch ist
         if (userByEmailField.isVisible()) {
         String email = userByEmailField.getValue();
-        if (email != null && !email.isBlank()) {
+        if (email != null && !email.isBlank() && formService.existsByEmail(email)) {
             User foundUser = formService.findUserByEmail(email);
             formBooking.setGuest(foundUser);
             }}
@@ -245,6 +275,29 @@ public class createNewBookingForm extends FormLayout{
         if (formBooking.getGuest() == null) {
             formBooking.setGuest(user);
         }
+    }
+
+    private VerticalLayout createExtrasListBox() {
+        VerticalLayout listBox = new VerticalLayout();
+        listBox.addClassName("extras-list-box");
+        listBox.setSpacing(false);
+        listBox.setPadding(false);
+        
+        Span title = new Span("Verfügbare Extras:");
+        title.getStyle().set("font-weight", "bold");
+        title.getStyle().set("margin-bottom", "8px");
+        listBox.add(title);
+        
+        formService.getAllBookingExtras().forEach(extra -> {
+            Span extraInfo = new Span(extra.getName() + " - €" + String.format("%.2f", extra.getPrice()));
+            if (extra.isPerPerson()) {
+                extraInfo.getStyle().set("font-size", "11px");
+                extraInfo.getStyle().set("color", "#666");
+            }
+            listBox.add(extraInfo);
+        });
+        
+        return listBox;
     }
     
 }

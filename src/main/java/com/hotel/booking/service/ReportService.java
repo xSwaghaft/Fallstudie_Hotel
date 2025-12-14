@@ -2,9 +2,6 @@ package com.hotel.booking.service;
 
 import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.BookingExtra;
-import com.hotel.booking.entity.Report;
-import com.hotel.booking.entity.User;
-import com.hotel.booking.repository.ReportRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,216 +9,22 @@ import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
-/* Artur Derr
- * Service-Klasse für Report-Entitäten.
- * Enthält Business-Logik und CRUD-Operationen für Reports.
- * Ersetzt die REST-Controller-Logik durch direkte Service-Methoden.
- */
+//Service-Methoden für die Reports & Analytics view
+//Matthias Lohr
 @Service
 @Transactional
 public class ReportService {
 
-    private final ReportRepository reportRepository;
     private final BookingService bookingService;
 
-    public ReportService(ReportRepository reportRepository, BookingService bookingService) {
-        this.reportRepository = reportRepository;
+    public ReportService(BookingService bookingService) {
         this.bookingService = bookingService;
-    }
-
-    // Gibt alle Reports zurück
-    public List<Report> findAll() {
-        return reportRepository.findAll();
-    }
-
-    // Gibt alle Reports sortiert nach Erstellungsdatum (neueste zuerst) zurück
-    public List<Report> findAllSorted() {
-        return reportRepository.findAllByOrderByCreatedAtDesc();
-    }
-
-    // Findet einen Report anhand der ID
-    public Optional<Report> findById(Long id) {
-        if (id == null || id <= 0) {
-            throw new IllegalArgumentException("Report ID muss gültig sein");
-        }
-        return reportRepository.findById(id);
-    }
-
-    /**
-     * Erstellt einen neuen Report (Create)
-     */
-    public Report create(String title, String description, User createdBy) {
-        if (title == null || title.trim().isEmpty()) {
-            throw new IllegalArgumentException("Report-Titel ist erforderlich");
-        }
-        
-        if (description == null || description.trim().isEmpty()) {
-            throw new IllegalArgumentException("Report-Beschreibung ist erforderlich");
-        }
-        
-        if (createdBy == null) {
-            throw new IllegalArgumentException("Report-Ersteller (User) ist erforderlich");
-        }
-        
-        Report report = new Report(title, description, createdBy);
-        return reportRepository.save(report);
-    }
-
-    /**
-     * Aktualisiert einen existierenden Report (Update)
-     */
-    public Report update(Long id, Report reportDetails) {
-        if (id == null || id <= 0) {
-            throw new IllegalArgumentException("Report ID muss gültig sein");
-        }
-        
-        if (reportDetails == null) {
-            throw new IllegalArgumentException("Report Details dürfen nicht null sein");
-        }
-        
-        Optional<Report> existingReportOpt = findById(id);
-        if (existingReportOpt.isEmpty()) {
-            throw new IllegalArgumentException("Report mit ID " + id + " nicht gefunden");
-        }
-        
-        Report existingReport = existingReportOpt.get();
-        
-        // Update Titel
-        if (reportDetails.getTitle() != null && !reportDetails.getTitle().trim().isEmpty()) {
-            existingReport.setTitle(reportDetails.getTitle());
-        }
-        
-        // Update Beschreibung
-        if (reportDetails.getDescription() != null && !reportDetails.getDescription().trim().isEmpty()) {
-            existingReport.setDescription(reportDetails.getDescription());
-        }
-        
-        return reportRepository.save(existingReport);
-    }
-
-    /**
-     * Löscht einen Report anhand der ID (Delete)
-     */
-    public void delete(Long id) {
-        if (id == null || id <= 0) {
-            throw new IllegalArgumentException("Report ID muss gültig sein");
-        }
-        
-        if (!reportRepository.existsById(id)) {
-            throw new IllegalArgumentException("Report mit ID " + id + " nicht gefunden");
-        }
-        
-        reportRepository.deleteById(id);
-    }
-
-    /**
-     * Speichert einen Report (generisch)
-     */
-    public Report save(Report report) {
-        if (report == null) {
-            throw new IllegalArgumentException("Report darf nicht null sein");
-        }
-        return reportRepository.save(report);
-    }
-
-    /**
-     * Findet alle Reports eines bestimmten Users
-     */
-    public List<Report> findByUser(User user) {
-        return reportRepository.findByCreatedBy(user);
-    }
-
-    /**
-     * Findet alle Reports eines Users, sortiert nach Datum (neueste zuerst)
-     */
-    public List<Report> findByUserSorted(User user) {
-        return reportRepository.findByCreatedByOrderByCreatedAtDesc(user);
-    }
-
-    /**
-     * Sucht Reports nach Titel
-     */
-    public List<Report> searchByTitle(String title) {
-        return reportRepository.findByTitleContainingIgnoreCase(title);
-    }
-
-    /**
-     * Findet Reports, die nach einem bestimmten Datum erstellt wurden
-     */
-    public List<Report> findCreatedAfter(LocalDateTime date) {
-        return reportRepository.findByCreatedAtAfter(date);
-    }
-
-    /**
-     * Zählt die Anzahl aller Reports
-     */
-    public long count() {
-        return reportRepository.count();
-    }
-
-    /**
-     * Prüft, ob ein Report mit der ID existiert
-     */
-    public boolean existsById(Long id) {
-        if (id == null || id <= 0) {
-            return false;
-        }
-        return reportRepository.existsById(id);
-    }
-
-    //Matthias Lohr
-    public String getBookingTrendString(LocalDate startDate, LocalDate endDate) {
-        int thisPeriod = bookingService.getNumberOfBookingsInPeriod(endDate, startDate);
-        int comparisonPeriod = bookingService.getNumberOfBookingsInPeriod(
-            endDate.minusMonths(1), startDate.minusMonths(1));
-        String trendString;
-    
-        // Keine Buchungen in dieser, oder Vergleichsperiode
-        if (comparisonPeriod == 0) {
-            if (thisPeriod > 0) {
-                trendString = "No Bookings in comparison period";
-            } else {
-                trendString = "0% from last period"; 
-            }
-        } else {
-            // Berechne die prozentuale Veränderung (TypeCast zu double - sollte unproblematisch sein)
-            double difference = thisPeriod - comparisonPeriod;
-            double percentage = (difference / comparisonPeriod) * 100;
-            
-            // DecimalFormat für die Formatierung
-            // Setze DecimalFormatSymbols auf US, für Punkt als Dezimaltrennzeichen
-            DecimalFormatSymbols symbol = new DecimalFormatSymbols(Locale.US);
-            // Definiert die Vorzeichen, '0.0' für eine Nachkommastelle
-            DecimalFormat df = new DecimalFormat("+#0.0;-#0.0", symbol);
-            
-            // Formatiere den Wert und füge den Rest des Strings hinzu
-            String formattedPercentage = df.format(percentage);
-            trendString = formattedPercentage + "% from last period";
-        }
-
-        return trendString;
-    }
-
-    //Matthias Lohr
-    public double getBookingTrend(LocalDate startDate, LocalDate endDate) {
-        int thisPeriod = bookingService.getNumberOfBookingsInPeriod(endDate, startDate);
-        int comparisonPeriod = bookingService.getNumberOfBookingsInPeriod(
-            endDate.minusMonths(1), startDate.minusMonths(1));
-        if(comparisonPeriod != 0) {
-            double trendPercent = ((thisPeriod - comparisonPeriod)/ comparisonPeriod) * 100;
-            return trendPercent;
-        } else {
-            //0 wenn es im Vergleichszeitraum keine Buchung gab - damit positive: false
-            return 0.00;
-        }
     }
 
     //Gesamtumsatz durch Buchungen in einem Zeitraum für Report (Mit stream, da Service List liefert)
@@ -257,22 +60,27 @@ public class ReportService {
                 .orElse("None");
     }
 
+    public String getMostPopularExtraLastPeriod(LocalDate from, LocalDate to) {
+        String extra = getMostPopularExtraInPeriod(from.minusMonths(1), to.minusMonths(1));
+        return "Last Period: " + extra;
+    }
+
     //Berechnet durchschnittliche Buchungsdauer in einem Zeitraum 
     // (ChronoUnit ist ein Enum, das Zeiteinheiten Repräsentiert und Methode between liefert)
     //Matthias Lohr
-public String getAvgStayDurationInPeriod(LocalDate from, LocalDate to) {
-    List<Booking> bookings = bookingService.getAllBookingsInPeriod(from, to);
+    public String getAvgStayDurationInPeriod(LocalDate from, LocalDate to) {
+        List<Booking> bookings = bookingService.getAllBookingsInPeriod(from, to);
 
-    if (bookings.isEmpty()) {
-        return "0.00";
+        if (bookings.isEmpty()) {
+            return "0.00";
+        }
+        double avg = bookings.stream()
+            .mapToLong(b -> ChronoUnit.DAYS.between(b.getCheckInDate(), b.getCheckOutDate()))
+            .average()
+            .orElse(0.0);
+
+        return String.format("%.2f days", avg);
     }
-    double avg = bookings.stream()
-        .mapToLong(b -> ChronoUnit.DAYS.between(b.getCheckInDate(), b.getCheckOutDate()))
-        .average()
-        .orElse(0.0);
-
-    return String.format("%.2f days", avg);
-}
 
 
     //Gibt die meistgebuchte Kategorie in einem Zeitraum als String zurück
@@ -292,5 +100,149 @@ public String getAvgStayDurationInPeriod(LocalDate from, LocalDate to) {
             .max(Map.Entry.comparingByValue()) //Holt den Eintrag mit der höchsten Zahl als Value
             .map(Map.Entry::getKey) //Holt den dazugehörigen Katgorie-Namen oder "None" da max Optional ist
             .orElse("None");
+    }
+
+    public String getMostPopularCategoryLastPeriod(LocalDate from, LocalDate to) {
+        String category = getTopCategoryInPeriod(from.minusMonths(1), to.minusMonths(1));
+        return "Last Period: " + category;
+    }
+
+    //Matthias Lohr
+    public String getAvgRevenuePerBookingInPeriod(LocalDate from, LocalDate to) {
+                List<Booking> bookings = bookingService.getAllBookingsInPeriod(from, to);
+        if (bookings.isEmpty()) {
+            return "0.00 €";
+        }
+        double avg = bookings.stream()
+            .map(Booking::getTotalPrice) //nur die Preise der Buchungen
+            .filter(price -> price != null) //zur sicherheit: nur ungleich null
+            .mapToDouble(BigDecimal::doubleValue) //Zu double machen, um average anzuwenden zu können
+            .average() //Liefert ein OptionalDouble, daher orElse
+            .orElse(0.00);
+        return String.format("%.2f €", avg);
+    }
+
+    //------------------Trend-String und Trend-boolean Methoden für alle Zahlenbasierten KPIs-------------
+
+    // Trend für die gesamte Anzahl an Bookings
+    //Matthias Lohr
+    public String getBookingTrendString(LocalDate startDate, LocalDate endDate) {
+        int thisPeriod = bookingService.getNumberOfBookingsInPeriod(startDate, endDate);
+        int comparisonPeriod = bookingService.getNumberOfBookingsInPeriod(
+            startDate.minusMonths(1), endDate.minusMonths(1));
+        
+        return createTrendString(thisPeriod, comparisonPeriod);
+    }
+
+    public boolean getBookingTrendPositive(LocalDate startDate, LocalDate endDate) {
+        int thisPeriod = bookingService.getNumberOfBookingsInPeriod(startDate, endDate);
+        int comparisonPeriod = bookingService.getNumberOfBookingsInPeriod(
+            startDate.minusMonths(1), endDate.minusMonths(1));
+        return thisPeriod > comparisonPeriod;
+    }
+
+    // Trend für durchschnittliche Aufenthaltsdauer (in Tagen)
+    //Matthias Lohr
+    public String getAvgStayTrendString(LocalDate startDate, LocalDate endDate) {
+        double thisPeriod = getAvgStayDurationValue(startDate, endDate);
+        double comparisonPeriod = getAvgStayDurationValue(startDate.minusMonths(1), endDate.minusMonths(1));
+        return createTrendString(thisPeriod, comparisonPeriod);
+    }
+
+    public boolean getAvgStayTrendPositive(LocalDate startDate, LocalDate endDate) {
+        double thisPeriod = getAvgStayDurationValue(startDate, endDate);
+        double comparisonPeriod = getAvgStayDurationValue(startDate.minusMonths(1), endDate.minusMonths(1));
+        return thisPeriod > comparisonPeriod;
+    }
+
+    // Trend für durchschnittlichen Umsatz pro Buchung
+    //Matthias Lohr
+    public String getAvgRevenueTrendString(LocalDate startDate, LocalDate endDate) {
+        double thisPeriod = getAvgRevenueValue(startDate, endDate);
+        double comparisonPeriod = getAvgRevenueValue(startDate.minusMonths(1), endDate.minusMonths(1));
+        return createTrendString(thisPeriod, comparisonPeriod);
+    }
+
+    public boolean getAvgRevenueTrendPositive(LocalDate startDate, LocalDate endDate) {
+        double thisPeriod = getAvgRevenueValue(startDate, endDate);
+        double comparisonPeriod = getAvgRevenueValue(startDate.minusMonths(1), endDate.minusMonths(1));
+        return thisPeriod > comparisonPeriod;
+    }
+
+    // Trend für Gesamtumsatz
+    //Matthias Lohr
+    public String getTotalRevenueTrendString(LocalDate startDate, LocalDate endDate) {
+        double thisPeriod = getTotalRevenueValue(startDate, endDate);
+        double comparisonPeriod = getTotalRevenueValue(startDate.minusMonths(1), endDate.minusMonths(1));
+        return createTrendString(thisPeriod, comparisonPeriod);
+    }
+
+    public boolean getTotalRevenueTrendPositive(LocalDate startDate, LocalDate endDate) {
+        double thisPeriod = getTotalRevenueValue(startDate, endDate);
+        double comparisonPeriod = getTotalRevenueValue(startDate.minusMonths(1), endDate.minusMonths(1));
+        return thisPeriod > comparisonPeriod;
+    }
+
+    // Hilfsmethoden für die Werte (ohne Formatierung)
+    private double getAvgStayDurationValue(LocalDate from, LocalDate to) {
+        List<Booking> bookings = bookingService.getAllBookingsInPeriod(from, to);
+        if (bookings.isEmpty()) return 0.0;
+        return bookings.stream()
+            .mapToLong(b -> ChronoUnit.DAYS.between(b.getCheckInDate(), b.getCheckOutDate()))
+            .average()
+            .orElse(0.0);
+    }
+
+    private double getAvgRevenueValue(LocalDate from, LocalDate to) {
+        List<Booking> bookings = bookingService.getAllBookingsInPeriod(from, to);
+        if (bookings.isEmpty()) return 0.0;
+        return bookings.stream()
+            .map(Booking::getTotalPrice)
+            .filter(price -> price != null)
+            .mapToDouble(BigDecimal::doubleValue)
+            .average()
+            .orElse(0.0);
+    }
+
+    private double getTotalRevenueValue(LocalDate from, LocalDate to) {
+        List<Booking> bookings = bookingService.getAllBookingsInPeriod(from, to);
+        if (bookings.isEmpty()) return 0.0;
+        return bookings.stream()
+            .map(Booking::getTotalPrice)
+            .filter(price -> price != null)
+            .mapToDouble(BigDecimal::doubleValue)
+            .sum();
+    }
+
+    //Logik für die String-Erstellung ausgelagert in eigener Methode 
+    //Matthias Lohr
+    public String createTrendString(double thisPeriod, double comparisonPeriod) {
+
+        String trendString;
+    
+        // Keine Buchungen in dieser, oder Vergleichsperiode
+        if (comparisonPeriod == 0) {
+            if (thisPeriod > 0) {
+                trendString = "No Records in comparison period";
+            } else {
+                trendString = "0% from last period"; 
+            }
+        } else {
+            // Berechne die prozentuale Veränderung
+            double difference = thisPeriod - comparisonPeriod;
+            double percentage = (difference / comparisonPeriod) * 100;
+            
+            // DecimalFormat für die Formatierung
+            // Setze DecimalFormatSymbols auf US, für Punkt als Dezimaltrennzeichen
+            DecimalFormatSymbols symbol = new DecimalFormatSymbols(Locale.US);
+            // Definiert die Vorzeichen, '0.0' für eine Nachkommastelle
+            DecimalFormat df = new DecimalFormat("+#0.0;-#0.0", symbol);
+            
+            // Formatiere den Wert und füge den Rest des Strings hinzu
+            String formattedPercentage = df.format(percentage);
+            trendString = formattedPercentage + "% from last period";
+        }
+
+        return trendString;
     }
 }

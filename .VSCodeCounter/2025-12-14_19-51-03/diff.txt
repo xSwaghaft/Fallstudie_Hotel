@@ -1,0 +1,109 @@
+Date : 2025-12-14 19:51:03
+Directory : c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel
+Total : 63 files,  366 codes, 195 comments, 134 blanks, all 695 lines
+
+Languages
++----------+------------+------------+------------+------------+------------+
+| language | files      | code       | comment    | blank      | total      |
++----------+------------+------------+------------+------------+------------+
+| Java     |         44 |        414 |        168 |        108 |        690 |
+| MS SQL   |          1 |         13 |          2 |          5 |         20 |
+| PostCSS  |         18 |        -61 |         25 |         21 |        -15 |
++----------+------------+------------+------------+------------+------------+
+
+Directories
++---------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                                                      | files      | code       | comment    | blank      | total      |
++---------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                                                         |         63 |        366 |        195 |        134 |        695 |
+| frontend                                                                                                                  |         18 |        -61 |         25 |         21 |        -15 |
+| frontend\styles                                                                                                           |          4 |       -204 |        -26 |        -30 |       -260 |
+| frontend\styles\views                                                                                                     |          4 |       -204 |        -26 |        -30 |       -260 |
+| frontend\themes                                                                                                           |         14 |        143 |         51 |         51 |        245 |
+| frontend\themes\hotel                                                                                                     |         14 |        143 |         51 |         51 |        245 |
+| frontend\themes\hotel (Files)                                                                                             |          2 |       -853 |        -44 |       -158 |     -1,055 |
+| frontend\themes\hotel\views                                                                                               |         12 |        996 |         95 |        209 |      1,300 |
+| src                                                                                                                       |         45 |        427 |        170 |        113 |        710 |
+| src\main                                                                                                                  |         45 |        427 |        170 |        113 |        710 |
+| src\main\java                                                                                                             |         44 |        414 |        168 |        108 |        690 |
+| src\main\java\com                                                                                                         |         44 |        414 |        168 |        108 |        690 |
+| src\main\java\com\hotel                                                                                                   |         44 |        414 |        168 |        108 |        690 |
+| src\main\java\com\hotel\booking                                                                                           |         44 |        414 |        168 |        108 |        690 |
+| src\main\java\com\hotel\booking\entity                                                                                    |          8 |         54 |         -7 |         18 |         65 |
+| src\main\java\com\hotel\booking\repository                                                                                |          4 |          2 |         -1 |          4 |          5 |
+| src\main\java\com\hotel\booking\service                                                                                   |          6 |        375 |         44 |         95 |        514 |
+| src\main\java\com\hotel\booking\view                                                                                      |         26 |        -17 |        132 |         -9 |        106 |
+| src\main\java\com\hotel\booking\view (Files)                                                                              |         17 |     -1,089 |        -69 |       -272 |     -1,430 |
+| src\main\java\com\hotel\booking\view\components                                                                           |          9 |      1,072 |        201 |        263 |      1,536 |
+| src\main\resources                                                                                                        |          1 |         13 |          2 |          5 |         20 |
++---------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++---------------------------------------------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| filename                                                                                                                  | language | code       | comment    | blank      | total      |
++---------------------------------------------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\frontend\styles\views\login-view-dark.css                                 | PostCSS  |        -60 |         -7 |         -8 |        -75 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\frontend\styles\views\login-view-neo.css                                  | PostCSS  |        -55 |         -6 |         -8 |        -69 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\frontend\styles\views\login-view-split.css                                | PostCSS  |        -66 |         -7 |        -11 |        -84 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\frontend\styles\views\login-view.css                                      | PostCSS  |        -23 |         -6 |         -3 |        -32 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\frontend\themes\hotel\guest.css                                           | PostCSS  |       -618 |        -36 |       -124 |       -778 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\frontend\themes\hotel\styles.css                                          | PostCSS  |       -235 |         -8 |        -34 |       -277 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\frontend\themes\hotel\views\booking-management.css                        | PostCSS  |          7 |          3 |          3 |         13 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\frontend\themes\hotel\views\card-factory.css                              | PostCSS  |         85 |          8 |         17 |        110 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\frontend\themes\hotel\views\dashboard.css                                 | PostCSS  |         17 |          3 |          5 |         25 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\frontend\themes\hotel\views\guest-portal.css                              | PostCSS  |        302 |         15 |         51 |        368 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\frontend\themes\hotel\views\invoice.css                                   | PostCSS  |         13 |          3 |          5 |         21 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\frontend\themes\hotel\views\login.css                                     | PostCSS  |        111 |          7 |         19 |        137 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\frontend\themes\hotel\views\my-bookings.css                               | PostCSS  |        123 |          7 |         26 |        156 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\frontend\themes\hotel\views\my-reviews.css                                | PostCSS  |         96 |          7 |         21 |        124 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\frontend\themes\hotel\views\registration.css                              | PostCSS  |         64 |          8 |         12 |         84 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\frontend\themes\hotel\views\reports.css                                   | PostCSS  |         87 |          9 |         23 |        119 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\frontend\themes\hotel\views\room-management.css                           | PostCSS  |         27 |          9 |          8 |         44 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\frontend\themes\hotel\views\user-management.css                           | PostCSS  |         64 |         16 |         19 |         99 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\entity\Amenities.java                     | Java     |          8 |          3 |          2 |         13 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\entity\Booking.java                       | Java     |        -12 |        -20 |         -2 |        -34 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\entity\BookingExtra.java                  | Java     |          8 |          0 |          4 |         12 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\entity\Invoice.java                       | Java     |          1 |          0 |          0 |          1 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\entity\Room.java                          | Java     |         12 |          7 |          5 |         24 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\entity\RoomCategory.java                  | Java     |         19 |          0 |          3 |         22 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\entity\RoomStatus.java                    | Java     |         20 |          3 |          6 |         29 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\entity\User.java                          | Java     |         -2 |          0 |          0 |         -2 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\repository\BookingRepository.java         | Java     |         -5 |          0 |          2 |         -3 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\repository\InvoiceRepository.java         | Java     |          6 |          0 |          1 |          7 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\repository\RoomCategoryRepository.java    | Java     |          1 |          0 |          1 |          2 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\repository\RoomRepository.java            | Java     |          0 |         -1 |          0 |         -1 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\service\BookingFormService.java           | Java     |         34 |          2 |         14 |         50 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\service\BookingService.java               | Java     |         19 |          2 |         15 |         36 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\service\ReportService.java                | Java     |         92 |         20 |         17 |        129 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\service\RoomCategoryService.java          | Java     |        125 |         10 |         22 |        157 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\service\RoomService.java                  | Java     |         74 |          5 |         18 |         97 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\service\UserService.java                  | Java     |         31 |          5 |          9 |         45 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\view\AddUserForm.java                     | Java     |       -150 |        -19 |        -36 |       -205 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\view\BookingManagementView.java           | Java     |         13 |        -16 |          3 |          0 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\view\DashboardView.java                   | Java     |        -15 |          0 |          2 |        -13 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\view\EmailTestView.java                   | Java     |          1 |          0 |          0 |          1 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\view\GuestPortalView.java                 | Java     |         59 |         13 |         12 |         84 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\view\ImageUploadView.java                 | Java     |        221 |         16 |         53 |        290 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\view\InvoiceView.java                     | Java     |          2 |          0 |          0 |          2 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\view\LoginView.java                       | Java     |        -82 |        -14 |        -18 |       -114 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\view\MainLayout.java                      | Java     |        -28 |         -1 |         -5 |        -34 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\view\MyBookingsView.java                  | Java     |        -98 |          7 |         -8 |        -99 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\view\MyReviewsView.java                   | Java     |        -19 |         -4 |         -6 |        -29 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\view\RegistrationView.java                | Java     |       -386 |        -20 |        -78 |       -484 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\view\ReportsView.java                     | Java     |       -120 |          3 |        -34 |       -151 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\view\RoomManagementView.java              | Java     |       -202 |        -36 |        -49 |       -287 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\view\SettingsView.java                    | Java     |       -323 |         -8 |       -110 |       -441 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\view\UserManagementView.java              | Java     |        -13 |          1 |         -9 |        -21 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\view\components\AddUserForm.java          | Java     |        149 |         18 |         35 |        202 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\view\components\BookingDetailsDialog.java | Java     |        134 |          6 |         30 |        170 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\view\components\CardFactory.java          | Java     |        130 |         65 |         45 |        240 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\view\components\LoginForm.java            | Java     |        117 |          9 |         30 |        156 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\view\components\RegistrationForm.java     | Java     |        353 |         12 |         76 |        441 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\view\components\RoomCard.java             | Java     |        103 |         72 |         18 |        193 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\view\components\RoomCategoryForm.java     | Java     |         94 |          5 |         25 |        124 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\view\components\RoomForm.java             | Java     |        104 |          8 |         25 |        137 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\view\components\RoomGrid.java             | Java     |       -112 |          6 |        -21 |       -127 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\java\com\hotel\booking\view\createNewBookingForm.java            | Java     |         51 |          9 |         11 |         71 |
+| c:\Users\vikgo\Desktop\Projekt\Fallstudie_Hotel\src\main\resources\data.sql                                               | MS SQL   |         13 |          2 |          5 |         20 |
+| Total                                                                                                                     |          |        366 |        195 |        134 |        695 |
++---------------------------------------------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+
