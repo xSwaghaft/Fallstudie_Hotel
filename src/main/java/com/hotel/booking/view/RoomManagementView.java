@@ -368,6 +368,7 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
     }
 
     // =================== EXTRA CARD =====================
+    //Matthias Lohr
     private Component createExtraCard() {
         return CardFactory.createContentCard(
             "Extras",
@@ -379,6 +380,7 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
         );
     }
 
+    //Matthias Lohr
     private void configureExtraGrid() {
         extraGrid.getColumnByKey("bookings").setVisible(false);
         extraGrid.setHeightFull();
@@ -586,7 +588,7 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
     }
 
     // ============ Extra Dialog =====================
-
+    //Matthias Lohr
     private void openExtraDialog (BookingExtraService extraService) {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle("Add Extra");
