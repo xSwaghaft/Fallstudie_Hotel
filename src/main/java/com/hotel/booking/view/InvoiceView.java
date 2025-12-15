@@ -4,15 +4,18 @@ import com.hotel.booking.entity.Invoice;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.InvoiceService;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.html.H1;
-import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.html.*;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.select.Select;
@@ -24,6 +27,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
@@ -41,6 +45,8 @@ public class InvoiceView extends VerticalLayout {
     private final SessionService sessionService;
     private final InvoiceService invoiceService;
     private Grid<Invoice> grid;
+    private static final DateTimeFormatter GERMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+    private static final DateTimeFormatter GERMAN_DATETIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
     // FDO for form binding
     public static class InvoiceFDO {
@@ -72,18 +78,92 @@ public class InvoiceView extends VerticalLayout {
     }
 
     private void initializeUI() {
-        add(new H1("Invoice Management"));
-        add(new Span("Manage and search invoices"));
+        add(createHeader());
+        add(createFilters());
+        add(createInvoicesCard());
+    }
 
-        TextField searchField = new TextField("Search Invoices (Invoice Number)");
-        Button searchButton = new Button("Search");
-        Button addButton = new Button("Add Invoice");
+    private Component createHeader() {
+        H1 h1 = new H1("Invoice Management");
+        Paragraph p = new Paragraph("Manage and search invoices");
+        p.addClassName("invoice-subtitle");
+        
+        HorizontalLayout header = new HorizontalLayout(h1, p);
+        header.setWidthFull();
+        header.setAlignItems(FlexComponent.Alignment.CENTER);
+        
+        return header;
+    }
 
-        HorizontalLayout buttonLayout = new HorizontalLayout(searchButton, addButton);
+    private Component createFilters() {
+        Div card = new Div();
+        card.addClassName("card");
+        card.setWidthFull();
+        
+        H3 title = new H3("Search & Filter");
+        title.addClassName("invoice-section-title");
+        
+        Paragraph subtitle = new Paragraph("Find specific invoices quickly");
+        subtitle.addClassName("invoice-subtitle");
+
+        TextField search = new TextField("Search");
+        search.setPlaceholder("Invoice Number...");
+        search.setPrefixComponent(VaadinIcon.SEARCH.create());
+
+        Select<String> status = new Select<>();
+        status.setLabel("Status");
+        status.setItems("All Status", "PENDING", "PAID", "OVERDUE", "CANCELLED");
+        status.setValue("All Status");
+
+        Select<String> method = new Select<>();
+        method.setLabel("Payment Method");
+        method.setItems("All Methods", "CARD", "BANK_TRANSFER", "CASH");
+        method.setValue("All Methods");
+
+        DatePicker date = new DatePicker("Date (optional)");
+        // Kein Standard-Wert - nur filtern wenn ausgewählt
+
+        FormLayout form = new FormLayout(search, status, method, date);
+        form.setResponsiveSteps(
+                new FormLayout.ResponsiveStep("0", 1),
+                new FormLayout.ResponsiveStep("600px", 2),
+                new FormLayout.ResponsiveStep("900px", 4)
+        );
+
+        // Search Button
+        Button searchButton = new Button("Search", VaadinIcon.SEARCH.create());
+        searchButton.addClassName("primary-button");
+        searchButton.addClickListener(e -> loadInvoices(search.getValue(), status.getValue(), method.getValue(), date.getValue()));
+        searchButton.addClickShortcut(Key.ENTER);
+
+        HorizontalLayout buttonLayout = new HorizontalLayout(searchButton);
+        buttonLayout.setWidthFull();
+        buttonLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
+
+        card.add(title, subtitle, form, buttonLayout);
+        return card;
+    }
+
+    private Component createInvoicesCard() {
+        Div card = new Div();
+        card.addClassName("card");
+        card.setWidthFull();
+        
+        H3 title = new H3("Invoices");
+        title.addClassName("invoice-section-title");
+
+        // Add Button
+        Button addButton = new Button("Add Invoice", VaadinIcon.PLUS.create());
+        addButton.addClassName("primary-button");
+        addButton.addClickListener(e -> openAddInvoiceDialog());
+
+        HorizontalLayout headerLayout = new HorizontalLayout(title, addButton);
+        headerLayout.setWidthFull();
+        headerLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+        headerLayout.setAlignItems(FlexComponent.Alignment.CENTER);
 
         // Grid setup
         grid = new Grid<>(Invoice.class, false);
-        DateTimeFormatter germanFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm").withLocale(Locale.GERMANY);
         
         grid.addColumn(Invoice::getId).setHeader("ID").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(Invoice::getInvoiceNumber).setHeader("Rechnungs-Nr.").setSortable(true).setAutoWidth(true).setFlexGrow(1);
@@ -91,7 +171,7 @@ public class InvoiceView extends VerticalLayout {
         grid.addColumn(Invoice::getPaymentMethod).setHeader("Zahlungsart").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.addColumn(Invoice::getInvoiceStatus).setHeader("Status").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.addColumn(invoice -> invoice.getIssuedAt() != null 
-                ? invoice.getIssuedAt().format(germanFormatter) 
+                ? invoice.getIssuedAt().format(GERMAN_DATETIME_FORMAT) 
                 : "")
                 .setHeader("Ausgestellt am").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.setWidthFull();
@@ -99,21 +179,16 @@ public class InvoiceView extends VerticalLayout {
         // Load initial data
         loadInvoices("");
 
-        // Search button
-        searchButton.addClickListener(e -> {
-            String query = searchField.getValue();
-            loadInvoices(query);
-        });
-        searchButton.addClickShortcut(Key.ENTER);
-
-        // Add button
-        addButton.addClickListener(e -> openAddInvoiceDialog());
-
-        add(searchField, buttonLayout, grid);
+        card.add(headerLayout, grid);
+        return card;
     }
 
     // Simple search method
     private void loadInvoices(String query) {
+        loadInvoices(query, "All Status", "All Methods", LocalDate.now());
+    }
+
+    private void loadInvoices(String query, String statusFilter, String methodFilter, LocalDate dateFilter) {
         List<Invoice> items;
         if (query == null || query.isBlank()) {
             items = invoiceService.findAll();
@@ -123,13 +198,36 @@ public class InvoiceView extends VerticalLayout {
             if (byNumber.isPresent()) {
                 items = Collections.singletonList(byNumber.get());
             } else {
-                // Fallback to contains search (groß-/kleinschreibung wichtig)
+                // Fallback to contains search (case-insensitive)
                 items = invoiceService.findAll().stream()
                         .filter(inv -> inv.getInvoiceNumber() != null && 
                                 inv.getInvoiceNumber().toLowerCase().contains(query.toLowerCase()))
                         .collect(Collectors.toList());
             }
         }
+
+        // Status Filter
+        if (statusFilter != null && !statusFilter.equals("All Status")) {
+            items = items.stream()
+                    .filter(i -> i.getInvoiceStatus() != null && i.getInvoiceStatus().toString().equals(statusFilter))
+                    .collect(Collectors.toList());
+        }
+
+        // Payment Method Filter
+        if (methodFilter != null && !methodFilter.equals("All Methods")) {
+            items = items.stream()
+                    .filter(i -> i.getPaymentMethod() != null && i.getPaymentMethod().toString().equals(methodFilter))
+                    .collect(Collectors.toList());
+        }
+
+        // Date Filter - nur anwenden wenn ein Datum ausgewählt wurde
+        if (dateFilter != null) {
+            items = items.stream()
+                    .filter(i -> i.getIssuedAt() != null && 
+                               i.getIssuedAt().toLocalDate().equals(dateFilter))
+                    .collect(Collectors.toList());
+        }
+
         grid.setItems(items);
     }
 
