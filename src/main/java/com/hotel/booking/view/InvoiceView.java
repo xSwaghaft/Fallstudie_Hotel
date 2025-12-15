@@ -4,6 +4,7 @@ import com.hotel.booking.entity.Invoice;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.InvoiceService;
+import com.hotel.booking.service.InvoicePdfService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
@@ -23,6 +24,7 @@ import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
+import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
@@ -31,8 +33,11 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.stream.Collectors;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Invoice View - Manage invoices (Receptionist and Manager only).
@@ -42,10 +47,10 @@ import java.util.stream.Collectors;
 @CssImport("./themes/hotel/styles.css")
 public class InvoiceView extends VerticalLayout {
 
-    private final SessionService sessionService;
+    private static final Logger logger = LoggerFactory.getLogger(InvoiceView.class);
     private final InvoiceService invoiceService;
+    private final InvoicePdfService invoicePdfService;
     private Grid<Invoice> grid;
-    private static final DateTimeFormatter GERMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     private static final DateTimeFormatter GERMAN_DATETIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
     // FDO for form binding
@@ -65,9 +70,9 @@ public class InvoiceView extends VerticalLayout {
         public void setStatus(Invoice.PaymentStatus status) { this.status = status; }
     }
 
-    public InvoiceView(SessionService sessionService, InvoiceService invoiceService) {
-        this.sessionService = sessionService;
+    public InvoiceView(InvoiceService invoiceService, InvoicePdfService invoicePdfService) {
         this.invoiceService = invoiceService;
+        this.invoicePdfService = invoicePdfService;
 
         setSpacing(true);
         setPadding(true);
@@ -174,6 +179,16 @@ public class InvoiceView extends VerticalLayout {
                 ? invoice.getIssuedAt().format(GERMAN_DATETIME_FORMAT) 
                 : "")
                 .setHeader("Ausgestellt am").setSortable(true).setAutoWidth(true).setFlexGrow(1);
+        
+        // PDF Download Column
+        grid.addComponentColumn(invoice -> {
+            Button downloadButton = new Button(VaadinIcon.DOWNLOAD.create());
+            downloadButton.setTooltipText("Download as PDF");
+            downloadButton.addClassName("primary-button");
+            downloadButton.addClickListener(e -> downloadInvoicePdf(invoice));
+            return downloadButton;
+        }).setHeader("PDF").setAutoWidth(true).setFlexGrow(0);
+        
         grid.setWidthFull();
 
         // Load initial data
@@ -312,5 +327,17 @@ public class InvoiceView extends VerticalLayout {
         HorizontalLayout buttonLayout = new HorizontalLayout(saveButton, cancelButton);
         dialog.add(formLayout, buttonLayout);
         dialog.open();
+    }
+
+    private void downloadInvoicePdf(Invoice invoice) {
+        try {
+            // Simple approach: open the API endpoint directly
+            String url = "/api/invoice/" + invoice.getId() + "/pdf";
+            logger.info("Opening PDF download URL: {}", url);
+            com.vaadin.flow.component.UI.getCurrent().getPage().open(url);
+        } catch (Exception e) {
+            logger.error("Error initiating PDF download", e);
+            Notification.show("Fehler beim Download: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
+        }
     }
 }
