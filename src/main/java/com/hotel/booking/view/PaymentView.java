@@ -15,7 +15,6 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.data.renderer.LocalDateTimeRenderer;
 
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
@@ -72,7 +71,9 @@ public class PaymentView extends VerticalLayout {
         grid.addColumn(Payment::getMethod).setHeader("Methode").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.addColumn(Payment::getStatus).setHeader("Status").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.addColumn(Payment::getTransactionRef).setHeader("Transaktions-Ref").setSortable(true).setAutoWidth(true).setFlexGrow(1);
-        grid.addColumn(new LocalDateTimeRenderer<>(Payment::getPaidAt, germanFormatter))
+        grid.addColumn(payment -> payment.getPaidAt() != null 
+                ? payment.getPaidAt().format(germanFormatter) 
+                : "")
                 .setHeader("Bezahlt am").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.setMultiSort(true, MultiSortPriority.APPEND);
         grid.setWidthFull();

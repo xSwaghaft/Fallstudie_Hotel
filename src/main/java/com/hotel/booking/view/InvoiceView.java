@@ -20,7 +20,6 @@ import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
-import com.vaadin.flow.data.renderer.LocalDateTimeRenderer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
@@ -91,7 +90,9 @@ public class InvoiceView extends VerticalLayout {
         grid.addColumn(invoice -> invoice.getAmount()).setHeader("Betrag").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.addColumn(Invoice::getPaymentMethod).setHeader("Zahlungsart").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.addColumn(Invoice::getInvoiceStatus).setHeader("Status").setSortable(true).setAutoWidth(true).setFlexGrow(1);
-        grid.addColumn(new LocalDateTimeRenderer<>(Invoice::getIssuedAt, germanFormatter))
+        grid.addColumn(invoice -> invoice.getIssuedAt() != null 
+                ? invoice.getIssuedAt().format(germanFormatter) 
+                : "")
                 .setHeader("Ausgestellt am").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.setWidthFull();
 
