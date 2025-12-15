@@ -20,33 +20,36 @@ import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
-import com.vaadin.flow.data.converter.Converter;
-import com.vaadin.flow.router.*;
+import com.vaadin.flow.data.renderer.LocalDateTimeRenderer;
+import com.vaadin.flow.router.PageTitle;
+import com.vaadin.flow.router.Route;
 
 import java.math.BigDecimal;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
-// Uses InvoiceFDO for form binding
+/**
+ * Invoice View - Manage invoices (Receptionist and Manager only).
+ */
 @Route(value = "invoices", layout = MainLayout.class)
-@PageTitle("Invoice Management")
+@PageTitle("Invoices")
 @CssImport("./themes/hotel/styles.css")
-@CssImport("./themes/hotel/views/invoice.css")
-public class InvoiceView extends VerticalLayout implements BeforeEnterObserver {
+public class InvoiceView extends VerticalLayout {
 
     private final SessionService sessionService;
     private final InvoiceService invoiceService;
     private Grid<Invoice> grid;
 
-    // FDO for Invoice form - simple JavaBean for UI binding
+    // FDO for form binding
     public static class InvoiceFDO {
         private String invoiceNumber = "";
         private BigDecimal amount = BigDecimal.ZERO;
         private Invoice.PaymentMethod paymentMethod = Invoice.PaymentMethod.CARD;
         private Invoice.PaymentStatus status = Invoice.PaymentStatus.PENDING;
 
-        // Getters and setters
         public String getInvoiceNumber() { return invoiceNumber; }
         public void setInvoiceNumber(String invoiceNumber) { this.invoiceNumber = invoiceNumber; }
         public BigDecimal getAmount() { return amount; }
@@ -61,8 +64,17 @@ public class InvoiceView extends VerticalLayout implements BeforeEnterObserver {
         this.sessionService = sessionService;
         this.invoiceService = invoiceService;
 
-        //simple layout
-        VerticalLayout layout = new VerticalLayout();
+        setSpacing(true);
+        setPadding(true);
+        setWidthFull();
+        setHeight(null);
+
+        initializeUI();
+    }
+
+    private void initializeUI() {
+        add(new H1("Invoice Management"));
+        add(new Span("Manage and search invoices"));
 
         TextField searchField = new TextField("Search Invoices (Invoice Number)");
         Button searchButton = new Button("Search");
@@ -70,33 +82,33 @@ public class InvoiceView extends VerticalLayout implements BeforeEnterObserver {
 
         HorizontalLayout buttonLayout = new HorizontalLayout(searchButton, addButton);
 
-        //grid
+        // Grid setup
         grid = new Grid<>(Invoice.class, false);
-        grid.addColumn(Invoice::getId).setHeader("ID").setSortable(true);
-        grid.addColumn(Invoice::getInvoiceNumber).setHeader("Invoice Number").setSortable(true);
-        grid.addColumn(invoice -> invoice.getAmount()).setHeader("Amount").setSortable(true);
-        grid.addColumn(Invoice::getPaymentMethod).setHeader("Payment Method").setSortable(true);
-        grid.addColumn(Invoice::getInvoiceStatus).setHeader("Status").setSortable(true);
-        grid.addColumn(Invoice::getIssuedAt).setHeader("Issued At").setSortable(true);
+        DateTimeFormatter germanFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm").withLocale(Locale.GERMANY);
+        
+        grid.addColumn(Invoice::getId).setHeader("ID").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(Invoice::getInvoiceNumber).setHeader("Rechnungs-Nr.").setSortable(true).setAutoWidth(true).setFlexGrow(1);
+        grid.addColumn(invoice -> invoice.getAmount()).setHeader("Betrag").setSortable(true).setAutoWidth(true).setFlexGrow(1);
+        grid.addColumn(Invoice::getPaymentMethod).setHeader("Zahlungsart").setSortable(true).setAutoWidth(true).setFlexGrow(1);
+        grid.addColumn(Invoice::getInvoiceStatus).setHeader("Status").setSortable(true).setAutoWidth(true).setFlexGrow(1);
+        grid.addColumn(new LocalDateTimeRenderer<>(Invoice::getIssuedAt, germanFormatter))
+                .setHeader("Ausgestellt am").setSortable(true).setAutoWidth(true).setFlexGrow(1);
+        grid.setWidthFull();
 
-        // Load initial data (all invoices)
+        // Load initial data
         loadInvoices("");
 
-        // Search button click
+        // Search button
         searchButton.addClickListener(e -> {
             String query = searchField.getValue();
             loadInvoices(query);
         });
         searchButton.addClickShortcut(Key.ENTER);
 
-        // Add button click
+        // Add button
         addButton.addClickListener(e -> openAddInvoiceDialog());
 
-        layout.add(searchField, buttonLayout, grid);
-        var link = new RouterLink("Home", MainLayout.class);
-        add(link, layout);
-
-        add(new H1("Invoice Management"), new Span("Manage and search invoices"));
+        add(searchField, buttonLayout, grid);
     }
 
     // Simple search method
@@ -201,12 +213,5 @@ public class InvoiceView extends VerticalLayout implements BeforeEnterObserver {
         HorizontalLayout buttonLayout = new HorizontalLayout(saveButton, cancelButton);
         dialog.add(formLayout, buttonLayout);
         dialog.open();
-    }
-
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        if (!sessionService.isLoggedIn() || !sessionService.hasAnyRole(UserRole.RECEPTIONIST, UserRole.MANAGER)) {
-            event.rerouteTo(LoginView.class);
-        }
     }
 }
