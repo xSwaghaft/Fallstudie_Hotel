@@ -1,10 +1,12 @@
 package com.hotel.booking.view;
 
 import com.hotel.booking.entity.Booking;
+import com.hotel.booking.entity.BookingStatus;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.BookingFormService;
 import com.hotel.booking.service.BookingService;
+import com.hotel.booking.service.RoomCategoryService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.datepicker.DatePicker;
@@ -25,6 +27,8 @@ import com.vaadin.flow.router.*;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 //Matthias Lohr
 @Route(value = "bookings", layout = MainLayout.class)
@@ -39,9 +43,16 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
 
     private static final DateTimeFormatter GERMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
-    Grid<Booking> grid = new Grid<>(Booking.class, false);
+    private final Grid<Booking> grid = new Grid<>(Booking.class, false);
+    private final List<Booking> bookings = new ArrayList<>();
+    private TextField searchField;
+    private Select<String> statusFilter;
+    private DatePicker dateFilter;
+    private Select<String> categoryFilter;
+    private List<String> categoryNames;
+    private final String ALL_STATUS = "All Status";
 
-    public BookingManagementView(SessionService sessionService, BookingService bookingService, BookingFormService formService) {
+    public BookingManagementView(SessionService sessionService, BookingService bookingService, RoomCategoryService roomCategoryService, BookingFormService formService) {
         this.sessionService = sessionService;
         this.bookingService = bookingService;
         this.formService = formService;
@@ -49,6 +60,12 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         setSpacing(true);
         setPadding(true);
         setSizeFull();
+
+        bookings.addAll(bookingService.findAll());
+
+        categoryNames = new ArrayList<>();
+        categoryNames.add("All Rooms");
+        roomCategoryService.getAllRoomCategories().forEach(cat -> categoryNames.add(cat.getName()));
 
         add(createHeader(), createFilters(), createBookingsCard());
     }
@@ -106,110 +123,93 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
     private Component createFilters() {
         Div card = new Div();
         card.addClassName("card");
-        card.setWidthFull(); // WICHTIG: Card nutzt volle Breite
-        
+        card.setWidthFull();
         H3 title = new H3("Search & Filter");
         title.addClassName("booking-section-title");
-        
         Paragraph subtitle = new Paragraph("Find specific bookings quickly");
         subtitle.addClassName("booking-subtitle");
 
-        TextField search = new TextField("Search");
-        search.setPlaceholder("Booking ID, Guest name...");
-        search.setPrefixComponent(VaadinIcon.SEARCH.create());
+        searchField = new TextField("Search");
+        searchField.setPlaceholder("Booking ID, Guest name...");
+        searchField.setPrefixComponent(VaadinIcon.SEARCH.create());
+        searchField.addValueChangeListener(e -> filterBookings());
 
-        Select<String> status = new Select<>();
-        status.setLabel("Status");
-        status.setItems("All Status", "confirmed", "pending", "checked-in", "checked-out", "cancelled");
-        status.setValue("All Status");
+        statusFilter = new Select<>();
+        statusFilter.setLabel("Status");
+        List<String> statusOptions = new ArrayList<>();
+        statusOptions.add(ALL_STATUS);
+        for (BookingStatus s : BookingStatus.values()) {
+            statusOptions.add(s.name());
+        }
+        statusFilter.setItems(statusOptions);
+        statusFilter.setValue(ALL_STATUS);
+        statusFilter.addValueChangeListener(e -> filterBookings());
 
-        DatePicker date = new DatePicker("Date");
-        date.setValue(LocalDate.of(2025, 11, 1));
+        dateFilter = new DatePicker("Date");
+        dateFilter.setClearButtonVisible(true);
+        dateFilter.addValueChangeListener(e -> filterBookings());
 
-        Select<String> roomType = new Select<>();
-        roomType.setLabel("Room Type");
-        roomType.setItems("All Rooms", "Standard", "Deluxe", "Suite");
-        roomType.setValue("All Rooms");
+        categoryFilter = new Select<>();
+        categoryFilter.setLabel("Category");
+        categoryFilter.setItems(categoryNames);
+        categoryFilter.setValue("All Rooms");
+        categoryFilter.addValueChangeListener(e -> filterBookings());
 
-        FormLayout form = new FormLayout(search, status, date, roomType);
+        FormLayout form = new FormLayout(searchField, statusFilter, dateFilter, categoryFilter);
         form.setResponsiveSteps(
                 new FormLayout.ResponsiveStep("0", 1),
                 new FormLayout.ResponsiveStep("600px", 2),
                 new FormLayout.ResponsiveStep("900px", 4)
         );
-
         card.add(title, subtitle, form);
         return card;
     }
 
-    //Matthias Lohr
     private Component createBookingsCard() {
         Div card = new Div();
         card.addClassName("card");
         card.setWidthFull();
-        
         H3 title = new H3("All Bookings");
         title.addClassName("booking-section-title");
-
-        Grid<Booking> grid = new Grid<>(Booking.class, false);
-        
+        grid.removeAllColumns();
         grid.addColumn(Booking::getBookingNumber)
             .setHeader("Booking ID")
             .setWidth("130px")
             .setFlexGrow(0);
-        
         grid.addColumn(Booking::getAmount)
             .setHeader("People")
             .setAutoWidth(true)
             .setFlexGrow(2);
-        
         grid.addColumn(booking -> booking.getRoom().getRoomNumber())
             .setHeader("Room")
             .setAutoWidth(true)
             .setFlexGrow(2);
-
         grid.addColumn(booking -> booking.getGuest().getFullName())
             .setHeader("Guest Name")
             .setAutoWidth(true)
             .setFlexGrow(1);
-        
-        // Check-in mit deutschem Datumsformat
         grid.addColumn(booking -> booking.getCheckInDate().format(GERMAN_DATE_FORMAT))
             .setHeader("Check-in Date")
             .setWidth("140px")
             .setFlexGrow(0);
-        
-        // Check-out mit deutschem Datumsformat
         grid.addColumn(booking -> booking.getCheckOutDate().format(GERMAN_DATE_FORMAT))
             .setHeader("Check-out")
             .setAutoWidth(true)
             .setFlexGrow(0);
-        
-        // Amount in Euro
         grid.addColumn(booking -> "€" + booking.getTotalPrice())
             .setHeader("Amount")
             .setAutoWidth(true)
             .setFlexGrow(0);
-        
         grid.addComponentColumn(this::createStatusBadge)
             .setHeader("Status")
             .setAutoWidth(true)
             .setFlexGrow(0);
-        
-        // grid.addComponentColumn(this::createPaymentBadge)
-        //     .setHeader("Payment")
-        //     .setAutoWidth(true)
-        //     .setFlexGrow(0);
-        
         grid.addComponentColumn(this::createActionButtons)
             .setHeader("Actions")
             .setAutoWidth(true)
             .setFlexGrow(0);
-
-        grid.setItems(bookingService.findAll());
-        // grid.setAllRowsVisible(true);
+        grid.setItems(bookings);
         grid.setWidthFull();
-
         card.add(title, grid);
         return card;
     }
@@ -285,6 +285,33 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         d.add(new VerticalLayout(tabs, pages));
         d.getFooter().add(new HorizontalLayout(edit, cancel));
         d.open();
+    }
+
+    // Filtert die Buchungen nach den gesetzten Filtern
+    private void filterBookings() {
+        String search = searchField.getValue() != null ? searchField.getValue().trim().toLowerCase() : "";
+        String selectedStatus = statusFilter.getValue();
+        LocalDate date = dateFilter.getValue();
+        String selectedCategory = categoryFilter.getValue();
+        List<Booking> filtered = bookings.stream()
+            .filter(b -> {
+                boolean matchesSearch = search.isEmpty()
+                    || (b.getBookingNumber() != null && b.getBookingNumber().toLowerCase().contains(search))
+                    || (b.getGuest() != null && b.getGuest().getFullName().toLowerCase().contains(search));
+
+                boolean matchesStatus = ALL_STATUS.equals(selectedStatus)
+                    || (b.getStatus() != null && b.getStatus().name().equals(selectedStatus));
+
+                boolean matchesDate = date == null
+                    || (b.getCreatedAt() != null && b.getCreatedAt().isAfter(date));
+
+                boolean matchesCategory = "All Rooms".equals(selectedCategory)
+                    || (b.getRoomCategory() != null && b.getRoomCategory().getName().equalsIgnoreCase(selectedCategory));
+
+                return matchesSearch && matchesStatus && matchesDate && matchesCategory;
+            })
+            .toList();
+        grid.setItems(filtered);
     }
 
     @Override
