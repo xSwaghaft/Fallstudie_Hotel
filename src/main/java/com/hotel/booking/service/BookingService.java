@@ -52,6 +52,20 @@ public class BookingService {
         return bookingRepository.findByBookingNumber(bookingNumber);
     }
 
+    // Durchschnittliches Rating für eine Kategorie (0, wenn keine Bewertungen)
+    public double getAverageRatingForCategory(RoomCategory category) {
+        if (category == null || category.getCategory_id() == null) {
+            return 0d;
+        }
+        return bookingRepository.findByRoomCategoryId(category.getCategory_id())
+                .stream()
+                .map(Booking::getFeedback)
+                .filter(f -> f != null && f.getRating() != null)
+                .mapToInt(f -> f.getRating())
+                .average()
+                .orElse(0d);
+    }
+
     
     //Matthias Lohr
     public Booking save(Booking booking) {
