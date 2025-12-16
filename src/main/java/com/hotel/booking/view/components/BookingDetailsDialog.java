@@ -6,7 +6,6 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 import com.hotel.booking.entity.Booking;
-import com.hotel.booking.entity.BookingExtra;
 import com.hotel.booking.entity.Invoice;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dialog.Dialog;
