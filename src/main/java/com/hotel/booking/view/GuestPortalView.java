@@ -9,6 +9,7 @@ import java.util.stream.Stream;
 
 import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.Payment;
+import com.hotel.booking.entity.Invoice;
 import com.hotel.booking.entity.RoomCategory;
 import com.hotel.booking.entity.User;
 import com.hotel.booking.entity.UserRole;
@@ -275,12 +276,12 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
                 // Create and save Payment entity with PAID status
                 Payment payment = new Payment();
                 payment.setAmount(booking.getTotalPrice());
-                payment.setStatus(Payment.PaymentStatus.PAID);
+                payment.setStatus(Invoice.PaymentStatus.PAID);
                 payment.setPaidAt(LocalDateTime.now());
                 
-                // Map UI payment method to Payment.PaymentMethod enum
+                // Map UI payment method to PaymentMethod enum
                 String uiMethod = paymentDialog.getSelectedPaymentMethod();
-                Payment.PaymentMethod paymentMethod = mapPaymentMethod(uiMethod);
+                Invoice.PaymentMethod paymentMethod = mapPaymentMethod(uiMethod);
                 payment.setMethod(paymentMethod);
                 
                 // Associate payment with booking
@@ -299,12 +300,12 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
                 // Create and save Payment entity with PENDING status
                 Payment payment = new Payment();
                 payment.setAmount(booking.getTotalPrice());
-                payment.setStatus(Payment.PaymentStatus.PENDING);
+                payment.setStatus(Invoice.PaymentStatus.PENDING);
                 payment.setPaidAt(null); // Not paid yet
                 
-                // Map UI payment method to Payment.PaymentMethod enum
+                // Map UI payment method to PaymentMethod enum
                 String uiMethod = paymentDialog.getSelectedPaymentMethod();
-                Payment.PaymentMethod paymentMethod = mapPaymentMethod(uiMethod);
+                Invoice.PaymentMethod paymentMethod = mapPaymentMethod(uiMethod);
                 payment.setMethod(paymentMethod);
                 
                 // Associate payment with booking
@@ -327,13 +328,13 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
     }
     
     /**
-     * Maps UI payment method string to Payment.PaymentMethod enum
+     * Maps UI payment method string to PaymentMethod enum
      */
-    private Payment.PaymentMethod mapPaymentMethod(String uiMethod) {
-        if ("Bank Transfer".equals(uiMethod)) {
-            return Payment.PaymentMethod.TRANSFER;
+    private Invoice.PaymentMethod mapPaymentMethod(String uiMethod) {
+        if ("Banküberweisung".equals(uiMethod)) {
+            return Invoice.PaymentMethod.TRANSFER;
         }
-        return Payment.PaymentMethod.CARD;
+        return Invoice.PaymentMethod.CARD;
     }
 
     @Override

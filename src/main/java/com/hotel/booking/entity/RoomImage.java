@@ -24,14 +24,11 @@ public class RoomImage implements Serializable {
     @Column(name = "title", length = 255)
     private String title;
 
-    @Column(name = "display_order", nullable = false)
-    private Integer displayOrder = 0;
-
     @Column(name = "is_primary", nullable = false)
     private Boolean isPrimary = false;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id", nullable = false, 
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "category_id", nullable = true,
                 foreignKey = @ForeignKey(name = "fk_room_image_category"))
     @JsonBackReference
     private RoomCategory category;
@@ -39,19 +36,21 @@ public class RoomImage implements Serializable {
     protected RoomImage() {
     }
 
+    // Public no-arg constructor for form creation
+    public RoomImage(RoomImage dummy) {
+    }
+
     public RoomImage(String imagePath, RoomCategory category) {
         this.imagePath = imagePath;
         this.category = category;
-        this.displayOrder = 0;
         this.isPrimary = false;
     }
 
-    public RoomImage(String imagePath, String altText, String title, 
-                    Integer displayOrder, Boolean isPrimary, RoomCategory category) {
+    public RoomImage(String imagePath, String altText, String title,
+                    Boolean isPrimary, RoomCategory category) {
         this.imagePath = imagePath;
         this.altText = altText;
         this.title = title;
-        this.displayOrder = displayOrder != null ? displayOrder : 0;
         this.isPrimary = isPrimary != null ? isPrimary : false;
         this.category = category;
     }
@@ -87,20 +86,12 @@ public class RoomImage implements Serializable {
         this.title = title;
     }
 
-    public Integer getDisplayOrder() {
-        return displayOrder;
-    }
-
-    public void setDisplayOrder(Integer displayOrder) {
-        this.displayOrder = displayOrder;
-    }
-
     public Boolean getIsPrimary() {
         return isPrimary;
     }
 
     public void setIsPrimary(Boolean isPrimary) {
-        this.isPrimary = isPrimary;
+        this.isPrimary = isPrimary != null ? isPrimary : false;
     }
 
     public RoomCategory getCategory() {
@@ -116,7 +107,6 @@ public class RoomImage implements Serializable {
         return "RoomImage{" +
                 "id=" + id +
                 ", imagePath='" + imagePath + '\'' +
-                ", displayOrder=" + displayOrder +
                 ", isPrimary=" + isPrimary +
                 '}';
     }

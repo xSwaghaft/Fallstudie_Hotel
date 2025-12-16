@@ -7,6 +7,7 @@ import com.hotel.booking.service.BookingFormService;
 import com.hotel.booking.service.BookingService;
 import com.hotel.booking.service.RoomService;
 import com.hotel.booking.service.RoomService.RoomStatistics;
+import com.hotel.booking.view.components.CardFactory;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -14,7 +15,6 @@ import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.*;
-import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.*;
@@ -138,50 +138,27 @@ public class DashboardView extends VerticalLayout implements BeforeEnterObserver
         row.setWidthFull();
         row.setSpacing(true);
 
+        //Static-Methoden der CardFactory werden auf der Klasse selbst aufgerufen
         if (role == UserRole.RECEPTIONIST) {
-            Div card1 = createKpiCard("Check-ins Today", String.valueOf(checkinsToday), VaadinIcon.USERS);
-            Div card2 = createKpiCard("Check-outs Today", String.valueOf(checkoutsToday), VaadinIcon.USERS);
-            Div card3 = createKpiCard("Occupied Rooms", String.valueOf(stats.getOccupiedRooms()), VaadinIcon.BED);
-            Div card4 = createKpiCard("Pending Invoices", "12", VaadinIcon.FILE_TEXT);
+            Div card1 = CardFactory.createStatCard("Check-ins Today", String.valueOf(checkinsToday), VaadinIcon.USERS);
+            Div card2 = CardFactory.createStatCard("Check-outs Today", String.valueOf(checkoutsToday), VaadinIcon.USERS);
+            Div card3 = CardFactory.createStatCard("Occupied Rooms", String.valueOf(stats.getOccupiedRooms()), VaadinIcon.BED);
+            Div card4 = CardFactory.createStatCard("Pending Invoices", "12", VaadinIcon.FILE_TEXT);
             
             row.add(card1, card2, card3, card4);
             // Alle Karten gleichmäßig expandieren
             row.expand(card1, card2, card3, card4);
         } else if (role == UserRole.MANAGER) {
-            Div card1 = createKpiCard("Occupied Rooms", String.valueOf(stats.getOccupiedRooms()), VaadinIcon.BED);
-            Div card2 = createKpiCard("Available Rooms", String.valueOf(stats.getAvailableRooms()), VaadinIcon.BED);
-            Div card3 = createKpiCard("Revenue Today", "€8.450", VaadinIcon.DOLLAR);
-            Div card4 = createKpiCard("Current Guests", String.valueOf(currentGuests), VaadinIcon.USERS);
+            Div card1 = CardFactory.createStatCard("Occupied Rooms", String.valueOf(stats.getOccupiedRooms()), VaadinIcon.BED);
+            Div card2 = CardFactory.createStatCard("Available Rooms", String.valueOf(stats.getAvailableRooms()), VaadinIcon.BED);
+            Div card3 = CardFactory.createStatCard("Revenue Today", "€8.450", VaadinIcon.DOLLAR);
+            Div card4 = CardFactory.createStatCard("Current Guests", String.valueOf(currentGuests), VaadinIcon.USERS);
             
             row.add(card1, card2, card3, card4);
             row.expand(card1, card2, card3, card4);
         }
 
         return row;
-    }
-
-    private Div createKpiCard(String title, String value, VaadinIcon iconType) {
-        Div card = new Div();
-        card.addClassName("kpi-card");
-        
-        // Header with title and icon
-        Span titleSpan = new Span(title);
-        titleSpan.addClassName("kpi-card-title");
-        
-        Icon icon = iconType.create();
-        icon.addClassName("kpi-card-icon");
-        
-        HorizontalLayout cardHeader = new HorizontalLayout(titleSpan, icon);
-        cardHeader.setWidthFull();
-        cardHeader.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-        cardHeader.setAlignItems(FlexComponent.Alignment.CENTER);
-        cardHeader.addClassName("kpi-card-header");
-        
-        // Value
-        H2 valueHeading = new H2(value);
-        
-        card.add(cardHeader, valueHeading);
-        return card;
     }
 
     private Component createRecentBookingsCard() {

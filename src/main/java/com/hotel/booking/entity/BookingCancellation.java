@@ -27,6 +27,10 @@ public class BookingCancellation {
     @Column(name = "refunded_amount", precision = 10, scale = 2)
     private BigDecimal refundedAmount;
 
+    /** Optional: berechnete Stornogebühr (50% Regel etc.) */
+    @Column(name = "cancellation_fee", precision = 10, scale = 2)
+    private BigDecimal cancellationFee;
+
     @ManyToOne
     @JoinColumn(name = "handled_by")
     private User handledBy;
@@ -74,6 +78,14 @@ public class BookingCancellation {
         this.refundedAmount = refundedAmount;
     }
 
+    public BigDecimal getCancellationFee() {
+        return cancellationFee;
+    }
+
+    public void setCancellationFee(BigDecimal cancellationFee) {
+        this.cancellationFee = cancellationFee;
+    }
+
     public User getHandledBy() {
         return handledBy;
     }
@@ -103,6 +115,7 @@ public class BookingCancellation {
                 ", cancelledAt=" + cancelledAt +
                 ", reason='" + reason + '\'' +
                 ", refundedAmount=" + refundedAmount +
+                ", cancellationFee=" + cancellationFee +
                 ", handledBy=" + (handledBy != null ? handledBy.getId() : null) +
                 '}';
     }

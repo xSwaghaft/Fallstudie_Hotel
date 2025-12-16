@@ -3,7 +3,6 @@ package com.hotel.booking.service;
 import com.hotel.booking.entity.Invoice;
 import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.User;
-import com.hotel.booking.entity.Invoice.PaymentStatus;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
@@ -94,7 +93,7 @@ public class InvoicePdfService {
             
             // ===== PAYMENT STATUS & DEADLINE =====
             document.add(new Paragraph("ZAHLUNGSSTATUS").setFontSize(12).setBold());
-            boolean isPaid = invoice.getInvoiceStatus() == PaymentStatus.PAID;
+            boolean isPaid = invoice.getInvoiceStatus() == Invoice.PaymentStatus.PAID;
             
             if (isPaid) {
                 document.add(new Paragraph("Status: BEZAHLT").setFontSize(11));

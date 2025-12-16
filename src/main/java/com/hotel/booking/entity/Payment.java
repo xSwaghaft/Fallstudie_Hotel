@@ -39,15 +39,21 @@ public class Payment {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
     
+    /**
+     * Zahlungsmethode: CARD, CASH, INVOICE, TRANSFER
+     */
     @NotNull
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    private PaymentMethod method;
+    private Invoice.PaymentMethod method;
     
+    /**
+     * Zahlungsstatus: PENDING, PAID, FAILED, REFUNDED, PARTIAL
+     */
     @NotNull
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    private PaymentStatus status;
+    private Invoice.PaymentStatus status;
     
     //Referenz ID des Zahlungsanbieters
     @Size(max = 100)
@@ -67,13 +73,13 @@ public class Payment {
     
     // Default constructor
     public Payment() {
-        this.status = PaymentStatus.PENDING;
+        this.status = Invoice.PaymentStatus.PENDING;
     }
     
     // Constructor with parameters
-    public Payment(BigDecimal amount, PaymentMethod method) {
+    public Payment(BigDecimal amount, Invoice.PaymentMethod method) {
         this.method = method;
-        this.status = PaymentStatus.PENDING;
+        this.status = Invoice.PaymentStatus.PENDING;
         setAmount(amount);
     }
     
@@ -112,19 +118,19 @@ public class Payment {
         return Objects.hash(id);
     }
     
-    public PaymentMethod getMethod() {
+    public Invoice.PaymentMethod getMethod() {
         return method;
     }
     
-    public void setMethod(PaymentMethod method) {
+    public void setMethod(Invoice.PaymentMethod method) {
         this.method = method;
     }
     
-    public PaymentStatus getStatus() {
+    public Invoice.PaymentStatus getStatus() {
         return status;
     }
     
-    public void setStatus(PaymentStatus status) {
+    public void setStatus(Invoice.PaymentStatus status) {
         this.status = status;
     }
     
@@ -166,22 +172,5 @@ public class Payment {
                 ", paidAt=" + paidAt +
                 ", bookingId=" + booking +
                 '}';
-    }
-    
-    // Enums
-    public enum PaymentMethod {
-        CARD,
-        CASH,
-        ONLINE,
-        INVOICE,
-        TRANSFER
-    }
-    
-    public enum PaymentStatus {
-        PENDING,
-        PAID,
-        FAILED,
-        REFUNDED,
-        PARTIAL
     }
 }

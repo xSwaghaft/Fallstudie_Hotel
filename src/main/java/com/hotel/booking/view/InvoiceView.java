@@ -1,6 +1,7 @@
 package com.hotel.booking.view;
 
 import com.hotel.booking.entity.Invoice;
+import com.hotel.booking.entity.Invoice;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.InvoiceService;
@@ -117,12 +118,12 @@ public class InvoiceView extends VerticalLayout {
 
         Select<String> status = new Select<>();
         status.setLabel("Status");
-        status.setItems("All Status", "PENDING", "PAID", "OVERDUE", "CANCELLED");
+        status.setItems("All Status", "PENDING", "PAID", "FAILED", "REFUNDED", "PARTIAL");
         status.setValue("All Status");
 
         Select<String> method = new Select<>();
         method.setLabel("Payment Method");
-        method.setItems("All Methods", "CARD", "BANK_TRANSFER", "CASH");
+        method.setItems("All Methods", "CARD", "TRANSFER", "CASH", "INVOICE");
         method.setValue("All Methods");
 
         DatePicker date = new DatePicker("Date (optional)");

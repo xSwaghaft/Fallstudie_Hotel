@@ -46,6 +46,12 @@ public class RoomCategoryService {
         this.bookingRepository = bookingRepository;
     }
 
+    // ==================== GETTER FOR REPOSITORIES ====================
+
+    public RoomImageRepository getRoomImageRepository() {
+        return roomImageRepository;
+    }
+
     // ==================== CRUD-Operationen ====================
 
     /* Gibt alle Room Categories zurück */
@@ -347,8 +353,12 @@ public class RoomCategoryService {
         if (room == null || room.getCategory() == null) {
             return List.of();
         }
+
+        if (room.getCategory().getCategory_id() == null) {
+            return List.of();
+        }
         
-        List<RoomImage> images = roomImageRepository.findByCategoryOrderByDisplayOrderAsc(room.getCategory());
+        List<RoomImage> images = roomImageRepository.findByCategoryIdOrderByPrimaryFirst(room.getCategory().getCategory_id());
         return images != null ? images : List.of();
     }
     
@@ -357,8 +367,12 @@ public class RoomCategoryService {
         if (category == null) {
             return List.of();
         }
+
+        if (category.getCategory_id() == null) {
+            return List.of();
+        }
         
-        List<RoomImage> images = roomImageRepository.findByCategoryOrderByDisplayOrderAsc(category);
+        List<RoomImage> images = roomImageRepository.findByCategoryIdOrderByPrimaryFirst(category.getCategory_id());
         return images != null ? images : List.of();
     }
 }

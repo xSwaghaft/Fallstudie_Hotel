@@ -1,0 +1,184 @@
+/* =========================================================
+   IMAGE MANAGEMENT VIEW
+   Styles für die Verwaltung von Bildern für Zimmerkategorien
+   ========================================================= */
+
+/* ==================== UPLOAD CARD ====================*/
+.image-upload-card {
+    background: var(--lumo-base-color);
+    border: 1px solid var(--lumo-contrast-20pct);
+    border-radius: var(--lumo-border-radius-m);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.image-upload-component {
+    border: 2px dashed var(--lumo-primary-color);
+    border-radius: var(--lumo-border-radius-m);
+    padding: var(--lumo-space-m);
+}
+
+.image-upload-component:hover {
+    background-color: var(--lumo-primary-color-10pct);
+}
+
+/* ==================== IMAGE GRID ====================*/
+.image-grid-thumbnail {
+    border-radius: var(--lumo-border-radius-s);
+    object-fit: cover;
+    border: 1px solid var(--lumo-contrast-10pct);
+    transition: transform 0.2s ease;
+}
+
+.image-grid-thumbnail:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.image-category-badge {
+    background-color: var(--lumo-primary-color-10pct);
+    color: var(--lumo-primary-color);
+    padding: 0.4rem 0.8rem;
+    border-radius: var(--lumo-border-radius-m);
+    font-size: var(--lumo-font-size-s);
+    font-weight: 600;
+}
+
+.unassigned-badge {
+    background-color: #FFC107;
+    color: #333;
+    padding: 0.4rem 0.8rem;
+    border-radius: var(--lumo-border-radius-m);
+    font-size: var(--lumo-font-size-s);
+    font-weight: 600;
+}
+
+.primary-badge {
+    background-color: #4CAF50;
+    color: white;
+    padding: 0.3rem 0.7rem;
+    border-radius: var(--lumo-border-radius-s);
+    font-size: var(--lumo-font-size-xs);
+    font-weight: 600;
+}
+
+.secondary-badge {
+    background-color: var(--lumo-contrast-20pct);
+    color: var(--lumo-secondary-text-color);
+    padding: 0.3rem 0.7rem;
+    border-radius: var(--lumo-border-radius-s);
+    font-size: var(--lumo-font-size-xs);
+    font-weight: 600;
+}
+
+/* ==================== IMAGE SELECTOR COMPONENT ====================*/
+.image-selector-preview {
+    border: 1px solid var(--lumo-contrast-20pct);
+    border-radius: var(--lumo-border-radius-m);
+    object-fit: cover;
+    display: block;
+    margin: 0 auto;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.image-selector-label {
+    font-weight: 600;
+    color: var(--lumo-primary-color);
+    margin: 0 0 var(--lumo-space-s) 0;
+    text-transform: uppercase;
+    font-size: var(--lumo-font-size-s);
+    letter-spacing: 0.05em;
+}
+
+/* ==================== CATEGORY IMAGES SECTION ====================*/
+.category-images-section {
+    border: 1px solid var(--lumo-contrast-20pct);
+    border-radius: var(--lumo-border-radius-m);
+    background-color: var(--lumo-contrast-5pct);
+}
+
+.category-images-preview {
+    gap: var(--lumo-space-s);
+    padding: 0;
+    margin: 0;
+}
+
+.image-preview-card {
+    position: relative;
+    border-radius: var(--lumo-border-radius-m);
+    border: 1px solid var(--lumo-contrast-20pct);
+    padding: var(--lumo-space-xs);
+    background-color: var(--lumo-base-color);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.image-preview-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.image-preview-thumbnail {
+    border-radius: var(--lumo-border-radius-s);
+    object-fit: cover;
+    border: 1px solid var(--lumo-contrast-10pct);
+}
+
+/* ==================== ACTION BUTTONS ====================*/
+.action-button {
+    padding: var(--lumo-space-s) var(--lumo-space-m);
+    font-size: var(--lumo-font-size-s);
+}
+
+.delete-btn {
+    color: var(--lumo-error-color);
+}
+
+.delete-btn:hover {
+    background-color: var(--lumo-error-color-10pct);
+}
+
+.confirm-delete-btn {
+    background: var(--lumo-error-color);
+    color: white;
+}
+
+.confirm-delete-btn:hover {
+    background: var(--lumo-error-color-50pct);
+}
+
+/* ==================== DIALOG ELEMENTS ====================*/
+.dialog-message {
+    margin: 0 !important;
+    line-height: 1.6;
+}
+
+/* ==================== UTILITY ====================*/
+.view-header {
+    margin-bottom: var(--lumo-space-m);
+}
+
+.view-header h1 {
+    margin: 0 0 var(--lumo-space-s) 0;
+    font-size: var(--lumo-font-size-xxxl);
+    font-weight: 600;
+}
+
+.view-header p {
+    margin: 0;
+    color: var(--lumo-secondary-text-color);
+}
+
+/* ==================== RESPONSIVE DESIGN ====================*/
+@media (max-width: 768px) {
+    .category-images-preview {
+        flex-direction: column;
+    }
+
+    .image-preview-card {
+        width: 100%;
+        max-width: 150px;
+    }
+
+    .image-upload-card {
+        padding: var(--lumo-space-s) !important;
+    }
+}
