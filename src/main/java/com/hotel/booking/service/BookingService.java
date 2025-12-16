@@ -30,9 +30,6 @@ public class BookingService {
     private final RoomRepository roomRepository;
     private final RoomCategoryRepository roomCategoryRepository;
     
-    
-
-
    
     public BookingService(BookingRepository bookingRepository, RoomRepository roomRepository, RoomCategoryRepository roomCategoryRepository) {
         this.bookingRepository = bookingRepository;
@@ -285,9 +282,6 @@ public class BookingService {
     return availableCategories;
 }
 
-
-    
-
     //In diesem Service, da die Methode so nur fürs Booking verwendet wird
     //Zählt alle Buchungen in einem Zeitraum - für den Report
     //Matthias Lohr
@@ -303,8 +297,6 @@ public class BookingService {
     }
 
    
-
-
     //Viktor Götting Sucht alle vergangenen CONFIRMED Buchungen für einen Gast
     public List<Booking> findPastBookingsForGuest(Long guestId) {
         if (guestId == null) {
