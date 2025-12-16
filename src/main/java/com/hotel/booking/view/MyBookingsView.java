@@ -2,6 +2,7 @@ package com.hotel.booking.view;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -9,11 +10,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.BookingStatus;
+import com.hotel.booking.entity.Payment;
 import com.hotel.booking.entity.User;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.BookingService;
+import com.hotel.booking.service.PaymentService;
 import com.hotel.booking.view.components.BookingDetailsDialog;
+import com.hotel.booking.view.components.PaymentDialog;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.Div;
@@ -21,6 +25,7 @@ import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.Tab;
@@ -30,6 +35,7 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouterLink;
+import com.vaadin.flow.component.UI;
 
 /**
  * View for guest bookings with tabs (Upcoming, Past, Cancelled).
@@ -55,6 +61,7 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
 
     private final SessionService sessionService;
     private final BookingService bookingService;
+    private final PaymentService paymentService;
 
     // =========================================================
     // UI COMPONENTS
@@ -69,9 +76,10 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
     // =========================================================
 
     @Autowired
-    public MyBookingsView(SessionService sessionService, BookingService bookingService) {
+    public MyBookingsView(SessionService sessionService, BookingService bookingService, PaymentService paymentService) {
         this.sessionService = sessionService;
         this.bookingService = bookingService;
+        this.paymentService = paymentService;
 
         configureLayout();
         initializeContent();
@@ -133,6 +141,14 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
         if (selectedTab == null) return;
 
         String tabLabel = selectedTab.getLabel();
+        
+        // IMPORTANT: Reload all bookings from database to get fresh payment data
+        User currentUser = sessionService.getCurrentUser();
+        if (currentUser != null) {
+            allBookings = bookingService.findAllBookingsForGuest(currentUser.getId());
+            allBookings.forEach(bookingService::calculateBookingPrice);
+        }
+        
         List<Booking> filteredBookings = filterBookingsByTabType(tabLabel);
 
         if (filteredBookings.isEmpty()) {
@@ -219,7 +235,7 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
 
         Div buttonsContainer = new Div();
         buttonsContainer.addClassName("booking-item-buttons");
-        buttonsContainer.add(createActionButtons(tabLabel));
+        buttonsContainer.add(createActionButtons(booking, tabLabel));
         card.add(clickableArea, buttonsContainer);
         return card;
     }
@@ -236,7 +252,7 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
         return badge;
     }
 
-    private HorizontalLayout createActionButtons(String tabLabel) {
+    private HorizontalLayout createActionButtons(Booking booking, String tabLabel) {
         HorizontalLayout buttonsLayout = new HorizontalLayout();
         buttonsLayout.setSpacing(true);
 
@@ -245,13 +261,120 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
             editBtn.addClassName("primary-button");
             Button cancelBtn = new Button("Cancel");
             cancelBtn.addClassName("secondary-button");
-            buttonsLayout.add(editBtn, cancelBtn);
+            
+            // Add Pay button if payment is pending
+            Button payBtn = createPayButtonIfNeeded(booking);
+            if (payBtn != null) {
+                buttonsLayout.add(payBtn, editBtn, cancelBtn);
+            } else {
+                buttonsLayout.add(editBtn, cancelBtn);
+            }
         } else if (TAB_PAST.equals(tabLabel)) {
             RouterLink reviewLink = new RouterLink("Write Review", MyReviewsView.class);
             reviewLink.addClassName("primary-button");
             buttonsLayout.add(reviewLink);
         }
         return buttonsLayout;
+    }
+    
+    /**
+     * Creates a "Pay" button if booking has a pending payment
+     */
+    private Button createPayButtonIfNeeded(Booking booking) {
+        // Check if booking has a pending payment
+        List<Payment> pendingPayments = paymentService.findByBookingId(booking.getId()).stream()
+                .filter(p -> p.getStatus() == Payment.PaymentStatus.PENDING)
+                .toList();
+        
+        if (pendingPayments.isEmpty()) {
+            return null; // No pending payment, no button needed
+        }
+        
+        Button payBtn = new Button("Pay Now", e -> openPaymentDialog(booking));
+        payBtn.addClassName("primary-button");
+        return payBtn;
+    }
+    
+    /**
+     * Opens payment dialog for the booking
+     */
+    private void openPaymentDialog(Booking booking) {
+        try {
+            if (booking.getTotalPrice() == null) {
+                Notification.show("Error: Total price is missing", 5000, Notification.Position.TOP_CENTER);
+                return;
+            }
+            
+            Long bookingId = booking.getId(); // Store booking ID
+            PaymentDialog paymentDialog = new PaymentDialog(booking.getTotalPrice());
+            
+            paymentDialog.setOnPaymentSuccess(() -> {
+                // Update existing PENDING payment to PAID
+                updatePendingPaymentToPaid(bookingId, paymentDialog.getSelectedPaymentMethod());
+                
+                Notification.show("Payment completed! Thank you.", 3000, Notification.Position.TOP_CENTER);
+                
+                // Refresh only the current tab content to update badge status
+                updateContent();
+            });
+            
+            paymentDialog.setOnPaymentDeferred(() -> {
+                System.out.println("DEBUG: Payment deferred!");
+                Notification.show("Payment postponed.", 3000, Notification.Position.TOP_CENTER);
+            });
+            
+            paymentDialog.open();
+        } catch (Exception ex) {
+            System.err.println("DEBUG: Error opening payment dialog: " + ex.getMessage());
+            ex.printStackTrace();
+            Notification.show("Error opening payment dialog", 5000, Notification.Position.TOP_CENTER);
+        }
+    }
+    
+    /**
+     * Updates the PENDING payment for a booking to PAID status
+     * and updates the booking status to CONFIRMED
+     */
+    private void updatePendingPaymentToPaid(Long bookingId, String selectedMethod) {
+        try {
+            // Update payment status
+            List<Payment> payments = paymentService.findByBookingId(bookingId);
+            
+            for (Payment p : payments) {
+                if (p.getStatus() == Payment.PaymentStatus.PENDING) {
+                    p.setStatus(Payment.PaymentStatus.PAID);
+                    p.setPaidAt(LocalDateTime.now());
+                    p.setMethod(mapPaymentMethod(selectedMethod));
+                    paymentService.save(p);
+                    System.out.println("DEBUG: Updated payment " + p.getId() + " to PAID");
+                    break;
+                }
+            }
+            
+            // Load booking fresh from database and update status to CONFIRMED
+            var bookingOpt = bookingService.findById(bookingId);
+            if (bookingOpt.isPresent()) {
+                Booking booking = bookingOpt.get();
+                if (booking.getStatus() == BookingStatus.PENDING) {
+                    booking.setStatus(BookingStatus.CONFIRMED);
+                    bookingService.save(booking);
+                    System.out.println("DEBUG: Updated booking " + booking.getId() + " status to CONFIRMED");
+                }
+            }
+        } catch (Exception ex) {
+            System.err.println("DEBUG: Error updating payment/booking: " + ex.getMessage());
+            ex.printStackTrace();
+        }
+    }
+    
+    /**
+     * Maps UI payment method string to Payment.PaymentMethod enum
+     */
+    private Payment.PaymentMethod mapPaymentMethod(String uiMethod) {
+        if ("Bank Transfer".equals(uiMethod)) {
+            return Payment.PaymentMethod.TRANSFER;
+        }
+        return Payment.PaymentMethod.CARD;
     }
 
     private Div createDetailItem(String label, String value) {

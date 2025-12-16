@@ -1,19 +1,24 @@
 package com.hotel.booking.view;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 
 import com.hotel.booking.entity.Booking;
+import com.hotel.booking.entity.Payment;
 import com.hotel.booking.entity.RoomCategory;
 import com.hotel.booking.entity.User;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.BookingFormService;
 import com.hotel.booking.service.BookingService;
+import com.hotel.booking.service.PaymentService;
 import com.hotel.booking.service.RoomCategoryService;
 import com.hotel.booking.view.components.RoomGrid;
+import com.hotel.booking.view.components.PaymentDialog;
 
 import com.vaadin.flow.component.HasSize;
 import com.vaadin.flow.component.button.Button;
@@ -49,6 +54,7 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
     private final BookingService bookingService;
     private final RoomCategoryService roomCategoryService;
     private final BookingFormService bookingFormService;
+    private final PaymentService paymentService;
     
     // UI Components
     private final RoomGrid roomGrid;
@@ -60,12 +66,14 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
     public GuestPortalView(SessionService sessionService,
                            BookingService bookingService,
                            RoomCategoryService roomCategoryService,
-                           BookingFormService bookingFormService) {
+                           BookingFormService bookingFormService,
+                           PaymentService paymentService) {
 
         this.sessionService = sessionService;
         this.bookingService = bookingService;
         this.roomCategoryService = roomCategoryService;
         this.bookingFormService = bookingFormService;
+        this.paymentService = paymentService;
         this.roomGrid = new RoomGrid();
 
         // Configure layout
@@ -208,9 +216,23 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
             try {
                 bookingForm.writeBean();
                 Booking booking = bookingForm.getBooking();
+                System.out.println("DEBUG: Booking created: " + booking);
+                
                 bookingService.save(booking);
+                
+                // Calculate total price AFTER booking is saved
+                bookingService.calculateBookingPrice(booking);
+                System.out.println("DEBUG: Calculated Total Price: " + booking.getTotalPrice());
+                
                 Notification.show("Booking successful!");
                 dialog.close();
+                
+                // Open payment dialog after successful booking
+                if (booking != null && booking.getTotalPrice() != null && booking.getTotalPrice().compareTo(BigDecimal.ZERO) > 0) {
+                    openPaymentDialog(booking);
+                } else {
+                    Notification.show("Error: Could not process payment. Missing booking data.", 5000, Notification.Position.TOP_CENTER);
+                }
             } catch (ValidationException ex) {
                 Notification.show("Please check your inputs.");
             }
@@ -231,6 +253,87 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
             layout.setFlexGrow(1, field);
             field.setWidthFull();
         }
+    }
+
+    /**
+     * Opens payment dialog for the booking.
+     */
+    private void openPaymentDialog(Booking booking) {
+        try {
+            System.out.println("DEBUG: Opening payment dialog for booking: " + booking.getId());
+            System.out.println("DEBUG: Total price: " + booking.getTotalPrice());
+            
+            if (booking.getTotalPrice() == null) {
+                Notification.show("Error: Total price is missing", 5000, Notification.Position.TOP_CENTER);
+                return;
+            }
+            
+            PaymentDialog paymentDialog = new PaymentDialog(booking.getTotalPrice());
+            paymentDialog.setOnPaymentSuccess(() -> {
+                System.out.println("DEBUG: Payment successful!");
+                
+                // Create and save Payment entity with PAID status
+                Payment payment = new Payment();
+                payment.setAmount(booking.getTotalPrice());
+                payment.setStatus(Payment.PaymentStatus.PAID);
+                payment.setPaidAt(LocalDateTime.now());
+                
+                // Map UI payment method to Payment.PaymentMethod enum
+                String uiMethod = paymentDialog.getSelectedPaymentMethod();
+                Payment.PaymentMethod paymentMethod = mapPaymentMethod(uiMethod);
+                payment.setMethod(paymentMethod);
+                
+                // Associate payment with booking
+                payment.setBooking(booking);
+                
+                // Save payment
+                paymentService.save(payment);
+                System.out.println("DEBUG: Payment saved: " + payment.getId());
+                
+                Notification.show("Payment completed! Booking confirmed.", 3000, Notification.Position.TOP_CENTER);
+            });
+            
+            paymentDialog.setOnPaymentDeferred(() -> {
+                System.out.println("DEBUG: Payment deferred!");
+                
+                // Create and save Payment entity with PENDING status
+                Payment payment = new Payment();
+                payment.setAmount(booking.getTotalPrice());
+                payment.setStatus(Payment.PaymentStatus.PENDING);
+                payment.setPaidAt(null); // Not paid yet
+                
+                // Map UI payment method to Payment.PaymentMethod enum
+                String uiMethod = paymentDialog.getSelectedPaymentMethod();
+                Payment.PaymentMethod paymentMethod = mapPaymentMethod(uiMethod);
+                payment.setMethod(paymentMethod);
+                
+                // Associate payment with booking
+                payment.setBooking(booking);
+                
+                // Save payment with PENDING status
+                paymentService.save(payment);
+                System.out.println("DEBUG: Deferred payment saved with PENDING status: " + payment.getId());
+            });
+            
+            System.out.println("DEBUG: About to open payment dialog");
+            paymentDialog.open();
+            System.out.println("DEBUG: Payment dialog opened");
+            
+        } catch (Exception ex) {
+            System.err.println("DEBUG: Error opening payment dialog: " + ex.getMessage());
+            ex.printStackTrace();
+            Notification.show("Error opening payment dialog: " + ex.getMessage(), 5000, Notification.Position.TOP_CENTER);
+        }
+    }
+    
+    /**
+     * Maps UI payment method string to Payment.PaymentMethod enum
+     */
+    private Payment.PaymentMethod mapPaymentMethod(String uiMethod) {
+        if ("Bank Transfer".equals(uiMethod)) {
+            return Payment.PaymentMethod.TRANSFER;
+        }
+        return Payment.PaymentMethod.CARD;
     }
 
     @Override
