@@ -1,0 +1,6 @@
+/* Compatibility shim: main guest styles for the Guest views.
+   This file exists so that @CssImport("./themes/hotel/guest.css") resolves.
+   It re-uses the more specific styles in the views/ folder. */
+
+@import "./views/guest-portal.css";
+@import "./views/my-bookings.css";
