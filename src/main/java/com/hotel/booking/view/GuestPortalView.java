@@ -14,7 +14,6 @@ import com.hotel.booking.service.BookingFormService;
 import com.hotel.booking.service.BookingService;
 import com.hotel.booking.service.RoomCategoryService;
 import com.hotel.booking.view.components.RoomGrid;
-import com.hotel.booking.view.createNewBookingForm;
 
 import com.vaadin.flow.component.HasSize;
 import com.vaadin.flow.component.button.Button;
@@ -162,6 +161,10 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
         Integer finalOccupancy = guestsValue.intValue();
         
         roomGrid.setCategories(categories, card -> {
+            double avg = bookingService.getAverageRatingForCategory(card.getCategory());
+            if (avg > 0d) {
+                card.setAverageRating(avg);
+            }
             Button bookBtn = new Button("Book");
             bookBtn.addClickListener(e -> openCategoryBookingDialog(
                 card.getCategory(), finalCheckIn, finalCheckOut, finalOccupancy));
