@@ -35,6 +35,16 @@ public class BookingCancellationService {
         return cancellationRepository.findAll();
     }
 
+    // Speichert einen BookingCancellation-Eintrag
+    public BookingCancellation save(BookingCancellation cancellation) {
+        return cancellationRepository.save(cancellation);
+    }
+
+    // Liefert das zuletzt erzeugte Cancellation-Objekt für eine Booking (optional)
+    public java.util.Optional<BookingCancellation> findLatestByBookingId(Long bookingId) {
+        return cancellationRepository.findTopByBookingIdOrderByCancelledAtDesc(bookingId);
+    }
+
     // Sucht eine BookingCancellation anhand der ID und gibt sie als Optional zurück
     public Optional<BookingCancellation> getById(Long id) {
         return cancellationRepository.findById(id);

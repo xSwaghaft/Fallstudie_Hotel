@@ -198,3 +198,35 @@ INSERT IGNORE INTO room_images (image_path, alt_text, title, display_order, is_p
 ('images/rooms/Family_001.png', 'Family Zimmer Ansicht 1', 'Deluxe Zimmer', 1, TRUE, 5);
 
 
+
+-- ---------- Additional future bookings to ensure each user has >=5 bookings
+-- Add bookings with check_in after 2025-12-14 so each user has at least one upcoming booking
+INSERT IGNORE INTO bookings (id, booking_number, amount, check_in_date, check_out_date, status, total_price, guest_id, room_id, invoice_id, room_category_id, created_at) VALUES
+(100,'20260110-G2A',2,'2026-01-10','2026-01-15','PENDING',649.50,2,2,NULL,2,'2025-12-05'),
+(101,'20260201-G3A',2,'2026-02-01','2026-02-03','PENDING',259.80,3,3,NULL,2,'2025-12-10'),
+(102,'20260120-G4A',1,'2026-01-20','2026-01-23','PENDING',747.00,4,4,NULL,3,'2025-12-12'),
+(103,'20260210-G4B',2,'2026-02-10','2026-02-12','PENDING',319.80,4,5,NULL,5,'2025-12-12');
+
+-- Invoices for the additional bookings
+INSERT IGNORE INTO invoices (id, invoice_number, amount, issued_at, payment_method, status, booking_id) VALUES
+(200,'INV-20251205-200',649.50,'2025-12-05 09:00:00','CARD','PENDING',100),
+(201,'INV-20251210-201',259.80,'2025-12-10 10:00:00','CARD','PENDING',101),
+(202,'INV-20251212-202',747.00,'2025-12-12 11:00:00','CARD','PENDING',102),
+(203,'INV-20251212-203',319.80,'2025-12-12 11:15:00','CARD','PENDING',103);
+
+-- Link invoices to the new bookings
+UPDATE bookings SET invoice_id = 200 WHERE id = 100;
+UPDATE bookings SET invoice_id = 201 WHERE id = 101;
+UPDATE bookings SET invoice_id = 202 WHERE id = 102;
+UPDATE bookings SET invoice_id = 203 WHERE id = 103;
+
+-- Map new bookings to rooms (future bookings)
+INSERT IGNORE INTO room_bookings (room_id, booking_id) VALUES
+(2,100),(3,101),(4,102),(5,103);
+
+-- Payments (initially PENDING for some, keep as PENDING to reflect not-yet-paid)
+INSERT IGNORE INTO payments (id, booking_id, amount, method, status, transaction_ref, paid_at) VALUES
+(300,100,0.00,'CARD','PENDING',NULL,NULL),
+(301,101,0.00,'CARD','PENDING',NULL,NULL),
+(302,102,0.00,'CARD','PENDING',NULL,NULL),
+(303,103,0.00,'CARD','PENDING',NULL,NULL);
