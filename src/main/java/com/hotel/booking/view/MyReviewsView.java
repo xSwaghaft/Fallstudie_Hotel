@@ -4,9 +4,11 @@ import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.Feedback;
 import com.hotel.booking.entity.User;
 import com.hotel.booking.entity.UserRole;
+import com.hotel.booking.repository.GuestRepository;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.BookingService;
 import com.hotel.booking.service.FeedbackService;
+import com.hotel.booking.view.components.CardFactory;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dependency.CssImport;
@@ -17,7 +19,6 @@ import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -37,52 +38,56 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
-// @Route: registriert die View unter /my-reviews im MainLayout.
-// @CssImport: bindet globale und Guest-spezifische Styles ein.
+/**
+ * View for displaying and managing guest reviews.
+ */
 @Route(value = "my-reviews", layout = MainLayout.class)
 @PageTitle("My Reviews")
 @CssImport("./themes/hotel/styles.css")
-@CssImport("./themes/hotel/guest.css")
+@CssImport("./themes/hotel/views/my-reviews.css")
 public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver {
 
     private final SessionService sessionService;
     private final BookingService bookingService;
     private final FeedbackService feedbackService;
+    private final GuestRepository guestRepository;
 
     private List<Booking> bookings;
 
     @Autowired
     public MyReviewsView(SessionService sessionService,
                          BookingService bookingService,
-                         FeedbackService feedbackService) {
+                         FeedbackService feedbackService,
+                         GuestRepository guestRepository) {
         this.sessionService = sessionService;
         this.bookingService = bookingService;
         this.feedbackService = feedbackService;
+        this.guestRepository = guestRepository;
 
         setSpacing(true);
         setPadding(true);
-        setSizeFull();
         setWidthFull();
-        getStyle().set("overflow-x", "hidden");
+        setHeight(null);
+        addClassName("guest-portal-view");
 
         bookings = loadBookings();
+        refreshView();
+    }
 
-        add(new H1("Meine Reviews"));
+    private void refreshView() {
+        removeAll();
+        add(new H1("My Reviews"));
         add(createStatsRow(bookings));
         add(createReviewsList());
         add(createBookingsWithoutReview());
     }
 
-    // Baut die KPI-Leiste mit Anzahl/Status/Ø-Bewertung der Reviews.
     private Component createStatsRow(List<Booking> bookings) {
-        HorizontalLayout row = new HorizontalLayout();
-        row.setSpacing(true);
-        row.addClassName("reviews-stats-row");
-
         int total = bookings.size();
         int written = (int) bookings.stream().filter(b -> b.getFeedback() != null).count();
         int pending = total - written;
 
+        // Calculate average rating from all reviews
         var avgOpt = bookings.stream()
                 .map(Booking::getFeedback)
                 .filter(f -> f != null && f.getRating() != null)
@@ -91,45 +96,16 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
 
         Double average = avgOpt.isPresent() ? avgOpt.getAsDouble() : null;
 
-        row.add(createStatCard("Total", String.valueOf(total)));
-        row.add(createStatCard("Geschrieben", String.valueOf(written)));
-        row.add(createStatCard("Ausstehend", String.valueOf(pending)));
-        row.add(createStatCard("Durchschnitt", average != null ? String.format(Locale.GERMANY, "%.1f", average) : "—"));
-
-        return row;
+        Component statsRow = CardFactory.createStatsRow(
+            CardFactory.createStatCard("Total", String.valueOf(total), VaadinIcon.CLIPBOARD_TEXT),
+            CardFactory.createStatCard("Written", String.valueOf(written), VaadinIcon.CHECK_CIRCLE),
+            CardFactory.createStatCard("Pending", String.valueOf(pending), VaadinIcon.CLOCK),
+            CardFactory.createStatCard("Average", average != null ? String.format(Locale.US, "%.1f", average) : "—", VaadinIcon.STAR)
+        );
+        statsRow.addClassName("reviews-stats-row");
+        return statsRow;
     }
 
-    // Erzeugt eine einzelne KPI-Kachel mit Icon, Label und Wert.
-    private Div createStatCard(String label, String value) {
-        Div card = new Div();
-        card.addClassName("review-stat-card");
-        
-        Icon icon = getIconForLabel(label);
-        if (icon != null) {
-            icon.addClassName("review-stat-icon");
-            card.add(icon);
-        }
-        
-        Paragraph labelP = new Paragraph(label);
-        labelP.addClassName("review-stat-label");
-        Paragraph valueP = new Paragraph(value);
-        valueP.addClassName("review-stat-value");
-        card.add(labelP, valueP);
-        return card;
-    }
-    
-    // Wählt das passende Icon je nach KPI-Bezeichnung.
-    private Icon getIconForLabel(String label) {
-        return switch (label) {
-            case "Total" -> VaadinIcon.CLIPBOARD_TEXT.create();
-            case "Geschrieben" -> VaadinIcon.CHECK_CIRCLE.create();
-            case "Ausstehend" -> VaadinIcon.CLOCK.create();
-            case "Durchschnitt" -> VaadinIcon.STAR.create();
-            default -> null;
-        };
-    }
-
-    // Listet alle Buchungen mit bereits vorhandenem Feedback als Karten auf.
     private Component createReviewsList() {
         Div container = new Div();
         container.addClassName("reviews-list-container");
@@ -139,37 +115,23 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
                 .collect(Collectors.toList());
 
         if (bookingsWithReview.isEmpty()) {
-            Paragraph empty = new Paragraph("Noch keine Reviews vorhanden.");
+            Paragraph empty = new Paragraph("No reviews yet.");
             empty.addClassName("reviews-empty-message");
             container.add(empty);
             return container;
         }
 
-        bookingsWithReview.forEach(booking -> {
-            if (booking.getFeedback() != null) {
-                container.add(createReviewCard(booking));
-            }
-        });
+        bookingsWithReview.forEach(booking -> container.add(createReviewCard(booking)));
 
         return container;
     }
 
-    // Baut eine einzelne Review-Karte mit Buchungsinfo, Sternen und Kommentar.
     private Div createReviewCard(Booking booking) {
         Div card = new Div();
         card.addClassName("review-card");
 
         Feedback feedback = booking.getFeedback();
-        if (feedback == null) {
-            return card;
-        }
-
-        String roomInfo = booking.getRoomCategory() != null
-                ? booking.getRoomCategory().getName()
-                : "Zimmer";
-        if (booking.getRoom() != null) {
-            roomInfo += " #" + booking.getRoom().getRoomNumber();
-        }
+        String roomInfo = getRoomInfo(booking);
 
         Div header = new Div();
         header.addClassName("review-card-header");
@@ -188,7 +150,7 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
         Paragraph comment = new Paragraph(feedback.getComment() != null ? feedback.getComment() : "");
         comment.addClassName("review-comment");
 
-        Button editButton = new Button("Bearbeiten");
+        Button editButton = new Button("Edit");
         editButton.addClassName("review-edit-button");
         editButton.addClickListener(e -> openReviewDialog(booking, feedback));
 
@@ -196,7 +158,7 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
         return card;
     }
 
-    // Rendert Sternsymbole basierend auf der übergebenen Bewertung (1-5).
+    // Renders 5 stars: filled up to rating, empty for the rest
     private Div createStars(Integer rating) {
         Div starsDiv = new Div();
         starsDiv.addClassName("review-stars-container");
@@ -215,12 +177,7 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
         return starsDiv;
     }
 
-    // Zeigt Buchungen ohne Feedback und bietet Buttons zum Hinzufügen einer Review.
     private Component createBookingsWithoutReview() {
-        VerticalLayout layout = new VerticalLayout();
-        layout.setSpacing(true);
-        layout.setPadding(false);
-
         List<Booking> bookingsWithoutReview = bookings.stream()
                 .filter(b -> b.getFeedback() == null)
                 .collect(Collectors.toList());
@@ -231,21 +188,14 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
 
         Div card = new Div();
         card.addClassName("reviews-pending-card");
-        H3 title = new H3("Buchungen ohne Review");
+        H3 title = new H3("Bookings without Review");
         card.add(title);
 
         bookingsWithoutReview.forEach(booking -> {
-            String roomInfo = booking.getRoomCategory() != null
-                    ? booking.getRoomCategory().getName()
-                    : "Zimmer";
-            if (booking.getRoom() != null) {
-                roomInfo += " #" + booking.getRoom().getRoomNumber();
-            }
-
             Div item = new Div();
             item.addClassName("reviews-pending-item");
-            Paragraph info = new Paragraph("Buchung " + booking.getBookingNumber() + " - " + roomInfo);
-            Button addButton = new Button("Review hinzufügen");
+            Paragraph info = new Paragraph("Booking " + booking.getBookingNumber() + " - " + getRoomInfo(booking));
+            Button addButton = new Button("Add Review");
             addButton.addClassName("primary-button");
             addButton.addClickListener(e -> openReviewDialog(booking, null));
             item.add(info, addButton);
@@ -255,33 +205,44 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
         return card;
     }
 
-    // Öffnet den Dialog zum Erstellen oder Bearbeiten einer Review.
     private void openReviewDialog(Booking booking, Feedback existingFeedback) {
         Dialog dialog = new Dialog();
-        dialog.setHeaderTitle(existingFeedback != null ? "Review bearbeiten" : "Review hinzufügen");
-
-        boolean isNew = (existingFeedback == null);
-        Feedback feedback = isNew ? new Feedback() : existingFeedback;
-
-        if (feedback == null) {
-            return;
+        
+        // Check if booking already has feedback (even if existingFeedback is null)
+        final Feedback feedback;
+        final boolean isNew;
+        
+        if (existingFeedback != null) {
+            feedback = existingFeedback;
+            isNew = false;
+        } else if (booking != null && booking.getId() != null) {
+            // Check if booking already has feedback using findByBookingId
+            List<Feedback> existingFeedbacks = feedbackService.findByBookingId(booking.getId());
+            if (!existingFeedbacks.isEmpty()) {
+                feedback = existingFeedbacks.get(0);
+                isNew = false;
+            } else {
+                feedback = new Feedback();
+                feedback.setBooking(booking);
+                isNew = true;
+            }
+        } else {
+            return; // Cannot create feedback without booking
         }
-
-        if (isNew) {
-            feedback.setBooking(booking);
-        }
+        
+        dialog.setHeaderTitle(isNew ? "Add Review" : "Edit Review");
 
         Binder<Feedback> binder = new Binder<>(Feedback.class);
 
         Select<Integer> ratingSelect = new Select<>();
-        ratingSelect.setLabel("Bewertung");
+        ratingSelect.setLabel("Rating");
         ratingSelect.setItems(1, 2, 3, 4, 5);
 
-        TextArea commentArea = new TextArea("Kommentar");
+        TextArea commentArea = new TextArea("Comment");
         commentArea.setMaxLength(1000);
 
         binder.forField(ratingSelect)
-                .asRequired("Bewertung erforderlich")
+                .asRequired("Rating required")
                 .bind(Feedback::getRating, Feedback::setRating);
 
         binder.forField(commentArea)
@@ -290,8 +251,8 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
 
         binder.readBean(feedback);
 
-        Button saveButton = new Button("Speichern");
-        Button cancelButton = new Button("Abbrechen");
+        Button saveButton = new Button("Save");
+        Button cancelButton = new Button("Cancel");
 
         saveButton.addClickListener(e -> {
             try {
@@ -299,17 +260,21 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
                 if (feedback.getCreatedAt() == null) {
                     feedback.setCreatedAt(LocalDateTime.now());
                 }
+                
+                // Set guest if not already set
+                if (feedback.getGuest() == null && booking != null && booking.getGuest() != null) {
+                    guestRepository.findByUser(booking.getGuest()).ifPresent(feedback::setGuest);
+                }
+                
                 feedbackService.save(feedback);
-                Notification.show(isNew ? "Review hinzugefügt!" : "Review aktualisiert!");
+                Notification.show(isNew ? "Review added!" : "Review updated!");
                 bookings = loadBookings();
-                removeAll();
-                add(new H1("Meine Reviews"));
-                add(createStatsRow(bookings));
-                add(createReviewsList());
-                add(createBookingsWithoutReview());
+                refreshView();
                 dialog.close();
             } catch (ValidationException ex) {
-                Notification.show("Bitte Eingaben prüfen");
+                Notification.show("Please check your inputs");
+            } catch (Exception ex) {
+                Notification.show("Error saving review: " + ex.getMessage());
             }
         });
 
@@ -319,7 +284,12 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
         dialog.open();
     }
 
-    // Lädt vergangene Buchungen des aktuellen Nutzers, um Reviews anzuzeigen.
+    private String getRoomInfo(Booking booking) {
+        String roomType = booking.getRoomCategory() != null ? booking.getRoomCategory().getName() : "Room";
+        String roomNumber = booking.getRoom() != null ? booking.getRoom().getRoomNumber() : null;
+        return roomNumber != null ? roomType + " #" + roomNumber : roomType;
+    }
+
     private List<Booking> loadBookings() {
         User user = sessionService.getCurrentUser();
         if (user == null) {
@@ -328,7 +298,6 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
         return bookingService.findPastBookingsForGuest(user.getId());
     }
 
-    // Zugriffsschutz: erlaubt nur eingeloggte Gäste, sonst Redirect zum Login.
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         if (!sessionService.isLoggedIn() || !sessionService.hasRole(UserRole.GUEST)) {

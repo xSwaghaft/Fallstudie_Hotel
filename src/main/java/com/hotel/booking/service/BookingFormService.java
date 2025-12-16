@@ -53,5 +53,9 @@ public class BookingFormService {
         return userService.findUserByEmail(email);
     }
 
+    public boolean existsByEmail (String email) {
+        return userService.existsByEmail(email);
+    }
+
 }
 

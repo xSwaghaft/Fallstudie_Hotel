@@ -121,21 +121,25 @@ public class MainLayout extends AppLayout {
             navLinks.add(
                 createNavLink("Search Rooms", GuestPortalView.class, VaadinIcon.BED),
                 createNavLink("My Bookings", MyBookingsView.class, VaadinIcon.CALENDAR),
+                createNavLink("My Payments", PaymentView.class, VaadinIcon.CREDIT_CARD),
                 createNavLink("My Reviews", MyReviewsView.class, VaadinIcon.COMMENT)
             );
         } else if (role == UserRole.RECEPTIONIST) {
             navLinks.add(
                 createNavLink("Dashboard", DashboardView.class, VaadinIcon.DASHBOARD),
                 createNavLink("Bookings", BookingManagementView.class, VaadinIcon.CALENDAR),
+                createNavLink("Payments", PaymentView.class, VaadinIcon.CREDIT_CARD),
+                createNavLink("Invoices", InvoiceView.class, VaadinIcon.FILE_TEXT),
                 createNavLink("Room Management", RoomManagementView.class, VaadinIcon.BED)
             );
         } else if (role == UserRole.MANAGER) {
             navLinks.add(
                 createNavLink("Dashboard", DashboardView.class, VaadinIcon.DASHBOARD),
                 createNavLink("Bookings", BookingManagementView.class, VaadinIcon.CALENDAR),
+                createNavLink("Payments", PaymentView.class, VaadinIcon.CREDIT_CARD),
+                createNavLink("Invoices", InvoiceView.class, VaadinIcon.FILE_TEXT),
                 createNavLink("Room Management", RoomManagementView.class, VaadinIcon.BED),
                 createNavLink("User Management", UserManagementView.class, VaadinIcon.USERS),
-                createNavLink("Invoices", InvoiceView.class, VaadinIcon.FILE_TEXT),
                 createNavLink("Reports & Analytics", ReportsView.class, VaadinIcon.CHART)
             );
         }

@@ -10,3 +10,12 @@
 .booking-details-container {
   min-height: 200px;
 }
+
+.extras-list-box {
+    font-size: 12px;
+    background: #fafbfc;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 8px 12px;
+    width: 180px;
+}

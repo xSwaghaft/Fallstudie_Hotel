@@ -64,12 +64,6 @@ public class User implements Serializable {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    // Liste der vom User erstellten Reports (1:n Beziehung)
-    // @JsonIgnore verhindert Endlosschleifen bei JSON-Serialisierung
-    @JsonIgnore
-    @OneToMany(mappedBy = "createdBy", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<Report> reports = new ArrayList<>();
-
     // Zugeordneter Guest (1:1 Beziehung, optional)
     // @JsonIgnore verhindert Endlosschleifen bei JSON-Serialisierung
     // Kein cascade - Guest wird manuell verwaltet und nicht automatisch gelöscht
@@ -101,17 +95,6 @@ public class User implements Serializable {
         }
     }
 
-    // Hilfsmethode zum Hinzufügen eines Reports
-    public void addReport(Report report) {
-        reports.add(report);
-        report.setCreatedBy(this);
-    }
-
-    // Hilfsmethode zum Entfernen eines Reports
-    public void removeReport(Report report) {
-        reports.remove(report);
-        report.setCreatedBy(null);
-    }
 
     // Getter und Setter
     public Long getId() {
@@ -188,14 +171,6 @@ public class User implements Serializable {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
-    }
-
-    public List<Report> getReports() {
-        return reports;
-    }
-
-    public void setReports(List<Report> reports) {
-        this.reports = reports;
     }
 
     public Guest getGuest() {

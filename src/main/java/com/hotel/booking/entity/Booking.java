@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -63,7 +64,7 @@ public class Booking {
     private Long id;
 
     /** Öffentliche Buchungsnummer. */
-    @Column(name = "booking_number", nullable = false, unique = true, length = 64)
+    @Column(name = "booking_number", nullable = false, length = 64)
     private String bookingNumber;
 
     /** Menge/Anzahl */
@@ -106,23 +107,19 @@ public class Booking {
                 foreignKey = @ForeignKey(name = "fk_booking_room_category"))
     private RoomCategory roomCategory = new RoomCategory();
 
-    /**
-     * Optionale Rechnung zur Buchung.
-     * <p>
-     * Wenn die Gegenseite das FK hält, nutze {@code mappedBy="booking"}.
-     * </p>
-     */
+    /** Zugehörige Rechnung. */
 
     @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @JoinColumn(name = "invoice_id",
-    foreignKey = @ForeignKey(name = "fk_booking_invoice"))
+            foreignKey = @ForeignKey(name = "fk_booking_invoice"))
     private Invoice invoice;
 
     /** Zahlungen, die auf diese Buchung verbucht wurden. */
 
     @OneToMany(mappedBy = "booking",
     cascade = CascadeType.ALL,
-    orphanRemoval = true)
+    orphanRemoval = true,
+    fetch = FetchType.LAZY)
     private List<Payment> payments = new ArrayList<>();
 
     /** Zusatzleistungen (Extras) dieser Buchung. */
@@ -265,54 +262,6 @@ public class Booking {
         }
     }
 
-    // ------------------------------------------------------------
-    // Hilfs- und Konsistenzmethoden
-    // ------------------------------------------------------------
-
-    /**
-     * Fügt eine Zahlung hinzu und hält die bidirektionale Beziehung konsistent.
-     * 
-     * @param payment Zahlung, die dieser Buchung zugeordnet wird
-     */
-
-    public void addPayment(Payment payment) {
-    if (payment == null) return;
-    payments.add(payment);
-    payment.setBooking(this);
-    }
-
-    /**
-     * Entfernt eine Zahlung und hält die bidirektionale Beziehung konsistent.
-     * 
-     * @param payment Zahlung, die entfernt werden soll
-     */
-
-    public void removePayment(Payment payment) {
-    if (payment == null) return;
-    payments.remove(payment);
-    if (payment.getBooking() == this) {
-    payment.setBooking(null);
-    }
-    }
-
-    /**
-     * Fügt ein Extra hinzu und hält die bidirektionale Beziehung konsistent.
-     * 
-     * @param extra Extra, das hinzugefügt wird
-     */
-    public void addExtra(BookingExtra extra) {
-    if (extra == null) return;
-    extras.add(extra);
-    if (!extra.getBookings().contains(this)) {
-        extra.getBookings().add(this);
-    }
-}
-
-public void removeExtra(BookingExtra extra) {
-    if (extra == null) return;
-    extras.remove(extra);
-    extra.getBookings().remove(this);
-}
 
     /**
      * Einfache Validierung: stellt sicher, dass das Check-out nach dem Check-in

@@ -1,14 +1,17 @@
 package com.hotel.booking.view;
 
+import com.hotel.booking.entity.BookingExtra;
 import com.hotel.booking.entity.Room;
 import com.hotel.booking.entity.RoomCategory;
 import com.hotel.booking.entity.RoomStatus;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
+import com.hotel.booking.service.BookingExtraService;
 import com.hotel.booking.service.RoomCategoryService;
 import com.hotel.booking.service.RoomService;
 import com.hotel.booking.view.components.RoomForm;
 import com.hotel.booking.view.components.RoomCategoryForm;
+import com.hotel.booking.view.components.AddExtraForm;
 import com.hotel.booking.view.components.CardFactory;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
@@ -36,20 +39,24 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
     private final SessionService sessionService;
     private final RoomService roomService;
     private final RoomCategoryService roomCategoryService;
+    private final BookingExtraService extraService;
 
     // UI-Komponenten
     private final Grid<Room> roomGrid = new Grid<>(Room.class, false);
     private final Grid<RoomCategory> categoryGrid = new Grid<>(RoomCategory.class, false);
+    private final Grid<BookingExtra> extraGrid = new Grid<>(BookingExtra.class, true);
     
     // Statistiken-Komponenten für Live-Updates
     private Component statsRow;
 
     public RoomManagementView(SessionService sessionService, 
                                RoomService roomService,
-                               RoomCategoryService roomCategoryService) {
+                               RoomCategoryService roomCategoryService,
+                                BookingExtraService extraService) {
         this.sessionService = sessionService;
         this.roomService = roomService;
         this.roomCategoryService = roomCategoryService;
+        this.extraService = extraService;
         
         setSpacing(true);
         setPadding(true);
@@ -59,6 +66,7 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
         try {
             configureRoomGrid();
             configureCategoryGrid();
+            configureExtraGrid();
             
             statsRow = createStatsRow();
             
@@ -66,7 +74,8 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
                 createHeader(), 
                 statsRow, 
                 createRoomsCard(),
-                createCategoriesCard()
+                createCategoriesCard(),
+                createExtraCard()
             );
             
             // Daten aus Datenbank laden
@@ -82,9 +91,11 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
         try {
             List<Room> rooms = roomService.getAllRooms();
             List<RoomCategory> categories = roomCategoryService.getAllRoomCategories();
+            List<BookingExtra> extras = extraService.getAllBookingExtras();
             
             roomGrid.setItems(rooms);
             categoryGrid.setItems(categories);
+            extraGrid.setItems(extras);
             
             if (statsRow != null) {
                 replace(statsRow, createStatsRow());
@@ -356,6 +367,25 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
         return actions;
     }
 
+    // =================== EXTRA CARD =====================
+    private Component createExtraCard() {
+        return CardFactory.createContentCard(
+            "Extras",
+            "Manage available Extras",
+            "Add Extra",
+            () -> openExtraDialog(extraService),
+            "#8b5cf6",
+            extraGrid
+        );
+    }
+
+    private void configureExtraGrid() {
+        extraGrid.getColumnByKey("bookings").setVisible(false);
+        extraGrid.setHeightFull();
+        extraGrid.setWidthFull();
+        extraGrid.setAllRowsVisible(true);
+    }
+
     // ==================== ROOM DIALOGS ====================
 
     // Dialog zum Hinzufügen eines neuen Rooms
@@ -553,6 +583,39 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
                     .addThemeVariants(NotificationVariant.LUMO_ERROR);
             }
         });
+    }
+
+    // ============ Extra Dialog =====================
+
+    private void openExtraDialog (BookingExtraService extraService) {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("Add Extra");
+        dialog.setWidth("500px");
+
+        AddExtraForm form = new AddExtraForm(extraService, null);
+        form.setExtra(new BookingExtra());
+
+        Button saveBtn = new Button("Add Extra");
+        saveBtn.addClassName("primary-button");
+        saveBtn.addClickListener(e -> {
+            if (form.writeBeanIfValid()) {
+                refreshData();
+                dialog.close();
+                Notification.show("Extra added successfully!", 3000, Notification.Position.BOTTOM_START)
+                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+            } else {
+                Notification.show("Please fill all required fields.", 3000, Notification.Position.MIDDLE)
+                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+            }
+        });
+
+        Button cancelBtn = new Button("Cancel");
+        cancelBtn.addClickListener(e -> dialog.close());
+
+        HorizontalLayout buttonLayout = new HorizontalLayout(saveBtn, cancelBtn);
+        buttonLayout.setSpacing(true);
+        dialog.add(form, buttonLayout);
+        dialog.open();
     }
 
     // ==================== SECURITY ====================

@@ -4,11 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -18,7 +16,6 @@ import jakarta.persistence.Table;
 //Matthias Lohr
 @Entity
 @Table(name = "room_extras")
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class BookingExtra {
 
     @Id
@@ -34,25 +31,24 @@ public class BookingExtra {
     @Column(name = "price", nullable = false)
     private Double price;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "extra_type", nullable = false)
-    private ExtraTypeEnum extraType;
+    @Column(name = "per_person", nullable = false)
+    private boolean perPerson = true;
 
-    @JsonIgnore
-    @ManyToMany(mappedBy = "extras")
+    @JsonIgnore //Wenn eine bidiraktionale Beziehung besteht, muss eine Seite ignoriert werden, sonst Endlosschleife bei JSON Serialisierung
+    @ManyToMany(mappedBy = "extras", fetch = FetchType.EAGER)
     private List<Booking> bookings = new ArrayList<>();
+
 
     // Default constructor
     public BookingExtra() {
     }
 
     // Parameterized constructor
-    public BookingExtra(Long BookingExtra_id, String name, String description, Double price, ExtraTypeEnum extraType) {
+    public BookingExtra(Long BookingExtra_id, String name, String description, Double price) {
         this.BookingExtra_id = BookingExtra_id;
         this.name = name;
         this.description = description;
         this.price = price;
-        this.extraType = extraType;
     }
 
     // Getters and setters
@@ -96,11 +92,11 @@ public class BookingExtra {
         this.price = price;
     }
 
-    public ExtraTypeEnum getExtraType() {
-        return extraType;
+    public boolean isPerPerson() {
+        return perPerson;
     }
 
-    public void setExtraType(ExtraTypeEnum extraType) {
-        this.extraType = extraType;
+    public void setPerPerson(boolean perPerson) {
+        this.perPerson = perPerson;
     }
 }
