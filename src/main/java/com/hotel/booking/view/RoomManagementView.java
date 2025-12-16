@@ -3,6 +3,7 @@ package com.hotel.booking.view;
 import com.hotel.booking.entity.BookingExtra;
 import com.hotel.booking.entity.Room;
 import com.hotel.booking.entity.RoomCategory;
+import com.hotel.booking.entity.RoomImage;
 import com.hotel.booking.entity.RoomStatus;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
@@ -524,9 +525,19 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
     private void openCategoryDialog(RoomCategory existing) {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle(existing == null ? "Add New Room Category" : "Edit Room Category");
-        dialog.setWidth("600px");
+        dialog.setWidth("700px");
 
         RoomCategoryForm form = new RoomCategoryForm(existing);
+
+        // Images section
+        VerticalLayout imagesSection = createCategoryImagesSection(existing, dialog);
+
+        // Main content layout
+        VerticalLayout contentLayout = new VerticalLayout();
+        contentLayout.setSpacing(true);
+        contentLayout.setPadding(false);
+        contentLayout.add(form, imagesSection);
+        contentLayout.setFlexGrow(1, form);
 
         Button saveBtn = new Button(existing == null ? "Add Category" : "Update Category");
         saveBtn.addClassName("primary-button");
@@ -549,8 +560,83 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
 
         HorizontalLayout buttonLayout = new HorizontalLayout(cancelBtn, saveBtn);
         buttonLayout.setSpacing(true);
-        dialog.add(form, buttonLayout);
+        dialog.add(contentLayout, buttonLayout);
         dialog.open();
+    }
+
+    /**
+     * Creates the images section for a room category dialog
+     */
+    private VerticalLayout createCategoryImagesSection(RoomCategory category, Dialog parentDialog) {
+        VerticalLayout section = new VerticalLayout();
+        section.setPadding(true);
+        section.setSpacing(true);
+        section.addClassName("category-images-section");
+
+        H3 title = new H3("Images");
+        title.getStyle().set("margin", "0 0 var(--lumo-space-m) 0");
+
+        // Get images for this category if it exists
+        HorizontalLayout imagesPreview = new HorizontalLayout();
+        imagesPreview.setSpacing(true);
+        imagesPreview.addClassName("category-images-preview");
+
+        if (category != null && category.getCategory_id() != null) {
+            // Load existing images
+            List<RoomImage> images = roomCategoryService.getRoomImageRepository()
+                .findByCategoryIdOrderByPrimaryFirst(category.getCategory_id());
+            
+            if (!images.isEmpty()) {
+                for (RoomImage image : images) {
+                    Div imageCard = createImagePreviewCard(image);
+                    imagesPreview.add(imageCard);
+                }
+            } else {
+                Paragraph emptyMsg = new Paragraph("No images assigned yet");
+                emptyMsg.getStyle().set("color", "var(--lumo-secondary-text-color)");
+                section.add(title, emptyMsg);
+                
+                Button addPicturesBtn = new Button("Add Pictures", VaadinIcon.PLUS.create());
+                addPicturesBtn.addClassName("primary-button");
+                addPicturesBtn.addClickListener(e -> {
+                    parentDialog.close();
+                    getUI().ifPresent(ui -> ui.navigate("image-management?categoryId=" + category.getCategory_id()));
+                });
+                section.add(addPicturesBtn);
+                return section;
+            }
+        } else {
+            Paragraph emptyMsg = new Paragraph("Save the category first, then add images");
+            emptyMsg.getStyle().set("color", "var(--lumo-secondary-text-color)");
+            section.add(title, emptyMsg);
+            return section;
+        }
+
+        Button addPicturesBtn = new Button("Add Pictures", VaadinIcon.PLUS.create());
+        addPicturesBtn.addClassName("primary-button");
+        addPicturesBtn.addClickListener(e -> {
+            parentDialog.close();
+            getUI().ifPresent(ui -> ui.navigate("image-management?categoryId=" + category.getCategory_id()));
+        });
+
+        section.add(title, imagesPreview, addPicturesBtn);
+        return section;
+    }
+
+    /**
+     * Creates a preview card for an image
+     */
+    private Div createImagePreviewCard(RoomImage image) {
+        Div card = new Div();
+        card.addClassName("image-preview-card");
+
+        Image preview = new Image(image.getImagePath(), "image");
+        preview.setWidth("80px");
+        preview.setHeight("80px");
+        preview.addClassName("image-preview-thumbnail");
+
+        card.add(preview);
+        return card;
     }
 
     // Löscht eine Category (Dialog)

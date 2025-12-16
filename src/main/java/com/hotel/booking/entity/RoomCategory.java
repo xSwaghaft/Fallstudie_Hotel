@@ -58,7 +58,7 @@ public class RoomCategory {
     private List<Room> rooms = new ArrayList<>();
 
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    @OrderBy("displayOrder ASC, isPrimary DESC")
+    @OrderBy("isPrimary DESC, id ASC")
     @JsonManagedReference //Bidirektionale Beziehung. RoomCategory ist Parent. Die andere Seite bekommt @JsonBackReference
     private List<RoomImage> images = new ArrayList<>();
 
@@ -159,6 +159,7 @@ public class RoomCategory {
                 .findFirst()
                 .orElse(images.isEmpty() ? null : images.get(0));
     }
+
     public Set<Amenities> getAmenities() {
         return amenities;
     }
