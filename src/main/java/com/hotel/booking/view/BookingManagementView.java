@@ -58,7 +58,7 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
     private List<String> categoryNames;
     private final String ALL_STATUS = "All Status";
 
-    public BookingManagementView(SessionService sessionService, BookingService bookingService, BookingFormService formService, com.hotel.booking.service.BookingModificationService modificationService, BookingCancellationService bookingCancellationService) {
+    public BookingManagementView(SessionService sessionService, BookingService bookingService, BookingFormService formService, com.hotel.booking.service.BookingModificationService modificationService, RoomCategoryService roomCategoryService, BookingCancellationService bookingCancellationService) {
         this.sessionService = sessionService;
         this.bookingService = bookingService;
         this.formService = formService;
