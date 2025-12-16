@@ -114,6 +114,9 @@ public class createNewBookingForm extends FormLayout{
             if (formBooking != null) {
                 formBooking.setRoomCategory(category);
             }
+            // Ensure the Select field has the value as well so Binder validation passes
+            // even if the Select is hidden. This keeps binder.asRequired(...) happy.
+            roomCategorySelect.setValue(category);
             
             // Setze Maximum basierend auf MaxOccupancy der Kategorie
             if (maxOccupancy != null && maxOccupancy > 0) {

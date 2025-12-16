@@ -1,12 +1,5 @@
 package com.hotel.booking.view;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
-
-import org.springframework.beans.factory.annotation.Autowired;
-
 import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.BookingStatus;
 import com.hotel.booking.entity.User;
@@ -15,17 +8,15 @@ import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.BookingService;
 import com.hotel.booking.service.BookingFormService;
 import com.hotel.booking.service.BookingModificationService;
-import com.hotel.booking.view.components.BookingDetailsDialog;
-import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.data.binder.ValidationException;
@@ -38,33 +29,20 @@ import com.hotel.booking.entity.BookingCancellation;
 import com.hotel.booking.entity.Invoice;
 import com.hotel.booking.service.BookingCancellationService;
 import org.springframework.beans.factory.annotation.Autowired;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
-import com.vaadin.flow.router.PageTitle;
-import com.vaadin.flow.router.Route;
-import com.vaadin.flow.router.RouterLink;
 
-/**
- * View for guest bookings with tabs (Upcoming, Past, Cancelled).
- */
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+// @Route: registriert die View unter /my-bookings im MainLayout.
+// @CssImport: bindet globale und Guest-spezifische Styles ein.
 @Route(value = "my-bookings", layout = MainLayout.class)
 @PageTitle("My Bookings")
 @CssImport("./themes/hotel/styles.css")
-@CssImport("./themes/hotel/views/my-bookings.css")
+@CssImport("./themes/hotel/guest.css")
 public class MyBookingsView extends VerticalLayout implements BeforeEnterObserver {
-
-    // =========================================================
-    // CONSTANTS
-    // =========================================================
-
-    private static final DateTimeFormatter GERMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-    private static final String TAB_UPCOMING = "Upcoming";
-    private static final String TAB_PAST = "Past";
-    private static final String TAB_CANCELLED = "Cancelled";
-
-    // =========================================================
-    // DEPENDENCIES
-    // =========================================================
 
     private final SessionService sessionService;
     private final BookingService bookingService;
@@ -78,10 +56,6 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
     // Cancellation data persisted via BookingCancellation entity (use BookingCancellationService)
     private final BookingCancellationService bookingCancellationService;
 
-    // =========================================================
-    // CONSTRUCTOR & INITIALIZATION
-    // =========================================================
-
     @Autowired
     public MyBookingsView(SessionService sessionService, BookingService bookingService, BookingFormService formService, BookingModificationService modificationService, BookingCancellationService bookingCancellationService) {
         this.sessionService = sessionService;
@@ -91,122 +65,125 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
         this.bookingCancellationService = bookingCancellationService;
         setSpacing(true);
         setPadding(true);
+        setSizeFull();
         setWidthFull();
-        setHeight(null);
-        addClassName("guest-portal-view");
-    }
+        getStyle().set("overflow-x", "hidden");
 
-    private void initializeContent() {
-        add(new H1("My Bookings"));
+        allBookings = loadAllBookingsForCurrentUser();
 
-        User currentUser = sessionService.getCurrentUser();
-        if (currentUser == null) {
-            add(new Paragraph("No bookings found."));
-            return;
-        }
-
-        // Load all bookings for current user
-        allBookings = bookingService.findAllBookingsForGuest(currentUser.getId());
+        add(new H1("Meine Buchungen"));
+        
         if (allBookings.isEmpty()) {
-            add(new Paragraph("No bookings found."));
+            add(new Paragraph("Keine Buchungen gefunden."));
         } else {
-            // Calculate live (display only). If you want to show DB values -> delete this line.
-            allBookings.forEach(bookingService::calculateBookingPrice);
             createTabsAndContent();
         }
     }
-
-    // =========================================================
-    // CONTENT MANAGEMENT (TABS & FILTERING)
-    // =========================================================
-
+    
+    // Erstellt die Tabs (Bevorstehend/Vergangen/Storniert) und den Content-Bereich.
     private void createTabsAndContent() {
-        Tab upcomingTab = new Tab(TAB_UPCOMING);
-        Tab pastTab = new Tab(TAB_PAST);
-        Tab cancelledTab = new Tab(TAB_CANCELLED);
-
+        Tab upcomingTab = new Tab("Bevorstehend");
+        Tab pastTab = new Tab("Vergangen");
+        Tab cancelledTab = new Tab("Storniert");
+        
         tabs = new Tabs(upcomingTab, pastTab, cancelledTab);
         tabs.addClassName("bookings-tabs");
         tabs.addSelectedChangeListener(e -> updateContent());
-
+        
         contentArea = new Div();
         contentArea.addClassName("bookings-content-area");
         contentArea.setWidthFull();
-
+        
         add(tabs, contentArea);
         updateContent();
     }
-
+    
+    // Filtert Buchungen je nach gewähltem Tab und rendert die Kartenliste.
     private void updateContent() {
         contentArea.removeAll();
-
+        
         Tab selectedTab = tabs.getSelectedTab();
-        if (selectedTab == null) return;
-
-        String tabLabel = selectedTab.getLabel();
-        List<Booking> filteredBookings = filterBookingsByTabType(tabLabel);
-
-        if (filteredBookings.isEmpty()) {
-            Paragraph emptyMessage = new Paragraph("No bookings in this category.");
-            emptyMessage.addClassName("bookings-empty-message");
-            contentArea.add(emptyMessage);
+        if (selectedTab == null) {
             return;
         }
-
-        VerticalLayout bookingsLayout = new VerticalLayout();
-        bookingsLayout.setSpacing(true);
-        bookingsLayout.setPadding(false);
-        filteredBookings.forEach(booking -> bookingsLayout.add(createBookingItem(booking, tabLabel)));
-        contentArea.add(bookingsLayout);
-    }
-
-    private List<Booking> filterBookingsByTabType(String tabLabel) {
-        if (allBookings == null || allBookings.isEmpty()) {
-            return List.of();
-        }
-
+        
+        String tabLabel = selectedTab.getLabel();
+        List<Booking> filteredBookings;
+        
         LocalDate today = LocalDate.now();
-
-        return switch (tabLabel) {
-            case TAB_UPCOMING -> allBookings.stream()
-                    .filter(b -> b.getCheckInDate() != null && b.getCheckOutDate() != null)
-                    .filter(b -> b.getCheckOutDate().isAfter(today)
-                            || (!b.getCheckInDate().isAfter(today) && !b.getCheckOutDate().isBefore(today)))
+        
+        switch (tabLabel) {
+            case "Bevorstehend":
+                // Buchungen, die noch nicht begonnen haben ODER gerade laufen
+                filteredBookings = allBookings.stream()
+                    .filter(b -> b.getCheckInDate().isAfter(today) || 
+                                (!b.getCheckInDate().isAfter(today) && !b.getCheckOutDate().isBefore(today)))
                     .filter(b -> b.getStatus() != BookingStatus.CANCELLED)
-                    .toList();
-
-            case TAB_PAST -> allBookings.stream()
-                    .filter(b -> b.getCheckOutDate() != null)
+                    .collect(Collectors.toList());
+                break;
+            case "Vergangen":
+                filteredBookings = allBookings.stream()
                     .filter(b -> b.getCheckOutDate().isBefore(today))
                     .filter(b -> b.getStatus() != BookingStatus.CANCELLED)
-                    .toList();
-
-            case TAB_CANCELLED -> allBookings.stream()
+                    .collect(Collectors.toList());
+                break;
+            case "Storniert":
+                filteredBookings = allBookings.stream()
                     .filter(b -> b.getStatus() == BookingStatus.CANCELLED)
-                    .toList();
-
-            default -> List.of();
-        };
+                    .collect(Collectors.toList());
+                break;
+            default:
+                filteredBookings = new ArrayList<>();
+        }
+        
+        if (filteredBookings.isEmpty()) {
+            Paragraph emptyMessage = new Paragraph("Keine Buchungen in dieser Kategorie.");
+            emptyMessage.getStyle().set("padding", "var(--spacing-xl)");
+            emptyMessage.getStyle().set("text-align", "center");
+            emptyMessage.getStyle().set("color", "var(--color-text-secondary)");
+            contentArea.add(emptyMessage);
+        } else {
+            VerticalLayout bookingsLayout = new VerticalLayout();
+            bookingsLayout.setSpacing(true);
+            bookingsLayout.setPadding(false);
+            
+            for (Booking booking : filteredBookings) {
+                bookingsLayout.add(createBookingItem(booking, tabLabel));
+            }
+            
+            contentArea.add(bookingsLayout);
+        }
     }
 
-    // =========================================================
-    // BOOKING ITEM CREATION
-    // =========================================================
-
+    // Baut eine einzelne Buchungskarte inkl. Buttons und klickbarem Detailbereich.
     private Div createBookingItem(Booking booking, String tabLabel) {
         Div card = new Div();
         card.addClassName("booking-item-card");
-
+        
+        // Hauptbereich klickbar machen
         Div clickableArea = new Div();
-        clickableArea.addClassName("booking-item-clickable");
+        clickableArea.getStyle().set("cursor", "pointer");
         clickableArea.addClickListener(e -> openBookingDetailsDialog(booking));
-
+        
+        String roomType = booking.getRoomCategory() != null
+                ? booking.getRoomCategory().getName()
+                : "Room";
+        String roomNumber = booking.getRoom() != null
+                ? booking.getRoom().getRoomNumber()
+                : "-";
+        
         Div header = new Div();
         header.addClassName("booking-item-header");
-        H3 bookingNumber = new H3(booking.getBookingNumber() != null ? booking.getBookingNumber() : "-");
+        
+        H3 bookingNumber = new H3(booking.getBookingNumber());
         bookingNumber.addClassName("booking-item-number");
-        header.add(bookingNumber, createStatusBadge(booking));
-
+        
+        Span statusBadge = new Span(booking.getStatus().toString());
+        statusBadge.addClassName("booking-item-status");
+        statusBadge.addClassName(booking.getStatus().toString().toLowerCase());
+        
+        header.add(bookingNumber, statusBadge);
+        
         Div details = new Div();
         details.addClassName("booking-item-details");
         
@@ -238,33 +215,16 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
         if (booking.getTotalPrice() != null) {
             totalPriceText = String.format("%.2f €", booking.getTotalPrice());
         }
-
-        BigDecimal totalPrice = booking.getTotalPrice();
-        String totalFormatted = totalPrice != null ? totalPrice.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString() + " €" : "-";
-        H3 price = new H3("Total price: " + totalFormatted);
+        
+        H3 price = new H3("Gesamtpreis: " + totalPriceText);
         price.addClassName("booking-item-price");
+        
+        // Klickbarer Bereich
         clickableArea.add(header, details, price);
-
+        
+        // Buttons basierend auf Tab
         Div buttonsContainer = new Div();
         buttonsContainer.addClassName("booking-item-buttons");
-        buttonsContainer.add(createActionButtons(tabLabel));
-        card.add(clickableArea, buttonsContainer);
-        return card;
-    }
-
-    // =========================================================
-    // HELPER METHODS (UI COMPONENTS)
-    // =========================================================
-
-    private Span createStatusBadge(Booking booking) {
-        String statusText = String.valueOf(booking.getStatus());
-        Span badge = new Span(statusText);
-        badge.addClassName("booking-item-status");
-        badge.addClassName(statusText.toLowerCase());
-        return badge;
-    }
-
-    private HorizontalLayout createActionButtons(String tabLabel) {
         HorizontalLayout buttonsLayout = new HorizontalLayout();
         buttonsLayout.setSpacing(true);
 
@@ -469,27 +429,49 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
             reviewLink.addClassName("primary-button");
             buttonsLayout.add(reviewLink);
         }
-        return buttonsLayout;
+        
+        buttonsContainer.add(buttonsLayout);
+        
+        card.add(clickableArea, buttonsContainer);
+        return card;
     }
-
+    
+    // Hilfsmethode: Label/Value-Paar für Details innerhalb der Karte.
     private Div createDetailItem(String label, String value) {
         Div item = new Div();
         item.addClassName("booking-item-detail");
-
+        
         Span labelSpan = new Span(label);
         labelSpan.addClassName("booking-item-detail-label");
-
+        
         Span valueSpan = new Span(value);
         valueSpan.addClassName("booking-item-detail-value");
-
+        
         item.add(labelSpan, valueSpan);
         return item;
     }
+    
+    // Ermittelt den Anzeigenwert für Preis pro Nacht aus Kategorie oder Zimmer.
+    private String calculatePricePerNight(Booking booking) {
+        if (booking.getRoomCategory() != null && booking.getRoomCategory().getPricePerNight() != null) {
+            return String.format("%.2f €", booking.getRoomCategory().getPricePerNight());
+        } else if (booking.getRoom() != null && booking.getRoom().getCategory() != null 
+                && booking.getRoom().getCategory().getPricePerNight() != null) {
+            return String.format("%.2f €", booking.getRoom().getCategory().getPricePerNight());
+        }
+        return null;
+    }
 
-    // =========================================================
-    // BOOKING DETAILS DIALOG
-    // =========================================================
+    // Lädt alle Buchungen des aktuellen Nutzers.
+    private List<Booking> loadAllBookingsForCurrentUser() {
+        User user = sessionService.getCurrentUser();
+        if (user == null) {
+            return List.of();
+        }
+        return bookingService.findAllBookingsForGuest(user.getId());
+    }
 
+    // Öffnet ein Dialogfenster mit allen Details, Extras und Rechnung zur Buchung.
     private void openBookingDetailsDialog(Booking booking) {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle("Buchungsdetails - " + booking.getBookingNumber());
@@ -671,11 +653,7 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
         dialog.open();
     }
 
-
-    // =========================================================
-    // SECURITY
-    // =========================================================
-
+    // Zugriffsschutz: Nur eingeloggte Gäste dürfen die Seite sehen, sonst Login-Redirect.
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         if (!sessionService.isLoggedIn() || !sessionService.hasRole(UserRole.GUEST)) {
