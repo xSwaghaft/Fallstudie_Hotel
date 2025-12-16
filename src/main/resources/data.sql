@@ -188,14 +188,14 @@ INSERT IGNORE INTO feedback (id, booking_id, guest_id, rating, comment) VALUES
 (6,7,5,5,'Fantastischer Aufenthalt! Das Deluxe Zimmer war wunderschön und der Service war ausgezeichnet.');
 
 -- ---------- Room Images (für Standard und Deluxe Kategorien) ----------
-INSERT IGNORE INTO room_images (image_path, alt_text, title, display_order, is_primary, category_id) VALUES
-('images/rooms/standard_001.png', 'Standard Zimmer Ansicht 1', 'Standard Zimmer', 0, TRUE, 1),
-('images/rooms/standard_002.png', 'Standard Zimmer Ansicht 2', 'Standard Zimmer', 1, FALSE, 1),
-('images/rooms/deluxe_001.png', 'Deluxe Zimmer Ansicht 1', 'Deluxe Zimmer', 0, TRUE, 2),
-('images/rooms/deluxe_002.png', 'Deluxe Zimmer Ansicht 2', 'Deluxe Zimmer', 1, FALSE, 2),
-('images/rooms/Suite_001.png', 'Suite Zimmer Ansicht 1', 'Deluxe Zimmer', 1, TRUE, 3),
-('images/rooms/Economy_001.png', 'Economy Zimmer Ansicht 1', 'Deluxe Zimmer', 1, TRUE, 4),
-('images/rooms/Family_001.png', 'Family Zimmer Ansicht 1', 'Deluxe Zimmer', 1, TRUE, 5);
+INSERT IGNORE INTO room_images (image_path, alt_text, title, is_primary, category_id) VALUES
+('/images/rooms/standard_001.png', 'Standard Zimmer Ansicht 1', 'Standard Zimmer', 1, 1),
+('/images/rooms/standard_002.png', 'Standard Zimmer Ansicht 2', 'Standard Zimmer', 0, 1),
+('/images/rooms/deluxe_001.png', 'Deluxe Zimmer Ansicht 1', 'Deluxe Zimmer', 1, 2),
+('/images/rooms/deluxe_002.png', 'Deluxe Zimmer Ansicht 2', 'Deluxe Zimmer', 0, 2),
+('/images/rooms/Suite_001.png', 'Suite Zimmer Ansicht 1', 'Suite Zimmer', 1, 3),
+('/images/rooms/Economy_001.png', 'Economy Zimmer Ansicht 1', 'Economy Zimmer', 1, 4),
+('/images/rooms/Family_001.png', 'Family Zimmer Ansicht 1', 'Family Zimmer', 1, 5);
 
 
 

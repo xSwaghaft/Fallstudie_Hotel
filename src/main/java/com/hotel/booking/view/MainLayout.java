@@ -139,6 +139,7 @@ public class MainLayout extends AppLayout {
                 createNavLink("Payments", PaymentView.class, VaadinIcon.CREDIT_CARD),
                 createNavLink("Invoices", InvoiceView.class, VaadinIcon.FILE_TEXT),
                 createNavLink("Room Management", RoomManagementView.class, VaadinIcon.BED),
+                createNavLink("Image Management", ImageManagementView.class, VaadinIcon.PICTURE),
                 createNavLink("User Management", UserManagementView.class, VaadinIcon.USERS),
                 createNavLink("Reports & Analytics", ReportsView.class, VaadinIcon.CHART)
             );
