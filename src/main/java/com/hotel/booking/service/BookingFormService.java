@@ -41,6 +41,14 @@ public class BookingFormService {
         return bookingService.isRoomAvailable(category, start, end);
     }
 
+    public boolean isRoomAvailable(RoomCategory category, LocalDate start, LocalDate end, Long excludeBookingId) {
+        /**
+         * Weitergeleitete Verfügbarkeitsprüfung, die eine bestehende Buchung ausschließt.
+         * Dient als einfache Fassade für die Views (z. B. Binder-Validatoren).
+         */
+        return bookingService.isRoomAvailable(category, start, end, excludeBookingId);
+    }
+
     public User findUserByEmail(String email) {
         return userService.findUserByEmail(email);
     }
