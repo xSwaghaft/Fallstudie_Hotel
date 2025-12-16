@@ -44,6 +44,18 @@ public class createNewBookingForm extends FormLayout{
     private DatePicker checkInDate = new DatePicker("Check-In Date");
     private DatePicker checkOutDate = new DatePicker("Check-Out Date");
     private CheckboxGroup<BookingExtra> extras = new CheckboxGroup<>();
+    // cache the available extras so we reuse the same instances for selection matching
+    // Cache aller verfügbaren `BookingExtra`-Instanzen.
+    // Zweck: Die Checkbox-Gruppe wird mit genau diesen Instanzen gefüllt und
+    // beim Vorauswählen wieder auf diese Objekte gemappt. Das vermeidet
+    // Instance-Equality-Probleme (detached vs. managed Instanzen) und sorgt
+    // dafür, dass bereits zugeordnete Extras korrekt als ausgewählt angezeigt werden.
+    private java.util.List<BookingExtra> availableExtras = new java.util.ArrayList<>();
+
+    // Flag, das angibt, ob das Formular im Editier-Modus ist.
+    // - `false`: Erstellen einer neuen Buchung — strengere Validierung (z. B. keine Past-Dates).
+    // - `true`: Bearbeiten einer bestehenden Buchung — erlaubt das Beibehalten alter Werte.
+    private boolean editing = false;
 
     public createNewBookingForm(User user, SessionService sessionService, Booking existingBooking, BookingFormService formService) {
 
@@ -101,6 +113,9 @@ public class createNewBookingForm extends FormLayout{
             if (formBooking != null) {
                 formBooking.setRoomCategory(category);
             }
+            // Ensure the Select field has the value as well so Binder validation passes
+            // even if the Select is hidden. This keeps binder.asRequired(...) happy.
+            roomCategorySelect.setValue(category);
             
             // Setze Maximum basierend auf MaxOccupancy der Kategorie
             if (maxOccupancy != null && maxOccupancy > 0) {
@@ -135,9 +150,8 @@ public class createNewBookingForm extends FormLayout{
         }
         
         // Aktualisiere das Booking-Objekt im Binder
-        if (formBooking != null) {
-            binder.readBean(formBooking);
-        }
+        // `setBooking` führt bereits `binder.readBean(formBooking)` aus,
+        // deshalb hier kein erneuter Aufruf, um UI-Überschreibungen zu vermeiden.
     }
 
     private void configureFields() {
@@ -156,7 +170,9 @@ public class createNewBookingForm extends FormLayout{
 
         // Extras
         extras.setLabel("Extras");
-        extras.setItems(formService.getAllBookingExtras());
+        // load once and keep the same instances for the CheckboxGroup
+        availableExtras = formService.getAllBookingExtras();
+        extras.setItems(availableExtras);
         extras.setItemLabelGenerator(BookingExtra::getName);
 
         // ValueChangeListener für Verfügbarkeitsprüfung an die Datepicker, damit auch
@@ -170,6 +186,12 @@ public class createNewBookingForm extends FormLayout{
     }
 
     private void configureBinder() {
+
+        // Binder-Konfiguration
+        // Wichtige Punkte:
+        // - Validators unterscheiden zwischen Erstellen und Bearbeiten (siehe `editing`).
+        // - Availability-Validatoren rufen bei Editieren die Variante mit `excludeBookingId`
+        //   auf, damit die aktuell bearbeitete Buchung sich nicht selbst blockiert.
 
         // Guests
         binder.forField(guestNumber)
@@ -188,12 +210,25 @@ public class createNewBookingForm extends FormLayout{
         binder.forField(checkInDate)
                 .asRequired("Check-In required")
                 .withValidator(date -> {
+                    if (date == null) return true;
+                    // If editing and the date equals the original booking's check-in, allow it
+                    if (editing && formBooking != null && formBooking.getCheckInDate() != null && date.equals(formBooking.getCheckInDate())) {
+                        return true;
+                    }
+                    // Check-in darf nicht in der Vergangenheit liegen für neue Buchungen oder Änderungen
+                    return !date.isBefore(LocalDate.now());
+                }, "Check-In darf nicht in der Vergangenheit liegen")
+                .withValidator(date -> {
                     LocalDate checkOut = checkOutDate.getValue();
                     RoomCategory category = roomCategorySelect.getValue();
 
                     if (date == null || checkOut == null || category == null)
                         return true; // noch nicht prüfbar
 
+                    // If editing an existing booking, ignore that booking when checking availability
+                    if (editing && formBooking != null && formBooking.getId() != null) {
+                        return formService.isRoomAvailable(category, date, checkOut, formBooking.getId());
+                    }
                     return formService.isRoomAvailable(category, date, checkOut);
                 }, "No Room available for selected dates")
                 .bind(Booking::getCheckInDate, Booking::setCheckInDate);
@@ -203,7 +238,15 @@ public class createNewBookingForm extends FormLayout{
                 .asRequired("Check-Out required")
                 .withValidator(date -> {
                     LocalDate checkIn = checkInDate.getValue();
-                    return checkIn == null || date.isAfter(checkIn);
+                    if (date == null) return true;
+                    // If editing and date equals original booking's check-out, allow it
+                    if (editing && formBooking != null && formBooking.getCheckOutDate() != null && date.equals(formBooking.getCheckOutDate())) {
+                        return true;
+                    }
+                    // Check-out muss nach Check-in liegen
+                    if (checkIn != null && !date.isAfter(checkIn)) return false;
+                    // Check-out darf nicht in der Vergangenheit liegen für neue Buchungen oder Änderungen
+                    return !date.isBefore(LocalDate.now());
                 }, "Check-Out must be after Check-In")
                 // Zimmer-Verfügbarkeitsprüfung
                 .withValidator(date -> {
@@ -213,6 +256,10 @@ public class createNewBookingForm extends FormLayout{
                     if (checkIn == null || date == null || category == null)
                         return true; // noch nicht prüfbar
 
+                    // If editing an existing booking, ignore that booking when checking availability
+                    if (editing && formBooking != null && formBooking.getId() != null) {
+                        return formService.isRoomAvailable(category, checkIn, date, formBooking.getId());
+                    }
                     return formService.isRoomAvailable(category, checkIn, date);
                 }, "No Room available for selected dates")
                 .bind(Booking::getCheckOutDate, Booking::setCheckOutDate);
@@ -236,6 +283,7 @@ public class createNewBookingForm extends FormLayout{
 
     public void setBooking(Booking existingBooking) {
     boolean isNew = existingBooking == null;
+    this.editing = !isNew;
     if (isNew) {
         formBooking = new Booking("", LocalDate.now(), LocalDate.now().plusDays(1), BookingStatus.PENDING, user, null);
         //Feld nur für Manager oder Receptionist sichtbar, nur beim neu anlegen
@@ -254,6 +302,46 @@ public class createNewBookingForm extends FormLayout{
 
     // Set bean (initial values anzeigen)       
     binder.readBean(formBooking);
+
+    // Ensure that extras which are already part of the booking are shown as checked
+    try {
+        java.util.Map<Long, BookingExtra> byId = new java.util.HashMap<>();
+        for (BookingExtra be : availableExtras) {
+            if (be != null && be.getBookingExtra_id() != null) {
+                byId.put(be.getBookingExtra_id(), be);
+            }
+        }
+
+        java.util.Set<BookingExtra> toSelect = new java.util.HashSet<>();
+        if (formBooking.getExtras() != null) {
+            for (BookingExtra be : formBooking.getExtras()) {
+                if (be == null)
+                    continue;
+                // Prefer matching by id
+                Long id = be.getBookingExtra_id();
+                    if (id != null && byId.containsKey(id)) {
+                        toSelect.add(byId.get(id));
+                } else {
+                    // Fallback: match by name
+                    String name = be.getName();
+                    if (name != null) {
+                        for (BookingExtra candidate : availableExtras) {
+                            if (name.equals(candidate.getName())) {
+                                toSelect.add(candidate);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Apply selection to the CheckboxGroup so items are shown as checked
+        // Always set the value (empty set if none) to ensure UI reflects current booking
+        extras.setValue(toSelect);
+    } catch (Exception e) {
+        // silently ignore UI mapping issues; binder still holds the booking
+    }
     }
 
     public Booking getBooking() {
