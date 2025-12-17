@@ -697,6 +697,7 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
                 Notification.show("Bitte korrigiere Validierungsfehler.", 3000, Notification.Position.MIDDLE);
             }
         });
+        saveBtn.addClassName("primary-button");
 
         Button cancelBtn = new Button("Abbrechen", ev -> dialog.close());
         dialog.add(form, new HorizontalLayout(saveBtn, cancelBtn));
