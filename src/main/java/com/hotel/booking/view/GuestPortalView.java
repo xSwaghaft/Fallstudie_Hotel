@@ -238,6 +238,7 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
                 Notification.show("Please check your inputs.");
             }
         });
+        confirm.addClassName("primary-button");
 
         Button cancel = new Button("Cancel", event -> dialog.close());
 
