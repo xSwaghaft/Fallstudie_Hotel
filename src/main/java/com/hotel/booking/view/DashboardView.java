@@ -5,8 +5,8 @@ import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.BookingFormService;
 import com.hotel.booking.service.BookingService;
+import com.hotel.booking.service.InvoiceService;
 import com.hotel.booking.service.RoomService;
-import com.hotel.booking.service.RoomService.RoomStatistics;
 import com.hotel.booking.view.components.CardFactory;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
@@ -20,6 +20,8 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.*;
 import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.router.*;
+
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
@@ -32,16 +34,18 @@ public class DashboardView extends VerticalLayout implements BeforeEnterObserver
     private final SessionService sessionService;
     private final RoomService roomService;
     private final BookingService bookingService;
+    private final InvoiceService invoiceService;
     private final BookingFormService formService;
 
     private static final DateTimeFormatter GERMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
     private Grid<Booking> grid = new Grid<>(Booking.class, false);
 
-    public DashboardView(SessionService sessionService, RoomService service, BookingService bookingService, BookingFormService formService) {
+    public DashboardView(SessionService sessionService, RoomService service, BookingService bookingService, InvoiceService invoiceService, BookingFormService formService) {
         this.sessionService = sessionService;
         this.roomService = service; 
         this.bookingService = bookingService;
+        this.invoiceService = invoiceService;
         this.formService = formService;
 
         setSpacing(true);
@@ -129,10 +133,13 @@ public class DashboardView extends VerticalLayout implements BeforeEnterObserver
 
 
     private Component createKpiRow(UserRole role) {
-        RoomStatistics stats = roomService.getStatistics();
         int currentGuests = bookingService.getNumberOfGuestsPresent();
         int checkoutsToday = bookingService.getNumberOfCheckoutsToday();
         int checkinsToday = bookingService.getNumberOfCheckinsToday();
+        int occupiedRooms = bookingService.getActiveBookings(LocalDate.now(), LocalDate.now()).size();
+        int availableRooms = roomService.getAllRooms().size() - occupiedRooms;
+        BigDecimal revenueToday = bookingService.getRevenueToday();
+        int pendingInvoices = invoiceService.getNumberOfPendingInvoices();
         // Verwende HorizontalLayout statt FlexLayout für gleichmäßige Verteilung
         HorizontalLayout row = new HorizontalLayout();
         row.setWidthFull();
@@ -142,16 +149,16 @@ public class DashboardView extends VerticalLayout implements BeforeEnterObserver
         if (role == UserRole.RECEPTIONIST) {
             Div card1 = CardFactory.createStatCard("Check-ins Today", String.valueOf(checkinsToday), VaadinIcon.USERS);
             Div card2 = CardFactory.createStatCard("Check-outs Today", String.valueOf(checkoutsToday), VaadinIcon.USERS);
-            Div card3 = CardFactory.createStatCard("Occupied Rooms", String.valueOf(stats.getOccupiedRooms()), VaadinIcon.BED);
-            Div card4 = CardFactory.createStatCard("Pending Invoices", "12", VaadinIcon.FILE_TEXT);
+            Div card3 = CardFactory.createStatCard("Occupied Rooms", String.valueOf(occupiedRooms), VaadinIcon.BED);
+            Div card4 = CardFactory.createStatCard("Pending Invoices", String.valueOf(pendingInvoices), VaadinIcon.FILE_TEXT);
             
             row.add(card1, card2, card3, card4);
             // Alle Karten gleichmäßig expandieren
             row.expand(card1, card2, card3, card4);
         } else if (role == UserRole.MANAGER) {
-            Div card1 = CardFactory.createStatCard("Occupied Rooms", String.valueOf(stats.getOccupiedRooms()), VaadinIcon.BED);
-            Div card2 = CardFactory.createStatCard("Available Rooms", String.valueOf(stats.getAvailableRooms()), VaadinIcon.BED);
-            Div card3 = CardFactory.createStatCard("Revenue Today", "€8.450", VaadinIcon.DOLLAR);
+            Div card1 = CardFactory.createStatCard("Occupied Rooms", String.valueOf(occupiedRooms), VaadinIcon.BED);
+            Div card2 = CardFactory.createStatCard("Available Rooms", String.valueOf(availableRooms), VaadinIcon.BED);
+            Div card3 = CardFactory.createStatCard("Revenue Today", String.valueOf(revenueToday), VaadinIcon.DOLLAR);
             Div card4 = CardFactory.createStatCard("Current Guests", String.valueOf(currentGuests), VaadinIcon.USERS);
             
             row.add(card1, card2, card3, card4);

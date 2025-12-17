@@ -162,6 +162,14 @@ public class BookingService {
                 .count();
     }
 
+    //Matthias Lohr
+    public BigDecimal getRevenueToday() {
+        List<Booking> todayBookings = bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(LocalDate.now(), LocalDate.now(), BookingStatus.CANCELLED);
+        return todayBookings.stream()
+                .map(Booking::getTotalPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
     private String generateBookingNumber() {
     // Beispiel: YYYYMMDD-xxxxx
     String prefix = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
