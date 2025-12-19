@@ -82,7 +82,7 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
     private final BookingCancellationService bookingCancellationService;
 
     @Autowired
-    public MyBookingsView(SessionService sessionService, BookingService bookingService,PaymentService paymentService, BookingFormService formService, BookingModificationService modificationService, BookingCancellationService bookingCancellationService) {
+    public MyBookingsView(SessionService sessionService, BookingService bookingService, PaymentService paymentService, BookingFormService formService, BookingModificationService modificationService, BookingCancellationService bookingCancellationService) {
         this.sessionService = sessionService;
         this.bookingService = bookingService;
         this.paymentService = paymentService;

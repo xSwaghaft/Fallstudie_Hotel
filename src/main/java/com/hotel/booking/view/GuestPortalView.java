@@ -291,6 +291,11 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
                 paymentService.save(payment);
                 System.out.println("DEBUG: Payment saved: " + payment.getId());
                 
+                // Update Booking status to CONFIRMED
+                booking.setStatus(com.hotel.booking.entity.BookingStatus.CONFIRMED);
+                bookingService.save(booking);
+                System.out.println("DEBUG: Booking status updated to CONFIRMED");
+                
                 Notification.show("Payment completed! Booking confirmed.", 3000, Notification.Position.TOP_CENTER);
             });
             
@@ -314,6 +319,9 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
                 // Save payment with PENDING status
                 paymentService.save(payment);
                 System.out.println("DEBUG: Deferred payment saved with PENDING status: " + payment.getId());
+                
+                // Booking status stays PENDING until payment is made
+                System.out.println("DEBUG: Booking status remains PENDING (awaiting payment)");
             });
             
             System.out.println("DEBUG: About to open payment dialog");
