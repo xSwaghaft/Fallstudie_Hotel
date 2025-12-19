@@ -412,13 +412,14 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
                         }
                         bookingCancellationService.save(bc);
                         
-                        // Update Payment status to REFUNDED
+                        // Update Payment status to REFUNDED and set refunded amount
                         List<Payment> payments = paymentService.findByBookingId(b.getId());
                         for (Payment p : payments) {
                             if (p.getStatus() == Invoice.PaymentStatus.PAID) {
                                 p.setStatus(Invoice.PaymentStatus.REFUNDED);
+                                p.setRefundedAmount(refundedAmount);  // Set the refund amount (total - penalty)
                                 paymentService.save(p);
-                                System.out.println("DEBUG: Payment " + p.getId() + " status changed to REFUNDED");
+                                System.out.println("DEBUG: Payment " + p.getId() + " status changed to REFUNDED, refundAmount: " + refundedAmount);
                                 break;
                             }
                         }
@@ -466,13 +467,14 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
                         }
                         bookingCancellationService.save(bc);
                         
-                        // Update Payment status to REFUNDED
+                        // Update Payment status to REFUNDED and set refunded amount
                         List<Payment> payments = paymentService.findByBookingId(b.getId());
                         for (Payment p : payments) {
                             if (p.getStatus() == Invoice.PaymentStatus.PAID) {
                                 p.setStatus(Invoice.PaymentStatus.REFUNDED);
+                                p.setRefundedAmount(b.getTotalPrice());  // Full refund (no penalty)
                                 paymentService.save(p);
-                                System.out.println("DEBUG: Payment " + p.getId() + " status changed to REFUNDED");
+                                System.out.println("DEBUG: Payment " + p.getId() + " status changed to REFUNDED, refundAmount: " + b.getTotalPrice());
                                 break;
                             }
                         }

@@ -63,6 +63,13 @@ public class Payment {
     @Column
     private LocalDateTime paidAt;
     
+    /**
+     * Betrag, der bei Refund zurückerstattet wird (kann weniger als amount sein bei Stornierungsgebühren)
+     */
+    @DecimalMin("0.00")
+    @Column(precision = 10, scale = 2)
+    private BigDecimal refundedAmount;
+    
     // Activate when Booking entity 
     @JsonIgnore
     @ManyToOne
@@ -149,6 +156,21 @@ public class Payment {
     public void setPaidAt(LocalDateTime paidAt) {
         this.paidAt = paidAt;
     }
+    
+    public BigDecimal getRefundedAmount() {
+        return refundedAmount;
+    }
+    
+    public void setRefundedAmount(BigDecimal refundedAmount) {
+        if (refundedAmount == null) {
+            this.refundedAmount = null;
+            return;
+        }
+        // Geld-Berechnung auf 2 Dezimalstellen runden
+        this.refundedAmount = refundedAmount.setScale(2, RoundingMode.HALF_UP);
+    }
+    
+    
     
     
     
