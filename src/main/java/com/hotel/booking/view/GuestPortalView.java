@@ -331,7 +331,7 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
      * Maps UI payment method string to PaymentMethod enum
      */
     private Invoice.PaymentMethod mapPaymentMethod(String uiMethod) {
-        if ("Banküberweisung".equals(uiMethod)) {
+        if ("Bank Transfer".equals(uiMethod)) {
             return Invoice.PaymentMethod.TRANSFER;
         }
         return Invoice.PaymentMethod.CARD;

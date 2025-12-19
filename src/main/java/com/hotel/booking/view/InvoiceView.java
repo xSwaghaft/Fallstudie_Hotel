@@ -6,6 +6,7 @@ import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.InvoiceService;
 import com.hotel.booking.service.InvoicePdfService;
+import com.hotel.booking.security.SessionService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
@@ -28,6 +29,8 @@ import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -46,9 +49,10 @@ import org.slf4j.LoggerFactory;
 @Route(value = "invoices", layout = MainLayout.class)
 @PageTitle("Invoices")
 @CssImport("./themes/hotel/styles.css")
-public class InvoiceView extends VerticalLayout {
+public class InvoiceView extends VerticalLayout implements BeforeEnterObserver {
 
     private static final Logger logger = LoggerFactory.getLogger(InvoiceView.class);
+    private final SessionService sessionService;
     private final InvoiceService invoiceService;
     private final InvoicePdfService invoicePdfService;
     private Grid<Invoice> grid;
@@ -71,7 +75,8 @@ public class InvoiceView extends VerticalLayout {
         public void setStatus(Invoice.PaymentStatus status) { this.status = status; }
     }
 
-    public InvoiceView(InvoiceService invoiceService, InvoicePdfService invoicePdfService) {
+    public InvoiceView(SessionService sessionService, InvoiceService invoiceService, InvoicePdfService invoicePdfService) {
+        this.sessionService = sessionService;
         this.invoiceService = invoiceService;
         this.invoicePdfService = invoicePdfService;
 
@@ -90,8 +95,15 @@ public class InvoiceView extends VerticalLayout {
     }
 
     private Component createHeader() {
-        H1 h1 = new H1("Invoice Management");
-        Paragraph p = new Paragraph("Manage and search invoices");
+        String title = sessionService.getCurrentRole() == UserRole.GUEST 
+            ? "My Invoices" 
+            : "Invoice Management";
+        String subtitle = sessionService.getCurrentRole() == UserRole.GUEST 
+            ? "View your invoices" 
+            : "Manage and search invoices";
+        
+        H1 h1 = new H1(title);
+        Paragraph p = new Paragraph(subtitle);
         p.addClassName("invoice-subtitle");
         
         HorizontalLayout header = new HorizontalLayout(h1, p);
@@ -127,7 +139,7 @@ public class InvoiceView extends VerticalLayout {
         method.setValue("All Methods");
 
         DatePicker date = new DatePicker("Date (optional)");
-        // Kein Standard-Wert - nur filtern wenn ausgewählt
+        // No default value - only filter when selected
 
         FormLayout form = new FormLayout(search, status, method, date);
         form.setResponsiveSteps(
@@ -162,6 +174,8 @@ public class InvoiceView extends VerticalLayout {
         Button addButton = new Button("Add Invoice", VaadinIcon.PLUS.create());
         addButton.addClassName("primary-button");
         addButton.addClickListener(e -> openAddInvoiceDialog());
+        // Only visible for staff
+        addButton.setVisible(sessionService.getCurrentRole() != UserRole.GUEST);
 
         HorizontalLayout headerLayout = new HorizontalLayout(title, addButton);
         headerLayout.setWidthFull();
@@ -172,14 +186,14 @@ public class InvoiceView extends VerticalLayout {
         grid = new Grid<>(Invoice.class, false);
         
         grid.addColumn(Invoice::getId).setHeader("ID").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(Invoice::getInvoiceNumber).setHeader("Rechnungs-Nr.").setSortable(true).setAutoWidth(true).setFlexGrow(1);
-        grid.addColumn(invoice -> invoice.getAmount()).setHeader("Betrag").setSortable(true).setAutoWidth(true).setFlexGrow(1);
-        grid.addColumn(Invoice::getPaymentMethod).setHeader("Zahlungsart").setSortable(true).setAutoWidth(true).setFlexGrow(1);
+        grid.addColumn(Invoice::getInvoiceNumber).setHeader("Invoice No.").setSortable(true).setAutoWidth(true).setFlexGrow(1);
+        grid.addColumn(invoice -> invoice.getAmount()).setHeader("Amount").setSortable(true).setAutoWidth(true).setFlexGrow(1);
+        grid.addColumn(Invoice::getPaymentMethod).setHeader("Payment Method").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.addColumn(Invoice::getInvoiceStatus).setHeader("Status").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.addColumn(invoice -> invoice.getIssuedAt() != null 
                 ? invoice.getIssuedAt().format(GERMAN_DATETIME_FORMAT) 
                 : "")
-                .setHeader("Ausgestellt am").setSortable(true).setAutoWidth(true).setFlexGrow(1);
+                .setHeader("Issued At").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         
         // PDF Download Column
         grid.addComponentColumn(invoice -> {
@@ -206,6 +220,8 @@ public class InvoiceView extends VerticalLayout {
 
     private void loadInvoices(String query, String statusFilter, String methodFilter, LocalDate dateFilter) {
         List<Invoice> items;
+        
+        // Get all invoices
         if (query == null || query.isBlank()) {
             items = invoiceService.findAll();
         } else {
@@ -220,6 +236,16 @@ public class InvoiceView extends VerticalLayout {
                                 inv.getInvoiceNumber().toLowerCase().contains(query.toLowerCase()))
                         .collect(Collectors.toList());
             }
+        }
+        
+        // If guest: filter to only their invoices
+        if (sessionService.getCurrentRole() == UserRole.GUEST) {
+            Long guestId = sessionService.getCurrentUser().getId();
+            items = items.stream()
+                    .filter(inv -> inv.getBooking() != null && 
+                                 inv.getBooking().getGuest() != null && 
+                                 inv.getBooking().getGuest().getId().equals(guestId))
+                    .collect(Collectors.toList());
         }
 
         // Status Filter
@@ -338,7 +364,14 @@ public class InvoiceView extends VerticalLayout {
             com.vaadin.flow.component.UI.getCurrent().getPage().open(url);
         } catch (Exception e) {
             logger.error("Error initiating PDF download", e);
-            Notification.show("Fehler beim Download: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
+            Notification.show("Error downloading invoice: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
+        }
+    }
+    
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        if (!sessionService.isLoggedIn()) {
+            event.rerouteTo(LoginView.class);
         }
     }
 }

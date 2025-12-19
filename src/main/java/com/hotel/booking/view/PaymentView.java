@@ -54,7 +54,7 @@ public class PaymentView extends VerticalLayout {
     }
 
     private void initializeUI() {
-        // Titel basierend auf Rolle
+        // Title based on role
         String title = sessionService.getCurrentRole() == UserRole.GUEST 
             ? "My Payments" 
             : "Payment Management";
@@ -105,7 +105,7 @@ public class PaymentView extends VerticalLayout {
         method.setValue("All Methods");
 
         DatePicker date = new DatePicker("Date (optional)");
-        // Kein Standard-Wert - nur filtern wenn ausgewählt
+        // No default value - only filter when selected
 
         FormLayout form = new FormLayout(search, status, method, date);
         form.setResponsiveSteps(
@@ -140,14 +140,14 @@ public class PaymentView extends VerticalLayout {
         grid = new Grid<>(Payment.class, false);
         
         grid.addColumn(Payment::getId).setHeader("ID").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(p -> p.getAmount()).setHeader("Betrag").setSortable(true).setAutoWidth(true).setFlexGrow(1);
-        grid.addColumn(Payment::getMethod).setHeader("Methode").setSortable(true).setAutoWidth(true).setFlexGrow(1);
+        grid.addColumn(p -> p.getAmount()).setHeader("Amount").setSortable(true).setAutoWidth(true).setFlexGrow(1);
+        grid.addColumn(Payment::getMethod).setHeader("Method").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.addColumn(Payment::getStatus).setHeader("Status").setSortable(true).setAutoWidth(true).setFlexGrow(1);
-        grid.addColumn(Payment::getTransactionRef).setHeader("Transaktions-Ref").setSortable(true).setAutoWidth(true).setFlexGrow(1);
+        grid.addColumn(Payment::getTransactionRef).setHeader("Transaction-Ref").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.addColumn(payment -> payment.getPaidAt() != null 
                 ? payment.getPaidAt().format(GERMAN_DATETIME_FORMAT) 
                 : "")
-                .setHeader("Bezahlt am").setSortable(true).setAutoWidth(true).setFlexGrow(1);
+                .setHeader("Paid at").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.setMultiSort(true, MultiSortPriority.APPEND);
         grid.setWidthFull();
 
@@ -166,9 +166,9 @@ public class PaymentView extends VerticalLayout {
         List<Payment> items;
         UserRole role = sessionService.getCurrentRole();
 
-        // Basisdaten laden je nach Rolle
+        // Load base data based on role
         if (role == UserRole.GUEST) {
-            // Guests sehen nur ihre eigenen Payments
+            // Guests only see their own payments
             Long guestId = sessionService.getCurrentUser().getId();
             items = paymentService.findAll().stream()
                     .filter(p -> p.getBooking() != null && 
@@ -176,7 +176,7 @@ public class PaymentView extends VerticalLayout {
                                p.getBooking().getGuest().getId().equals(guestId))
                     .collect(Collectors.toList());
         } else {
-            // Receptionist und Manager sehen alle Payments
+            // Receptionist and Manager see all payments
             items = paymentService.findAll();
         }
 
@@ -194,7 +194,7 @@ public class PaymentView extends VerticalLayout {
                     .collect(Collectors.toList());
         }
 
-        // Date Filter - nur anwenden wenn ein Datum ausgewählt wurde
+        // Date Filter - only apply when a date is selected
         if (dateFilter != null) {
             items = items.stream()
                     .filter(p -> p.getPaidAt() != null && 
@@ -202,13 +202,13 @@ public class PaymentView extends VerticalLayout {
                     .collect(Collectors.toList());
         }
 
-        // Suchfilter anwenden
+        // Apply search filter
         if (query != null && !query.isBlank()) {
             // Try exact match first
             var byTx = paymentService.findByTransactionRef(query);
             if (byTx.isPresent()) {
                 Payment payment = byTx.get();
-                // Überprüfe ob der User Zugriff auf diesen Payment hat
+                // Check if user has access to this payment
                 if (role != UserRole.GUEST || 
                     (payment.getBooking() != null && 
                      payment.getBooking().getGuest() != null && 
