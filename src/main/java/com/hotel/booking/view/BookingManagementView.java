@@ -4,6 +4,7 @@ import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.BookingStatus;
 import com.hotel.booking.entity.Invoice;
 import com.hotel.booking.entity.Invoice;
+import com.hotel.booking.entity.Payment;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.entity.BookingCancellation;
@@ -11,6 +12,8 @@ import com.hotel.booking.entity.User;
 import com.hotel.booking.service.BookingCancellationService;
 import com.hotel.booking.service.BookingFormService;
 import com.hotel.booking.service.BookingService;
+import com.hotel.booking.service.PaymentService;
+import com.hotel.booking.service.InvoiceService;
 import com.hotel.booking.service.RoomCategoryService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
@@ -47,6 +50,8 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
     private final BookingFormService formService;
     private final com.hotel.booking.service.BookingModificationService modificationService;
     private final BookingCancellationService bookingCancellationService;
+    private final PaymentService paymentService;
+    private final InvoiceService invoiceService;
 
     private static final DateTimeFormatter GERMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
@@ -59,12 +64,14 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
     private List<String> categoryNames;
     private final String ALL_STATUS = "All Status";
 
-    public BookingManagementView(SessionService sessionService, BookingService bookingService, BookingFormService formService, com.hotel.booking.service.BookingModificationService modificationService, RoomCategoryService roomCategoryService, BookingCancellationService bookingCancellationService) {
+    public BookingManagementView(SessionService sessionService, BookingService bookingService, BookingFormService formService, com.hotel.booking.service.BookingModificationService modificationService, RoomCategoryService roomCategoryService, BookingCancellationService bookingCancellationService, PaymentService paymentService, InvoiceService invoiceService) {
         this.sessionService = sessionService;
         this.bookingService = bookingService;
         this.formService = formService;
         this.modificationService = modificationService;
         this.bookingCancellationService = bookingCancellationService;
+        this.paymentService = paymentService;
+        this.invoiceService = invoiceService;
 
         setSpacing(true);
         setPadding(true);
@@ -394,15 +401,39 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
                         bc.setCancelledAt(java.time.LocalDateTime.now());
                         bc.setReason("Storniert vom Management innerhalb 48 Stunden");
                         bc.setCancellationFee(penaltyFinal);
+                        
+                        // Calculate refunded amount (total - penalty)
+                        java.math.BigDecimal refundedAmount = b.getTotalPrice().subtract(penaltyFinal);
+                        bc.setRefundedAmount(refundedAmount);
+                        
                         User current = sessionService.getCurrentUser();
                         if (current != null) {
                             bc.setHandledBy(current);
                         }
                         bookingCancellationService.save(bc);
+                        
+                        // Update Payment status to REFUNDED
+                        List<Payment> payments = paymentService.findByBookingId(b.getId());
+                        for (Payment p : payments) {
+                            if (p.getStatus() == Invoice.PaymentStatus.PAID) {
+                                p.setStatus(Invoice.PaymentStatus.REFUNDED);
+                                paymentService.save(p);
+                                System.out.println("DEBUG: Payment " + p.getId() + " status changed to REFUNDED");
+                                break;
+                            }
+                        }
+                        
+                        // Update Invoice status to REFUNDED (if exists)
+                        Invoice invoice = b.getInvoice();
+                        if (invoice != null && invoice.getInvoiceStatus() == Invoice.PaymentStatus.PAID) {
+                            invoice.setInvoiceStatus(Invoice.PaymentStatus.REFUNDED);
+                            invoiceService.save(invoice);
+                            System.out.println("DEBUG: Invoice " + invoice.getId() + " status changed to REFUNDED");
+                        }
 
                         confirm.close();
                         grid.setItems(bookingService.findAll());
-                        Notification.show("Buchung storniert. Strafe: " + String.format("%.2f €", penaltyFinal), 4000, Notification.Position.BOTTOM_START);
+                        Notification.show("Buchung storniert. Rückerstattung: " + String.format("%.2f €", refundedAmount) + " | Strafe: " + String.format("%.2f €", penaltyFinal), 4000, Notification.Position.BOTTOM_START);
                     } catch (Exception ex) {
                         Notification.show(ex.getMessage() != null ? ex.getMessage() : "Fehler beim Stornieren", 5000, Notification.Position.MIDDLE);
                     }
@@ -425,15 +456,38 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
                         bc.setCancelledAt(java.time.LocalDateTime.now());
                         bc.setReason("Storniert vom Management");
                         bc.setCancellationFee(java.math.BigDecimal.ZERO);
+                        
+                        // Full refund (no penalty)
+                        bc.setRefundedAmount(b.getTotalPrice());
+                        
                         User current = sessionService.getCurrentUser();
                         if (current != null) {
                             bc.setHandledBy(current);
                         }
                         bookingCancellationService.save(bc);
+                        
+                        // Update Payment status to REFUNDED
+                        List<Payment> payments = paymentService.findByBookingId(b.getId());
+                        for (Payment p : payments) {
+                            if (p.getStatus() == Invoice.PaymentStatus.PAID) {
+                                p.setStatus(Invoice.PaymentStatus.REFUNDED);
+                                paymentService.save(p);
+                                System.out.println("DEBUG: Payment " + p.getId() + " status changed to REFUNDED");
+                                break;
+                            }
+                        }
+                        
+                        // Update Invoice status to REFUNDED (if exists)
+                        Invoice invoice = b.getInvoice();
+                        if (invoice != null && invoice.getInvoiceStatus() == Invoice.PaymentStatus.PAID) {
+                            invoice.setInvoiceStatus(Invoice.PaymentStatus.REFUNDED);
+                            invoiceService.save(invoice);
+                            System.out.println("DEBUG: Invoice " + invoice.getId() + " status changed to REFUNDED");
+                        }
 
                         confirm.close();
                         grid.setItems(bookingService.findAll());
-                        Notification.show("Buchung wurde storniert.", 3000, Notification.Position.BOTTOM_START);
+                        Notification.show("Buchung wurde storniert. Gesamtbetrag wird rückerstellt.", 3000, Notification.Position.BOTTOM_START);
                     } catch (Exception ex) {
                         Notification.show(ex.getMessage() != null ? ex.getMessage() : "Fehler beim Stornieren", 5000, Notification.Position.MIDDLE);
                     }

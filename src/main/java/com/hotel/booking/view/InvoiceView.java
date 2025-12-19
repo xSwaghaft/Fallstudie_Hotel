@@ -372,6 +372,8 @@ public class InvoiceView extends VerticalLayout implements BeforeEnterObserver {
     public void beforeEnter(BeforeEnterEvent event) {
         if (!sessionService.isLoggedIn()) {
             event.rerouteTo(LoginView.class);
+        } else {
+            loadInvoices("");
         }
     }
 }

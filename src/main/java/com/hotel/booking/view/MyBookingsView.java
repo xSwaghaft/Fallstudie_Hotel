@@ -43,6 +43,7 @@ import com.hotel.booking.entity.BookingExtra;
 import com.hotel.booking.entity.BookingCancellation;
 import com.hotel.booking.entity.Invoice;
 import com.hotel.booking.service.BookingCancellationService;
+import com.hotel.booking.service.InvoiceService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
@@ -67,6 +68,7 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
     private final SessionService sessionService;
     private final BookingService bookingService;
     private final PaymentService paymentService;
+    private final InvoiceService invoiceService;
 
     // =========================================================
     // UI COMPONENTS
@@ -82,10 +84,11 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
     private final BookingCancellationService bookingCancellationService;
 
     @Autowired
-    public MyBookingsView(SessionService sessionService, BookingService bookingService, PaymentService paymentService, BookingFormService formService, BookingModificationService modificationService, BookingCancellationService bookingCancellationService) {
+    public MyBookingsView(SessionService sessionService, BookingService bookingService, PaymentService paymentService, InvoiceService invoiceService, BookingFormService formService, BookingModificationService modificationService, BookingCancellationService bookingCancellationService) {
         this.sessionService = sessionService;
         this.bookingService = bookingService;
         this.paymentService = paymentService;
+        this.invoiceService = invoiceService;
         this.formService = formService;
         this.modificationService = modificationService;
         this.bookingCancellationService = bookingCancellationService;
@@ -325,6 +328,7 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
         try {
             // Update payment status
             List<Payment> payments = paymentService.findByBookingId(bookingId);
+            Payment paidPayment = null;
             
             for (Payment p : payments) {
                 if (p.getStatus() == Invoice.PaymentStatus.PENDING) {
@@ -332,6 +336,7 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
                     p.setPaidAt(LocalDateTime.now());
                     p.setMethod(mapPaymentMethod(selectedMethod));
                     paymentService.save(p);
+                    paidPayment = p;
                     System.out.println("DEBUG: Updated payment " + p.getId() + " to PAID");
                     break;
                 }
@@ -345,6 +350,19 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
                     booking.setStatus(BookingStatus.CONFIRMED);
                     bookingService.save(booking);
                     System.out.println("DEBUG: Updated booking " + booking.getId() + " status to CONFIRMED");
+                    
+                    // Create Invoice if not exists
+                    if (booking.getInvoice() == null && paidPayment != null) {
+                        Invoice invoice = new Invoice();
+                        invoice.setBooking(booking);
+                        invoice.setAmount(paidPayment.getAmount());
+                        invoice.setInvoiceStatus(Invoice.PaymentStatus.PAID);
+                        invoice.setPaymentMethod(paidPayment.getMethod());
+                        invoice.setIssuedAt(LocalDateTime.now());
+                        invoice.setInvoiceNumber(generateInvoiceNumber());
+                        invoiceService.save(invoice);
+                        System.out.println("DEBUG: Invoice created: " + invoice.getId());
+                    }
                 }
             }
         } catch (Exception ex) {
@@ -361,6 +379,10 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
             return Invoice.PaymentMethod.TRANSFER;
         }
         return Invoice.PaymentMethod.CARD;
+    }
+    
+    private String generateInvoiceNumber() {
+        return "INV-" + java.time.LocalDate.now().getYear() + "-" + System.currentTimeMillis();
     }
 
     // Hilfsmethode: Label/Value-Paar für Details innerhalb der Karte.
@@ -744,18 +766,42 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
                     bc.setCancelledAt(java.time.LocalDateTime.now());
                     bc.setReason("Storniert vom Gast");
                     bc.setCancellationFee(penaltyFinal);
+                    
+                    // Calculate refunded amount (total - penalty)
+                    java.math.BigDecimal refundedAmount = booking.getTotalPrice().subtract(penaltyFinal);
+                    bc.setRefundedAmount(refundedAmount);
+                    
                     User current = sessionService.getCurrentUser();
                     if (current != null) {
                         bc.setHandledBy(current);
                     }
                     bookingCancellationService.save(bc);
+                    
+                    // Update Payment status to REFUNDED
+                    List<Payment> payments = paymentService.findByBookingId(booking.getId());
+                    for (Payment p : payments) {
+                        if (p.getStatus() == Invoice.PaymentStatus.PAID) {
+                            p.setStatus(Invoice.PaymentStatus.REFUNDED);
+                            paymentService.save(p);
+                            System.out.println("DEBUG: Payment " + p.getId() + " status changed to REFUNDED");
+                            break;
+                        }
+                    }
+                    
+                    // Update Invoice status to REFUNDED (if exists)
+                    Invoice invoice = booking.getInvoice();
+                    if (invoice != null && invoice.getInvoiceStatus() == Invoice.PaymentStatus.PAID) {
+                        invoice.setInvoiceStatus(Invoice.PaymentStatus.REFUNDED);
+                        invoiceService.save(invoice);
+                        System.out.println("DEBUG: Invoice " + invoice.getId() + " status changed to REFUNDED");
+                    }
 
                     allBookings = loadAllBookingsForCurrentUser();
                     updateContent();
                     
                     String msg = penaltyFinal.compareTo(java.math.BigDecimal.ZERO) > 0 
-                        ? "Buchung storniert. Strafe: " + String.format("%.2f €", penaltyFinal)
-                        : "Buchung wurde storniert.";
+                        ? "Buchung storniert. Rückerstattung: " + String.format("%.2f €", refundedAmount) + " | Strafe: " + String.format("%.2f €", penaltyFinal)
+                        : "Buchung wurde storniert. Gesamtbetrag wird rückerstellt.";
                     Notification.show(msg, 3000, Notification.Position.BOTTOM_START);
                     confirm.close();
                 } catch (Exception ex) {

@@ -33,6 +33,7 @@ public class InvoiceService {
         return invoiceRepository.findByInvoiceNumber(invoiceNumber);
     }
 
+    @Transactional
     public Invoice save(Invoice invoice) {
         return invoiceRepository.save(invoice);
     }

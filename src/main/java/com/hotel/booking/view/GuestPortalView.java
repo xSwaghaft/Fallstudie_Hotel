@@ -17,6 +17,7 @@ import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.BookingFormService;
 import com.hotel.booking.service.BookingService;
 import com.hotel.booking.service.PaymentService;
+import com.hotel.booking.service.InvoiceService;
 import com.hotel.booking.service.RoomCategoryService;
 import com.hotel.booking.view.components.RoomGrid;
 import com.hotel.booking.view.components.PaymentDialog;
@@ -56,6 +57,7 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
     private final RoomCategoryService roomCategoryService;
     private final BookingFormService bookingFormService;
     private final PaymentService paymentService;
+    private final InvoiceService invoiceService;
     
     // UI Components
     private final RoomGrid roomGrid;
@@ -68,13 +70,15 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
                            BookingService bookingService,
                            RoomCategoryService roomCategoryService,
                            BookingFormService bookingFormService,
-                           PaymentService paymentService) {
+                           PaymentService paymentService,
+                           InvoiceService invoiceService) {
 
         this.sessionService = sessionService;
         this.bookingService = bookingService;
         this.roomCategoryService = roomCategoryService;
         this.bookingFormService = bookingFormService;
         this.paymentService = paymentService;
+        this.invoiceService = invoiceService;
         this.roomGrid = new RoomGrid();
 
         // Configure layout
@@ -296,6 +300,17 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
                 bookingService.save(booking);
                 System.out.println("DEBUG: Booking status updated to CONFIRMED");
                 
+                // Create Invoice
+                Invoice invoice = new Invoice();
+                invoice.setBooking(booking);
+                invoice.setAmount(booking.getTotalPrice());
+                invoice.setInvoiceStatus(Invoice.PaymentStatus.PAID);
+                invoice.setPaymentMethod(paymentMethod);
+                invoice.setIssuedAt(LocalDateTime.now());
+                invoice.setInvoiceNumber(generateInvoiceNumber());
+                invoiceService.save(invoice);
+                System.out.println("DEBUG: Invoice created: " + invoice.getId());
+                
                 Notification.show("Payment completed! Booking confirmed.", 3000, Notification.Position.TOP_CENTER);
             });
             
@@ -343,6 +358,10 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
             return Invoice.PaymentMethod.TRANSFER;
         }
         return Invoice.PaymentMethod.CARD;
+    }
+    
+    private String generateInvoiceNumber() {
+        return "INV-" + java.time.LocalDate.now().getYear() + "-" + System.currentTimeMillis();
     }
 
     @Override
