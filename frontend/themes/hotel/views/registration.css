@@ -80,6 +80,40 @@
   margin-bottom: 0.25rem;
 }
 
+/* DatePicker alignment with text fields */
+.date-picker-alignment {
+  --vaadin-input-field-background: var(--color-bg-light);
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box;
+  width: 33.33% !important;
+  max-width: 33.33% !important;
+  flex: 0 0 33.33% !important;
+}
+
+.registration-card vaadin-date-picker.date-picker-alignment {
+  width: 33.33% !important;
+  max-width: 33.33% !important;
+  flex: 0 0 33.33% !important;
+  box-sizing: border-box;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.registration-card vaadin-date-picker.date-picker-alignment::part(input-field) {
+  width: 89% !important;
+}
+
+.registration-card vaadin-date-picker.date-picker-alignment::part(toggle-button) {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.registration-card vaadin-date-picker.date-picker-alignment::part(label) {
+  margin-bottom: 0;
+  margin-top: var(--spacing-sm);
+}
+
 /* Password criteria */
 .registration-card .password-criteria {
   margin: 0;

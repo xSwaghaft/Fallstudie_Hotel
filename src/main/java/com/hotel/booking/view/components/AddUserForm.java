@@ -10,6 +10,7 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.PasswordField;
@@ -41,6 +42,7 @@ public class AddUserForm extends FormLayout {
     private final TextField cityField = new TextField("City");
     private final TextField postalCodeField = new TextField("Postal Code");
     private final TextField countryField = new TextField("Country");
+    private final DatePicker birthdateField = new DatePicker("Date of Birth");
 
 	private final PasswordField passwordField = new PasswordField("Password");
 	private final PasswordField passwordRepeatField = new PasswordField("Confirm Password");
@@ -85,12 +87,12 @@ public class AddUserForm extends FormLayout {
 			initializeRegistrationStylingAndBehavior();
 			createPasswordCriteria();
 
-			// Name row (First + Last)
+			// Name row (First + Last + Birth Date)
 			HorizontalLayout nameRow = new HorizontalLayout();
 			nameRow.setWidthFull();
 			nameRow.setSpacing(false);
 			nameRow.addClassName("registration-form-row");
-			nameRow.add(firstNameField, lastNameField);
+			nameRow.add(firstNameField, lastNameField, birthdateField);
 
 			// Address row 1 (Street + House No.)
 			HorizontalLayout addressRow1 = new HorizontalLayout();
@@ -123,7 +125,7 @@ public class AddUserForm extends FormLayout {
 			setColspan(addressRow2, 2);
 			setColspan(buttonLayout, 2);
 		} else {
-			this.add(usernameField, firstNameField, lastNameField,
+			this.add(usernameField, firstNameField, lastNameField, birthdateField,
 				streetField, houseNumberField, cityField, postalCodeField, countryField,
 				passwordField, emailField, roleSelect, activeCheckbox);
 		}
@@ -207,6 +209,9 @@ public class AddUserForm extends FormLayout {
 			.bind(u -> u.getAddress().getCountry(),
 				  (u, v) -> u.getAddress().setCountry(v));
 
+		binder.forField(birthdateField)
+			.bind(User::getBirthdate, User::setBirthdate);
+
 		// Initialize form user and bind values
 		setUser(existingUser);
 	}
@@ -217,9 +222,11 @@ public class AddUserForm extends FormLayout {
 		emailField.setPlaceholder("your@email.com");
 		emailField.setWidthFull();
 		firstNameField.setPlaceholder("Max");
-		firstNameField.setWidth("50%");
+		firstNameField.setWidth("33.33%");
 		lastNameField.setPlaceholder("Smith");
-		lastNameField.setWidth("50%");
+		lastNameField.setWidth("33.33%");
+		birthdateField.setWidth("33.33%");
+		birthdateField.addClassName("date-picker-alignment");
 		streetField.setPlaceholder("Main Street");
 		streetField.setWidth("75%");
 		houseNumberField.setPlaceholder("42");
@@ -372,6 +379,7 @@ public class AddUserForm extends FormLayout {
 			lastNameField.setRequiredIndicatorVisible(false);
 			streetField.setRequiredIndicatorVisible(false);
 			houseNumberField.setRequiredIndicatorVisible(false);
+			birthdateField.setRequiredIndicatorVisible(false);
 			postalCodeField.setRequiredIndicatorVisible(false);
 			cityField.setRequiredIndicatorVisible(false);
 			countryField.setRequiredIndicatorVisible(false);
