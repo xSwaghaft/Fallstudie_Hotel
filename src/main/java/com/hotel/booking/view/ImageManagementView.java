@@ -31,6 +31,7 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.streams.UploadHandler;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.io.File;
 import java.io.IOException;
@@ -64,15 +65,17 @@ public class ImageManagementView extends VerticalLayout implements BeforeEnterOb
 
     private RoomCategory assignToCategory;
 
-    private static final String IMAGE_DIRECTORY = "src/main/resources/static/images/rooms";
+    private final Path imageDirectory;
     private static final int MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
     public ImageManagementView(SessionService sessionService,
                                RoomCategoryService roomCategoryService,
-                               RoomImageRepository roomImageRepository) {
+                               RoomImageRepository roomImageRepository,
+                               @Value("${app.images.root-dir:data/images}") String imagesRootDir) {
         this.sessionService = sessionService;
         this.roomCategoryService = roomCategoryService;
         this.roomImageRepository = roomImageRepository;
+        this.imageDirectory = Paths.get(imagesRootDir, "rooms");
 
         configureLayout();
         initializeComponents();
@@ -154,8 +157,8 @@ public class ImageManagementView extends VerticalLayout implements BeforeEnterOb
 
         createImageDirectoryIfNeeded();
 
-        // Vaadin 24.8+: Receiver API is deprecated; use UploadHandler instead
-        Upload upload = new Upload(UploadHandler.toFile(
+        // Vaadin Flow v24: handle file data with UploadHandler (file system storage)
+        UploadHandler fileUploadHandler = UploadHandler.toFile(
             (metadata, file) -> {
                 String webPath = "/images/rooms/" + file.getName();
                 String originalFileName = metadata.fileName();
@@ -174,9 +177,18 @@ public class ImageManagementView extends VerticalLayout implements BeforeEnterOb
                 String originalFileName = metadata.fileName();
                 String cleanFileName = originalFileName.replaceAll("[\\\\/:*?\"<>|]", "_");
                 String uniqueFileName = UUID.randomUUID() + "_" + cleanFileName;
-                return new File(IMAGE_DIRECTORY, uniqueFileName);
+                return imageDirectory.resolve(uniqueFileName).toFile();
             }
-        ));
+        ).whenComplete(success -> {
+            // "All finished" doesn't mean success. Report failures explicitly.
+            if (!success) {
+                getUI().ifPresent(ui -> ui.access(() ->
+                        showErrorNotification("Upload failed")
+                ));
+            }
+        });
+
+        Upload upload = new Upload(fileUploadHandler);
         configureUploadComponent(upload);
         
         Paragraph info = new Paragraph("Accepted formats: JPEG, PNG, GIF, WebP. Max file size: 10 MB");
@@ -191,7 +203,7 @@ public class ImageManagementView extends VerticalLayout implements BeforeEnterOb
      * Erstellt das Bildverzeichnis falls nicht vorhanden
      */
     private void createImageDirectoryIfNeeded() {
-        Path dirPath = Paths.get(IMAGE_DIRECTORY);
+        Path dirPath = imageDirectory;
         try {
             Files.createDirectories(dirPath);
         } catch (IOException e) {
@@ -213,11 +225,6 @@ public class ImageManagementView extends VerticalLayout implements BeforeEnterOb
         upload.setDropAllowed(true);
         upload.setMaxFileSize(MAX_FILE_SIZE);
         upload.addClassName("image-upload-component");
-
-        // Note: "all finished" does not necessarily mean all succeeded (errors/aborts may occur)
-        upload.addAllFinishedListener(event -> 
-            showSuccessNotification("Upload finished")
-        );
         
         // Error Handler
         upload.addFileRejectedListener(rejectedEvent -> 
@@ -495,7 +502,8 @@ public class ImageManagementView extends VerticalLayout implements BeforeEnterOb
      */
     private void handleImageDeletion(RoomImage roomImage, Dialog confirmDialog) {
         try {
-            File fileToDelete = new File(IMAGE_DIRECTORY, extractFileName(roomImage.getImagePath()));
+            File fileToDelete = imageDirectory.resolve(extractFileName(roomImage.getImagePath()))
+                    .toFile();
             if (fileToDelete.exists()) {
                 if (!fileToDelete.delete()) {
                     showErrorNotification("Could not delete file from disk");
