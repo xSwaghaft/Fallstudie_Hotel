@@ -145,20 +145,7 @@ public class MainLayout extends AppLayout {
             );
         }
 
-        // Footer with Logout Button
-        Div drawerFooter = new Div();
-        drawerFooter.addClassName("drawer-footer");
-        
-        // Sidebar Logout Button (roter Hintergrund)
-        Icon logoutIcon = VaadinIcon.SIGN_OUT.create();
-        Button sidebarLogout = new Button("Logout", logoutIcon);
-        sidebarLogout.addClassName("sidebar-logout-btn");
-        sidebarLogout.setWidthFull();
-        sidebarLogout.addClickListener(e -> showLogoutDialog());
-        
-        drawerFooter.add(sidebarLogout);
-
-        drawer.add(drawerHeader, navLinks, drawerFooter);
+        drawer.add(drawerHeader, navLinks);
         addToDrawer(drawer);
     }
 
