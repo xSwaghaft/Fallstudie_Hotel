@@ -1,11 +1,8 @@
 package com.hotel.booking.view;
 
-import com.hotel.booking.entity.User;
-import com.hotel.booking.entity.AdressEmbeddable;
-import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.service.UserService;
 import com.hotel.booking.security.SessionService;
-import com.hotel.booking.view.components.RegistrationForm;
+import com.hotel.booking.view.components.AddUserForm;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dependency.CssImport;
@@ -27,7 +24,7 @@ import com.vaadin.flow.server.auth.AnonymousAllowed;
 
 /**
  * RegistrationView - Registration form following Vaadin and Spring Security best practices.
- * Uses RegistrationForm component for form layout and validation.
+ * Uses AddUserForm in registration mode for form layout and validation.
  */
 @Route("register")
 @AnonymousAllowed
@@ -78,8 +75,8 @@ public class RegistrationView extends Div implements BeforeEnterObserver {
         Paragraph info = new Paragraph("Register to get started with our platform");
         info.addClassName("registration-subtitle");
 
-        // Use RegistrationForm Component
-        RegistrationForm registrationForm = new RegistrationForm();
+        // Use AddUserForm in registration mode
+        AddUserForm registrationForm = AddUserForm.forRegistration(userService);
         
         registrationForm.setOnRegisterClick(() -> handleRegistration(registrationForm));
         registrationForm.setOnCancelClick(() -> UI.getCurrent().navigate(LoginView.class));
@@ -90,30 +87,10 @@ public class RegistrationView extends Div implements BeforeEnterObserver {
         return right;
     }
 
-    private void handleRegistration(RegistrationForm registrationForm) {
-        RegistrationForm.RegistrationFormData formData = registrationForm.getFormData();
-        
-        // Binder validiert bereits die Daten - hier können wir direkt verarbeiten
+    private void handleRegistration(AddUserForm registrationForm) {
+        // AddUserForm validates and writes the bean before calling this callback.
         try {
-            AdressEmbeddable address = new AdressEmbeddable();
-            address.setStreet(formData.getStreet());
-            address.setHouseNumber(formData.getHouseNumber());
-            address.setPostalCode(formData.getPostalCode());
-            address.setCity(formData.getCity());
-            address.setCountry(formData.getCountry());
-
-            User newUser = new User(
-                    formData.getUsername(),
-                    formData.getFirstName(),
-                    formData.getLastName(),
-                    address,
-                    formData.getEmail(),
-                    formData.getPassword(),
-                    UserRole.GUEST,
-                    true
-            );
-
-            userService.registerUser(newUser);
+            userService.registerUser(registrationForm.getUser());
             showRegistrationSuccessDialog();
         } catch (IllegalArgumentException e) {
             Notification.show("Registration failed: " + e.getMessage(), 4000, Notification.Position.MIDDLE);

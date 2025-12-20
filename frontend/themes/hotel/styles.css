@@ -199,30 +199,6 @@ p {
   color: #dc2626;
 }
 
-/* Sidebar Logout Button (roter Hintergrund) */
-.sidebar-logout-btn {
-  background: #ef4444;
-  border: none;
-  border-radius: var(--radius-md);
-  padding: var(--spacing-md);
-  cursor: pointer;
-  transition: all var(--transition-base);
-  color: white;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-sm);
-}
-
-.sidebar-logout-btn:hover {
-  background: #dc2626;
-}
-
-.sidebar-logout-btn vaadin-icon {
-  color: white;
-}
-
 .theme-icon {
   width: 20px;
   height: 20px;
