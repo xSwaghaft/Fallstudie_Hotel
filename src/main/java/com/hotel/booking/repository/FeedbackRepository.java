@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.Feedback;
-import com.hotel.booking.entity.Guest;
+import com.hotel.booking.entity.User;
 
 /**
  * Repository interface for Feedback entity
@@ -29,9 +29,9 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
     // Find feedback with rating greater than or equal to specified value
     List<Feedback> findByRatingGreaterThanEqual(Integer rating);
     
-    // TODO: Activate when Guest entity is created
-    List<Feedback> findByGuest(Guest guest);
+    // Find feedback by User (Guest)
+    List<Feedback> findByGuest(User guest);
     
-    // TODO: Activate when Booking entity is created
+    // Find feedback by booking
     Optional<Feedback> findByBooking(Booking booking);
 }

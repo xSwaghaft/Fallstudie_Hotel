@@ -6,75 +6,100 @@ import jakarta.persistence.*;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
-/* Artur Derr
- * Entity für Benutzer im Hotelbuchungssystem.
- * Enthält Authentifizierungsdaten, Rolle und persönliche Informationen. */
-//Entity ist gleichzeitig JavaBean FDO für addUserForm (schafft Kopplung zwischen UI und Entity, macht hier aber Sinn)
+/**
+ * Represents a user in the hotel booking system.
+ *
+ * <p>A {@code User} is a person who can interact with the system, either as a guest making
+ * reservations, a receptionist managing bookings, or a manager overseeing operations.
+ * Each user has authentication credentials, a role, and personal information.
+ *
+ * <p><b>Roles:</b>
+ * <ul>
+ *   <li>{@link UserRole#GUEST} – a customer booking rooms</li>
+ *   <li>{@link UserRole#RECEPTIONIST} – hotel staff handling bookings</li>
+ *   <li>{@link UserRole#MANAGER} – hotel management with system access</li>
+ * </ul>
+ *
+ * <p><b>Relationships:</b> A user may have an optional associated {@link Guest} entity
+ * (one-to-one relationship) for storing guest-specific metadata.
+ *
+ * <p><b>Security:</b> Passwords are hashed using BCrypt and are never included in JSON serialization.
+ *
+ * @author Artur Derr
+ * @see UserRole
+ * @see Guest
+ */
 @Entity
 @Table(name = "users")
 public class User implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    /** Unique user identifier. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Eindeutiger Benutzername für Login
+    /** Unique login username. */
     @Column(unique = true, nullable = false, length = 100)
     private String username;
 
-    // Passwort mit BCrypt
-    // @JsonIgnore verhindert, dass Passwort jemals serialisiert wird
+    /** BCrypt-hashed password, never exposed via JSON. */
     @JsonIgnore
     @Column(nullable = false, length = 255)
     private String password;
 
-    // E-Mail-Adresse des Benutzers
+    /** Email address of the user. */
     @Column(length = 100)
     private String email;
 
-    // Vorname des Benutzers
+    /** User's first name. */
     @Column(length = 100)
     private String firstName;
 
-    // Nachname des Benutzers
+    /** User's last name. */
     @Column(length = 100)
     private String lastName;
 
+    /** Embedded address information. */
     @Embedded
     private AdressEmbeddable address = new AdressEmbeddable();
 
-    // Geburtsdatum des Benutzers
+    /** User's date of birth. */
     @Column
     private LocalDate birthdate;
 
-    // Rolle des Benutzers (GUEST, RECEPTIONIST, MANAGER)
+    /** Role of this user in the system. */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     private UserRole role;
 
+    /** Whether this user account is active. */
     @Column(nullable = false)
     private boolean active = true;
 
-    // Zeitpunkt der Erstellung des Benutzerkontos
+    /** Timestamp when this user account was created. */
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    // Zugeordneter Guest (1:1 Beziehung, optional)
-    // @JsonIgnore verhindert Endlosschleifen bei JSON-Serialisierung
-    // Kein cascade - Guest wird manuell verwaltet und nicht automatisch gelöscht
-    @JsonIgnore
-    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
-    private Guest guest;
-
-    // Standard-Konstruktor für JPA
+    /**
+     * Protected no-arg constructor for JPA/Hibernate.
+     */
     protected User() {}
 
-    // Konstruktor für einfache User-Erstellung
+    /**
+     * Creates a new user with the specified details.
+     *
+     * @param username unique login username
+     * @param firstName user's first name
+     * @param lastName user's last name
+     * @param address embedded address information
+     * @param email user's email address
+     * @param password plaintext password (will be hashed before storage)
+     * @param role the user's role in the system
+     * @param active whether the account is active
+     */
     public User(String username, String firstName, String lastName, AdressEmbeddable address, String email, String password, UserRole role, boolean active) {
         this.username = username;
         this.firstName = firstName;
@@ -87,7 +112,9 @@ public class User implements Serializable {
         this.createdAt = LocalDateTime.now();
     }
 
-    // Setzt createdAt automatisch vor dem Persistieren
+    /**
+     * Automatically sets the creation timestamp before persisting if not already set.
+     */
     @PrePersist
     protected void onCreate() {
         if (this.createdAt == null) {
@@ -95,8 +122,27 @@ public class User implements Serializable {
         }
     }
 
+    /**
+     * Returns the full name of this user (firstName + lastName).
+     *
+     * @return the user's full name
+     */
+    public String getFullName() {
+        return firstName + " " + lastName;
+    }
 
-    // Getter und Setter
+    /**
+     * Returns the address as a formatted string (e.g., "Street, House Number, Postal Code, City, Country").
+     *
+     * @return the formatted address, or empty string if no address is set
+     */
+    public String getAdressString() {
+        if(address == null) {
+            return "";
+        }
+        return address.getFormatted();
+    }
+
     public Long getId() {
         return id;
     }
@@ -141,10 +187,6 @@ public class User implements Serializable {
         this.lastName = lastName;
     }
 
-    public String getFullName() {
-        return firstName + " " + lastName;
-    }
-
     public LocalDate getBirthdate() {
         return birthdate;
     }
@@ -173,23 +215,8 @@ public class User implements Serializable {
         return createdAt;
     }
 
-    public Guest getGuest() {
-        return guest;
-    }
-
-    public void setGuest(Guest guest) {
-        this.guest = guest;
-    }
-
     public AdressEmbeddable getAddress() {
         return address;
-    }
-
-    public String getAdressString() {
-        if(address == null) {
-            return "";
-        }
-        return address.getFormatted();
     }
 
     public void setAddress(AdressEmbeddable address) {

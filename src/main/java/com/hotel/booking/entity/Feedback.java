@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.hotel.booking.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -50,10 +51,10 @@ public class Feedback {
     @JoinColumn(name = "booking_id")
     private Booking booking;
     
-    // Activate when Guest entity
+    // Beziehung zum Guest (User, der die Bewertung erstellt)
     @ManyToOne
     @JoinColumn(name = "guest_id")
-    private Guest guest;
+    private User guest;
     
     // Default constructor
     public Feedback() {
@@ -110,12 +111,11 @@ public class Feedback {
          this.booking = booking;
      }
     
-    // TODO: Activate when Guest entity
-     public Guest getGuest() {
+     public User getGuest() {
          return guest;
      }
     
-     public void setGuest(Guest guest) {
+     public void setGuest(User guest) {
          this.guest = guest;
      }
     

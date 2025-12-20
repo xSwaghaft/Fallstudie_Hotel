@@ -4,7 +4,6 @@ import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.Feedback;
 import com.hotel.booking.entity.User;
 import com.hotel.booking.entity.UserRole;
-import com.hotel.booking.repository.GuestRepository;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.BookingService;
 import com.hotel.booking.service.FeedbackService;
@@ -50,19 +49,16 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
     private final SessionService sessionService;
     private final BookingService bookingService;
     private final FeedbackService feedbackService;
-    private final GuestRepository guestRepository;
 
     private List<Booking> bookings;
 
     @Autowired
     public MyReviewsView(SessionService sessionService,
                          BookingService bookingService,
-                         FeedbackService feedbackService,
-                         GuestRepository guestRepository) {
+                         FeedbackService feedbackService) {
         this.sessionService = sessionService;
         this.bookingService = bookingService;
         this.feedbackService = feedbackService;
-        this.guestRepository = guestRepository;
 
         setSpacing(true);
         setPadding(true);
@@ -261,9 +257,9 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
                     feedback.setCreatedAt(LocalDateTime.now());
                 }
                 
-                // Set guest if not already set
+                // Set guest (User) if not already set
                 if (feedback.getGuest() == null && booking != null && booking.getGuest() != null) {
-                    guestRepository.findByUser(booking.getGuest()).ifPresent(feedback::setGuest);
+                    feedback.setGuest(booking.getGuest());
                 }
                 
                 feedbackService.save(feedback);

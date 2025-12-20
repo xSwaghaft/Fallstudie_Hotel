@@ -3,7 +3,6 @@ package com.hotel.booking.service;
 import com.hotel.booking.entity.User;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.repository.UserRepository;
-import com.hotel.booking.repository.GuestRepository;
 import com.hotel.booking.repository.BookingModificationRepository;
 import com.hotel.booking.repository.BookingCancellationRepository;
 import com.hotel.booking.repository.BookingRepository;
@@ -27,18 +26,16 @@ public class UserService {
     private static final Logger log = LoggerFactory.getLogger(UserService.class);
     
     private final UserRepository userRepository;
-    private final GuestRepository guestRepository;
     private final BookingModificationRepository bookingModificationRepository;
     private final BookingCancellationRepository bookingCancellationRepository;
     private final BookingRepository bookingRepository;
     private final BcryptPasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository, GuestRepository guestRepository, 
+    public UserService(UserRepository userRepository,
                        BookingModificationRepository bookingModificationRepository,
                        BookingCancellationRepository bookingCancellationRepository, BookingRepository bookingRepository,
                        BcryptPasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
-        this.guestRepository = guestRepository;
         this.bookingModificationRepository = bookingModificationRepository;
         this.bookingCancellationRepository = bookingCancellationRepository;
         this.bookingRepository = bookingRepository;
@@ -243,18 +240,7 @@ public class UserService {
         
         User userToDelete = userOpt.get();
         
-        // 2. Entkopple den User vom zugehörigen Guest (1:1 Beziehung)
-        // Der Guest wird NICHT gelöscht - nur vom User entkoppelt, damit die Historie erhalten bleibt
-        Optional<com.hotel.booking.entity.Guest> guestOpt = guestRepository.findByUserId(id);
-        if (guestOpt.isPresent()) {
-            com.hotel.booking.entity.Guest guest = guestOpt.get();
-            // Guest vom User entkoppeln (setze user = NULL)
-            guest.setUser(null);
-            guestRepository.save(guest);
-            log.info("Guest mit ID {} wurde vom User entkoppelt (User wird gelöscht)", guest.getId());
-        }
-        
-        // 3. Entkopple BookingModification-Einträge (setze handled_by = NULL)
+        // 2. Entkopple BookingModification-Einträge (setze handled_by = NULL)
         List<com.hotel.booking.entity.BookingModification> modifications = bookingModificationRepository.findByHandledById(id);
         if (!modifications.isEmpty()) {
             for (com.hotel.booking.entity.BookingModification modification : modifications) {
@@ -264,7 +250,7 @@ public class UserService {
             log.info("Entkoppelt {} BookingModification-Einträge vom User {}", modifications.size(), userToDelete.getUsername());
         }
         
-        // 4. Entkopple BookingCancellation-Einträge (setze handled_by = NULL)
+        // 3. Entkopple BookingCancellation-Einträge (setze handled_by = NULL)
         List<com.hotel.booking.entity.BookingCancellation> cancellations = bookingCancellationRepository.findByHandledById(id);
         if (!cancellations.isEmpty()) {
             for (com.hotel.booking.entity.BookingCancellation cancellation : cancellations) {
@@ -274,7 +260,7 @@ public class UserService {
             log.info("Entkoppelt {} BookingCancellation-Einträge vom User {}", cancellations.size(), userToDelete.getUsername());
         }
         
-        // 5. Lösche den User
+        // 4. Lösche den User
         log.info("Lösche User mit ID: {} ({})", id, userToDelete.getUsername());
         userRepository.deleteById(id);
     }

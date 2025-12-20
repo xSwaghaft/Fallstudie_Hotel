@@ -13,7 +13,6 @@ TRUNCATE TABLE booking_extra;
 TRUNCATE TABLE room_bookings;
 TRUNCATE TABLE bookings;
 TRUNCATE TABLE invoices;
-TRUNCATE TABLE guests;
 TRUNCATE TABLE rooms;
 TRUNCATE TABLE room_images;
 TRUNCATE TABLE room_category;
@@ -79,15 +78,6 @@ INSERT IGNORE INTO rooms (room_id, room_number, floor, category_id, status, acti
 (4, '301', 3, 3, 'OCCUPIED', TRUE, 'Suite 301 mit Wohnzimmer'),
 (5, '401', 4, 5, 'AVAILABLE', TRUE, 'Familienzimmer 401'),
 (6, '501', 5, 4, 'AVAILABLE', TRUE, 'Einzelzimmer 501 Economy');
-
--- ---------- Guests (mind. 5 Einträge) ----------
-INSERT IGNORE INTO guests (id, user_id, email, first_name, last_name, address, phone_number, birthdate) VALUES
-(1,1,'anna.mueller@example.com','Anna','Müller','Münchener Str. 1, 80331 München','+491701234567','1990-06-15'),
-(2,3,'john.doe@example.com','John','Doe','Berliner Allee 2, 10115 Berlin','+491601234567','1988-04-10'),
-(3,4,'luca.bianchi@example.com','Luca','Bianchi','Via Roma 4, 00100 Roma','+393491234567','1985-07-07'),
-(4,2,'maria.schmidt@example.com','Maria','Schmidt','Hamburger Weg 3, 20095 Hamburg','+491521234567','1991-12-20'),
-(5,5,'sofia.garcia@example.com','Sofia','Garcia','Calle Mayor 5, 28013 Madrid','+34111234567','1995-11-11');
-
 
 -- ---------- Bookings (mind. 6 Einträge) ----------
 INSERT IGNORE INTO bookings
