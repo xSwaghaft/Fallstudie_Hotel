@@ -299,6 +299,7 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
                                 Notification.show(ex.getMessage() != null ? ex.getMessage() : "Fehler beim Speichern", 5000, Notification.Position.MIDDLE);
                             }
                         });
+                        confirm.addClassName("primary-button");
                         Button back = new Button("Zurück", backEv -> preview.close());
                         preview.add(content, new HorizontalLayout(confirm, back));
                         preview.open();
@@ -307,6 +308,7 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
                         Notification.show("Bitte korrigiere Validierungsfehler.", 3000, Notification.Position.MIDDLE);
                     }
                 });
+                saveBtn.addClassName("primary-button");
 
                 Button cancelBtn = new Button("Abbrechen", ev -> dialog.close());
                 dialog.add(form, new HorizontalLayout(saveBtn, cancelBtn));

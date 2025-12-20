@@ -277,6 +277,7 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
                 Notification.show("Error saving review: " + ex.getMessage());
             }
         });
+        saveButton.addClassName("primary-button");
 
         cancelButton.addClickListener(e -> dialog.close());
         FormLayout formLayout = new FormLayout(ratingSelect, commentArea);
