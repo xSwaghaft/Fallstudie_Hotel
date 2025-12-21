@@ -29,12 +29,31 @@ import com.vaadin.flow.server.auth.AnonymousAllowed;
 @PageTitle("Welcome to Hotelium!")
 @CssImport("./themes/hotel/styles.css")
 @CssImport("./themes/hotel/views/login.css")
+/**
+ * Login landing view.
+ * <p>
+ * This view is exposed on the root route ("/") and is accessible without authentication.
+ * It provides a split layout with branding on the left and a {@link LoginForm} on the right.
+ * Successful authentication is delegated to {@link UserService}; the session is established via
+ * {@link SessionService}. Depending on the authenticated {@link UserRole}, the user is redirected
+ * to either the guest portal or the staff dashboard.
+ *
+ * @author Artur Derr
+ * @author Viktor Götting
+ */
 public class LoginView extends Div implements BeforeEnterObserver {
 
     private final UserService userService;
     private final SessionService sessionService;
     private final PasswordResetService passwordResetService;
 
+    /**
+     * Creates the login view and builds the UI structure.
+     *
+     * @param userService service used for authenticating users
+     * @param sessionService service used to store and retrieve the current session state
+     * @param passwordResetService service responsible for issuing password reset tokens and sending emails
+     */
     public LoginView(UserService userService, SessionService sessionService, PasswordResetService passwordResetService) {
         this.userService = userService;
         this.sessionService = sessionService;
@@ -54,7 +73,9 @@ public class LoginView extends Div implements BeforeEnterObserver {
     }
 
     /**
-     * Creates the left panel with background image and branding.
+        * Creates the left panel containing background/branding.
+        *
+        * @return the left panel container
      */
     private Div createLeftPanel() {
         Div left = new Div();
@@ -68,7 +89,9 @@ public class LoginView extends Div implements BeforeEnterObserver {
     }
 
     /**
-     * Creates the right panel with login form component.
+        * Creates the right panel containing the login card and form.
+        *
+        * @return the right-side layout
      */
     private VerticalLayout createRightPanel() {
         VerticalLayout right = new VerticalLayout();
@@ -96,7 +119,10 @@ public class LoginView extends Div implements BeforeEnterObserver {
     }
 
     /**
-     * Handles login attempt by validating and authenticating via UserService.
+        * Handles a login attempt by authenticating against {@link UserService}.
+        * On success, the user is stored in the session and redirected based on their role.
+        *
+        * @param loginForm the form providing the entered credentials and callback hooks
      */
     private void handleLogin(LoginForm loginForm) {
         LoginForm.LoginCredentials credentials = loginForm.getCredentials();
@@ -112,7 +138,9 @@ public class LoginView extends Div implements BeforeEnterObserver {
     }
 
     /**
-     * Navigates the user to the appropriate view based on their role.
+        * Navigates the authenticated user to the appropriate view based on their role.
+        *
+        * @param role the authenticated user's role
      */
     private void navigateAfterLogin(UserRole role) {
         if (role == UserRole.GUEST) {
@@ -123,7 +151,13 @@ public class LoginView extends Div implements BeforeEnterObserver {
     }
 
     /**
-     * Opens a dialog for password reset.
+        * Opens the "forgot password" dialog.
+        * <p>
+        * The dialog collects an email address and requests {@link PasswordResetService} to create a reset token
+        * and send a reset email. The UI message is intentionally identical whether the email exists or not
+        * to avoid user enumeration.
+     *
+     * @author Viktor Götting
      */
     private void openForgotPasswordDialog() {
         Dialog dialog = new Dialog();
@@ -163,7 +197,9 @@ public class LoginView extends Div implements BeforeEnterObserver {
     }
 
     /**
-     * Checks if user is already logged in and redirects if necessary.
+     * Redirects already authenticated users away from the login screen.
+     *
+     * @param event navigation event
      */
     @Override
     public void beforeEnter(BeforeEnterEvent event) {

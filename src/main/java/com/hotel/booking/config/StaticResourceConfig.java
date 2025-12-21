@@ -59,6 +59,9 @@ public class StaticResourceConfig implements WebMvcConfigurer {
         }
 
         registry.addResourceHandler("/images/**")
-                .addResourceLocations(location);
+                // First try the writable filesystem directory (uploads/runtime images)
+                .addResourceLocations(location)
+                // Fallback to bundled classpath images (e.g., login background)
+                .addResourceLocations("classpath:/static/images/");
     }
 }

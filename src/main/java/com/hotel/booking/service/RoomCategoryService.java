@@ -19,8 +19,21 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
-/* Service-Klasse für RoomCategory-Entität.
- * Enthält Business-Logik und CRUD-Operationen für Zimmerkategorien. */
+/**
+ * Service class for managing RoomCategory entities.
+ * <p>
+ * Provides CRUD operations and business logic for room categories including:
+ * </p>
+ * <ul>
+ *   <li>Creating, reading, updating, and deleting room categories</li>
+ *   <li>Category activation/deactivation (soft delete)</li>
+ *   <li>Validation of category data</li>
+ *   <li>Retrieval of category statistics</li>
+ *   <li>Management of room images associated with categories</li>
+ * </ul>
+ *
+ * @author Artur Derr
+ */
 @Service
 @Transactional
 public class RoomCategoryService {
@@ -48,35 +61,64 @@ public class RoomCategoryService {
 
     // ==================== GETTER FOR REPOSITORIES ====================
 
+    /**
+     * Retrieves the RoomImageRepository instance.
+     *
+     * @return the RoomImageRepository
+     */
     public RoomImageRepository getRoomImageRepository() {
         return roomImageRepository;
     }
 
     // ==================== CRUD-Operationen ====================
 
-    /* Gibt alle Room Categories zurück */
+    /**
+     * Retrieves all room categories from the database.
+     *
+     * @return a list of all RoomCategory entities
+     */
     public List<RoomCategory> getAllRoomCategories() {
         return roomCategoryRepository.findAll();
     }
 
-    /* Findet eine Room Category anhand der ID */
+    /**
+     * Retrieves a room category by its ID.
+     *
+     * @param id the ID of the room category to retrieve
+     * @return an Optional containing the RoomCategory if found, empty otherwise
+     */
     public Optional<RoomCategory> getRoomCategoryById(Long id) {
         return roomCategoryRepository.findById(id);
     }
 
-    /* Speichert eine Room Category (Create oder Update) */
+    /**
+     * Saves a room category (create or update operation).
+     *
+     * @param roomCategory the RoomCategory entity to save
+     * @return the saved RoomCategory
+     */
     public RoomCategory saveRoomCategory(RoomCategory roomCategory) {
         return roomCategoryRepository.save(roomCategory);
     }
 
-    /* Löscht eine Room Category anhand der ID (Soft Delete mit Invoice-Check) */
+    /**
+     * Deletes a room category by ID (soft delete with invoice validation).
+     * <p>
+     * If the category is active, it will be set to inactive instead of permanent deletion.
+     * Permanent deletion only occurs if there are no related bookings or invoices.
+     * </p>
+     *
+     * @param id the ID of the room category to delete
+     * @throws IllegalStateException if the category cannot be deleted due to related bookings or invoices
+     * @throws IllegalArgumentException if the category with the specified ID is not found
+     */
     public void deleteRoomCategory(Long id) {
         Optional<RoomCategory> categoryOpt = roomCategoryRepository.findById(id);
         
         if (categoryOpt.isPresent()) {
             RoomCategory category = categoryOpt.get();
             
-            // Wenn Status nicht Inactive ist, setze ihn auf Inactive
+            // If status is not inactive, set it to inactive
             if (category.getActive() != null && category.getActive()) {
                 category.setActive(false);
                 roomCategoryRepository.save(category);
@@ -84,7 +126,7 @@ public class RoomCategoryService {
                 return;
             }
             
-            // Prüfe auf Bookings, die diese RoomCategory referenzieren
+            // Check for bookings that reference this RoomCategory
             List<Booking> relatedBookings = bookingRepository.findByRoomCategoryId(id);
             if (relatedBookings != null && !relatedBookings.isEmpty()) {
                 log.warn("Cannot delete category {}: {} bookings reference this category", 
@@ -94,7 +136,7 @@ public class RoomCategoryService {
                     relatedBookings.size() + " bookings reference this category");
             }
             
-            // Wenn bereits Inactive, prüfe auf Invoices bevor echtes Löschen
+            // If already inactive, check for invoices before actual deletion
             List<Room> affectedRooms = category.getRooms();
             if (affectedRooms != null && !affectedRooms.isEmpty()) {
                 for (Room room : affectedRooms) {
@@ -108,7 +150,7 @@ public class RoomCategoryService {
                     }
                 }
                 
-                // Entkopple alle Rooms von dieser Category
+                // Decouple all Rooms from this Category
                 for (Room room : affectedRooms) {
                     room.setCategory(null);
                     roomRepository.save(room);
@@ -116,7 +158,7 @@ public class RoomCategoryService {
                 log.info("Decoupled {} rooms from category {} ({})", affectedRooms.size(), category.getName(), id);
             }
             
-            // Lösche die Category
+            // Delete the Category
             roomCategoryRepository.delete(category);
             log.info("RoomCategory {} (ID: {}) deleted", category.getName(), id);
         } else {
@@ -124,14 +166,24 @@ public class RoomCategoryService {
         }
     }
 
-    /* Prüft ob eine Category gelöscht werden kann und gibt die Aktion zurück */
+    /**
+     * Determines the appropriate deletion action for a category and returns action details.
+     * <p>
+     * Returns information about whether the category can be deactivated, permanently deleted,
+     * or if deletion is blocked due to related invoices or bookings.
+     * </p>
+     *
+     * @param categoryId the ID of the room category to check
+     * @return a CategoryDeleteAction with the appropriate action type and details
+     * @throws IllegalArgumentException if the category with the specified ID is not found
+     */
     public CategoryDeleteAction getDeletionAction(Long categoryId) {
         Optional<RoomCategory> categoryOpt = roomCategoryRepository.findById(categoryId);
         
         if (categoryOpt.isPresent()) {
             RoomCategory category = categoryOpt.get();
             
-            // Wenn aktiv, dann kann auf Inactive gesetzt werden
+            // If active, it can be set to inactive
             if (category.getActive() != null && category.getActive()) {
                 return new CategoryDeleteAction(CategoryDeleteActionType.SET_INACTIVE, 
                     null, "Deactivate Category", "Set to INACTIVE",
@@ -139,7 +191,7 @@ public class RoomCategoryService {
                     "Category set to INACTIVE!");
             }
             
-            // Prüfe auf Bookings mit dieser RoomCategory
+            // Check for bookings that reference this RoomCategory
             List<Booking> relatedBookings = bookingRepository.findByRoomCategoryId(categoryId);
             if (relatedBookings != null && !relatedBookings.isEmpty()) {
                 String errorMsg = "Cannot delete category \"" + category.getName() + "\": " +
@@ -148,7 +200,7 @@ public class RoomCategoryService {
                     errorMsg, "Cannot Delete Category", null, null, null);
             }
             
-            // Wenn Inactive, prüfe auf Invoices
+            // If inactive, check for invoices
             List<Room> affectedRooms = category.getRooms();
             if (affectedRooms != null && !affectedRooms.isEmpty()) {
                 for (Room room : affectedRooms) {
@@ -162,7 +214,7 @@ public class RoomCategoryService {
                 }
             }
             
-            // Keine Invoices gefunden -> echtes Löschen möglich
+            // No invoices found -> actual deletion possible
             return new CategoryDeleteAction(CategoryDeleteActionType.PERMANENT_DELETE, 
                 null, "Delete Category Permanently", "Delete Permanently",
                 "This category is currently INACTIVE. Delete it permanently? This cannot be undone!\n\nNote: This will affect all rooms in this category.",
@@ -230,24 +282,37 @@ public class RoomCategoryService {
 
     // ==================== Query-Methoden ====================
 
-    /* Findet alle aktiven Categories */
+    /**
+     * Retrieves all active room categories.
+     *
+     * @return a list of all active RoomCategory entities
+     */
     public List<RoomCategory> getActiveCategories() {
         return roomCategoryRepository.findAll().stream()
             .filter(cat -> cat.getActive() != null && cat.getActive())
             .toList();
     }
 
-    /* Findet alle inaktiven Categories */
+    /**
+     * Retrieves all inactive room categories.
+     *
+     * @return a list of all inactive RoomCategory entities
+     */
     public List<RoomCategory> getInactiveCategories() {
         return roomCategoryRepository.findAll().stream()
             .filter(cat -> cat.getActive() == null || !cat.getActive())
             .toList();
     }
 
-    // ==================== Business-Logik ====================
-
-    /* Gibt Statistiken über alle Categories zurück
-     * Diese Methode wird von der View aufgerufen */
+    /**
+     * Retrieves statistics about all room categories.
+     * <p>
+     * Returns information about the total number of categories and active categories.
+     * This method is called by the view to display category statistics.
+     * </p>
+     *
+     * @return a CategoryStatistics object containing aggregated category data
+     */
     public CategoryStatistics getStatistics() {
         List<RoomCategory> allCategories = roomCategoryRepository.findAll();
         
@@ -260,7 +325,13 @@ public class RoomCategoryService {
         return new CategoryStatistics(totalCategories, activeCategories);
     }
 
-    /* Aktiviert oder deaktiviert eine Category */
+    /**
+     * Toggles the active status of a room category.
+     *
+     * @param categoryId the ID of the room category to toggle
+     * @return the updated RoomCategory with the new active status
+     * @throws IllegalArgumentException if the category with the specified ID is not found
+     */
     public RoomCategory toggleActive(Long categoryId) {
         Optional<RoomCategory> categoryOpt = roomCategoryRepository.findById(categoryId);
         if (categoryOpt.isPresent()) {
@@ -271,7 +342,16 @@ public class RoomCategoryService {
         throw new IllegalArgumentException("Category with ID " + categoryId + " not found");
     }
 
-    /* Validiert eine Category vor dem Speichern */
+    /**
+     * Validates a room category before saving.
+     * <p>
+     * Checks that the category name is not empty, price per night is non-negative,
+     * and max occupancy is at least 1.
+     * </p>
+     *
+     * @param category the RoomCategory to validate
+     * @throws IllegalArgumentException if validation fails
+     */
     public void validateCategory(RoomCategory category) {
         if (category.getName() == null || category.getName().trim().isEmpty()) {
             throw new IllegalArgumentException("Category name is required");
@@ -286,7 +366,17 @@ public class RoomCategoryService {
         }
     }
 
-    /* Erstellt eine neue Category mit Validierung */
+    /**
+     * Creates a new room category with validation.
+     *
+     * @param name the name of the category
+     * @param description the description of the category
+     * @param pricePerNight the price per night for rooms in this category
+     * @param maxOccupancy the maximum occupancy for rooms in this category
+     * @param active whether the category is initially active
+     * @return the created and saved RoomCategory
+     * @throws IllegalArgumentException if validation fails
+     */
     public RoomCategory createCategory(String name, String description, BigDecimal pricePerNight, 
                                        Integer maxOccupancy, Boolean active) {
         RoomCategory category = new RoomCategory();
@@ -301,20 +391,33 @@ public class RoomCategoryService {
         return roomCategoryRepository.save(category);
     }
 
-    /* Zählt die Anzahl aller Categories */
+    /**
+     * Counts the total number of room categories.
+     *
+     * @return the total count of RoomCategory entities
+     */
     public long count() {
         return roomCategoryRepository.count();
     }
 
-    /* Prüft ob eine Category mit der ID existiert */
+    /**
+     * Checks if a room category with the specified ID exists.
+     *
+     * @param id the ID to check
+     * @return {@code true} if a category with the specified ID exists, {@code false} otherwise
+     */
     public boolean existsById(Long id) {
         return roomCategoryRepository.existsById(id);
     }
 
     // ==================== Inner Class: Statistics DTO ====================
 
-    /* DTO für Category-Statistiken
-     * Wird von der View verwendet, um Statistiken anzuzeigen */
+    /**
+     * Data Transfer Object for room category statistics.
+     * <p>
+     * This class is used by the view to display category statistics.
+     * </p>
+     */
     public static class CategoryStatistics {
         private final long totalCategories;
         private final long activeCategories;
@@ -349,6 +452,12 @@ public class RoomCategoryService {
 
     //Viktor Götting Gibt alle bilder einer Kategorie zurück
 
+    /**
+     * Retrieves all room images for a specific room's category.
+     *
+     * @param room the Room entity whose category images are to be retrieved
+     * @return a list of RoomImage entities ordered by primary image first, or an empty list if no images are found
+     */
     public List<RoomImage> getAllRoomImages(Room room){
         if (room == null || room.getCategory() == null) {
             return List.of();
@@ -362,7 +471,12 @@ public class RoomCategoryService {
         return images != null ? images : List.of();
     }
     
-    /* Überladene Methode: Gibt alle Bilder einer Kategorie direkt zurück */
+    /**
+     * Retrieves all room images for a specific room category (overloaded method).
+     *
+     * @param category the RoomCategory whose images are to be retrieved
+     * @return a list of RoomImage entities ordered by primary image first, or an empty list if no images are found
+     */
     public List<RoomImage> getAllRoomImages(RoomCategory category) {
         if (category == null) {
             return List.of();

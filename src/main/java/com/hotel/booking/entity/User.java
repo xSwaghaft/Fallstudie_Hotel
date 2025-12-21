@@ -28,7 +28,6 @@ import java.time.LocalDateTime;
  *
  * @author Artur Derr
  * @see UserRole
- * @see Guest
  */
 @Entity
 @Table(name = "users")

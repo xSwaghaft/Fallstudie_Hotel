@@ -83,6 +83,12 @@ public class ImageDemoSeeder implements ApplicationRunner {
             return;
         }
 
+        // Ensure the login background image is available under the filesystem-backed /images mapping.
+        // This is intentionally not gated by the marker file because the background is not a mutable
+        // runtime asset like the demo room images.
+        Files.createDirectories(imagesRootDir);
+        copyIfMissing("classpath:/static/images/HotelLoginView.jpg", imagesRootDir.resolve("HotelLoginView.jpg"));
+
         Path markerFile = imagesRootDir.resolve(markerFileName);
         if (Files.exists(markerFile)) {
             return;
@@ -120,5 +126,33 @@ public class ImageDemoSeeder implements ApplicationRunner {
                 + "copied=" + copied + System.lineSeparator();
         Files.writeString(markerFile, markerContent, StandardCharsets.UTF_8,
                 StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+    }
+
+    /**
+     * Copies a resource from the classpath to a target location if the target does not already exist.
+     *
+     * <p>This method provides an idempotent copy operation: if the target file already exists,
+     * the copy is skipped without error. If the source resource cannot be found or is not readable,
+     * the method returns silently without throwing an exception.
+     *
+     * @param classpathLocation the classpath resource location (e.g. {@code classpath:/static/images/...})
+     * @param target the target path where the resource should be copied; must be a file path
+     * @throws Exception if an I/O error occurs while copying the resource
+     * @author Artur Derr
+     */
+    private void copyIfMissing(String classpathLocation, Path target) throws Exception {
+        if (Files.exists(target)) {
+            return;
+        }
+
+        PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+        Resource resource = resolver.getResource(classpathLocation);
+        if (!resource.exists() || !resource.isReadable()) {
+            return;
+        }
+
+        try (InputStream in = resource.getInputStream()) {
+            Files.copy(in, target);
+        }
     }
 }

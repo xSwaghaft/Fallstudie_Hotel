@@ -5,16 +5,19 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 /**
- * BCrypt-basierter PasswordEncoder für sichere Passwort-Verwaltung.
- * Implementiert Spring Security's PasswordEncoder Interface.
- * 
- * BCrypt bietet:
- * - Automatische Salt-Generierung
- * - Adaptive Hashing-Kosten (passt sich der Rechenleistung an)
- * - Schutz vor Rainbow-Table Attacken
- * - Industry-Standard für Passwort-Hashing
- * - Timing-Attack Resistenz gegen Brute-Force
- * 
+ * Password encoder implementation using BCrypt for secure password hashing.
+ * <p>
+ * This class implements Spring Security's PasswordEncoder interface and provides
+ * the following security features:
+ * </p>
+ * <ul>
+ *   <li>Automatic salt generation</li>
+ *   <li>Adaptive hashing costs that adjust to computing power</li>
+ *   <li>Protection against rainbow table attacks</li>
+ *   <li>Industry-standard password hashing algorithm</li>
+ *   <li>Resistance against timing attacks and brute-force attempts</li>
+ * </ul>
+ *
  * @author Artur Derr
  */
 @Component
@@ -29,13 +32,16 @@ public class BcryptPasswordEncoder implements PasswordEncoder {
     }
 
     /**
-     * Hasht ein Klartext-Passwort mit BCrypt.
-     * Der Salt wird automatisch generiert und im Hash eingebettet.
-     * Implementiert Spring Security's PasswordEncoder.encode(CharSequence)
-     * 
-     * @param rawPassword Klartext-Passwort
-     * @return BCrypt-gehashtes Passwort (inkl. Salt)
-     * @throws IllegalArgumentException wenn rawPassword null oder leer ist
+     * Encodes a raw password using BCrypt hashing.
+     * <p>
+     * The salt is automatically generated and embedded in the returned hash.
+     * Implements Spring Security's {@link PasswordEncoder#encode(CharSequence)}.
+     * </p>
+     *
+     * @param rawPassword the plaintext password to be hashed
+     * @return the BCrypt-hashed password including the embedded salt
+     * @throws IllegalArgumentException if rawPassword is null or empty
+     * @throws RuntimeException if an error occurs during encoding
      */
     @Override
     public String encode(CharSequence rawPassword) {
@@ -51,13 +57,15 @@ public class BcryptPasswordEncoder implements PasswordEncoder {
     }
 
     /**
-     * Überprüft, ob ein Klartext-Passwort mit einem gehashten Passwort übereinstimmt.
-     * Implementiert Spring Security's PasswordEncoder.matches(CharSequence, String)
-     * Nutzt BCrypt's sichere Vergleichsmethode gegen Timing-Attacks.
-     * 
-     * @param rawPassword Klartext-Passwort vom Benutzer
-     * @param encodedPassword BCrypt-gehashtes Passwort aus der DB
-     * @return true wenn Passwörter übereinstimmen, false sonst
+     * Verifies whether a raw password matches the provided encoded password.
+     * <p>
+     * Implements Spring Security's {@link PasswordEncoder#matches(CharSequence, String)}.
+     * Uses BCrypt's secure comparison method to protect against timing attacks.
+     * </p>
+     *
+     * @param rawPassword the plaintext password provided by the user
+     * @param encodedPassword the BCrypt-hashed password from the database
+     * @return {@code true} if the passwords match, {@code false} otherwise
      */
     @Override
     public boolean matches(CharSequence rawPassword, String encodedPassword) {
@@ -68,7 +76,7 @@ public class BcryptPasswordEncoder implements PasswordEncoder {
         try {
             return bCryptEncoder.matches(rawPassword, encodedPassword);
         } catch (IllegalArgumentException e) {
-            // Ungültiges BCrypt-Format in der DB
+            // Wrong format for encodedPassword
             return false;
         } catch (Exception e) {
             return false;
@@ -76,31 +84,35 @@ public class BcryptPasswordEncoder implements PasswordEncoder {
     }
 
     /**
-     * Prüft, ob das gespeicherte Passwort neu gehashed werden sollte.
-     * Spring Security upgradet automatisch zu stärkeren Hashes wenn konfiguriert.
-     * Mit BCrypt und fester Strength ist kein Upgrade nötig.
-     * 
-     * @param encodedPassword bereits gehashtes Passwort
-     * @return true wenn Password upgrade benötigt
+     * Determines whether the encoded password should be re-hashed using a stronger hash.
+     * <p>
+     * Implements Spring Security's {@link PasswordEncoder#upgradeEncoding(String)}.
+     * With BCrypt and fixed strength settings.
+     * </p>
+     *
+     * @param encodedPassword the already-encoded password
+     * @return {@code false} as upgrades are not necessary with BCrypt and fixed strength
      */
     @Override
     public boolean upgradeEncoding(String encodedPassword) {
-        // Mit BCrypt und fester Strength: kein Upgrade nötig
         return false;
     }
 
     /**
-     * Überprüft, ob ein Passwort bereits mit BCrypt gehasht ist.
-     * Hilft bei Migrationen von alten zu neuen Systemen.
-     * 
-     * @param password zu überprüfendes Passwort
-     * @return true wenn Format gültig ist
+     * Checks whether a password string is a valid BCrypt hash.
+     * <p>
+     * This method is useful during migrations from legacy systems to ensure
+     * passwords are in the correct format.
+     * </p>
+     *
+     * @param password the password string to validate
+     * @return {@code true} if the password is a valid BCrypt hash format, {@code false} otherwise
      */
     public boolean isBCryptHash(String password) {
         if (password == null) {
             return false;
         }
-        // BCrypt hashes beginnen mit $2a$, $2b$, $2y$ oder $2x$
+        // BCrypt hashes begin with $2a$, $2b$, $2y$ or $2x$
         // Format: $2a$10$... (Prefix + cost + Salt + Hash)
         return password.matches("^\\$2[aby]\\$\\d{2}\\$.{53}$");
     }
