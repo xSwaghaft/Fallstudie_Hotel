@@ -29,21 +29,20 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
 /**
- * Repräsentiert eine Zimmerbuchung.
+ * Represents a room booking.
  *
  * <p>
- * Enthält Metadaten wie Buchungsnummer, Zeitraum, Status und den
- * monetären Gesamtpreis sowie Referenzen zu Gast, Zimmer, Zahlungen,
- * Extras, Rechnung und Feedback.
+ * Contains metadata such as booking number, time period, status, and the
+ * total monetary price, as well as references to guest, room, payments,
+ * extras, invoice, and feedback.
  * </p>
  *
  * <p>
- * <strong>Persistenz-Hinweise</strong>:
+ * <strong>Persistence Notes</strong>:
  * <ul>
- * <li>Beziehungen sind so annotiert, dass Kind-Objekte (Payments/Extras)
- * standardmäßig mitpersistiert und bei Entfernung gelöscht werden
- * (orphanRemoval).</li>
- * <li>Enum-Werte werden als String gespeichert.</li>
+ * <li>Relationships are annotated so that child objects (Payments/Extras)
+ * are persisted by default and deleted on removal (orphanRemoval).</li>
+ * <li>Enum values are stored as strings.</li>
  * </ul>
  * </p>
  *
@@ -58,63 +57,63 @@ import jakarta.persistence.Table;
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Booking {
 
-    /** Primärschlüssel-ID. */
+    /** Primary key ID. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Öffentliche Buchungsnummer. */
+    /** Public booking number. */
     @Column(name = "booking_number", nullable = false, length = 64)
     private String bookingNumber;
 
-    /** Menge/Anzahl */
+    /** Quantity/Amount */
     @Column(name = "amount")
     private Integer amount;
 
-    /** Anreisedatum (Check-in). */
+    /** Check-in date. */
     @Column(name = "check_in_date", nullable = false)
     private LocalDate checkInDate;
 
-    /** Abreisedatum (Check-out). */
+    /** Check-out date. */
     @Column(name = "check_out_date", nullable = false)
     private LocalDate checkOutDate;
 
-    /** Aktueller Buchungsstatus. */
+    /** Current booking status. */
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 32)
     private BookingStatus status;
 
-    /** Gesamtsumme der Buchung inkl. aller Positionen. */
+    /** Total price of the booking including all items. */
     @Column(name = "total_price", precision = 12, scale = 2)
     private BigDecimal totalPrice;
 
-    /** Zugehöriger Gast (Eigentümer der Buchung). */
+    /** Associated guest (owner of the booking). */
 
     @ManyToOne(optional = false, fetch = FetchType.EAGER)
     @JoinColumn(name = "guest_id", nullable = false,
     foreignKey = @ForeignKey(name = "fk_booking_guest"))
     private User guest;
 
-    /** Gebuchtes Zimmer. */
+    /** Booked room. */
     @ManyToOne(optional = false, fetch = FetchType.EAGER)
     @JoinColumn(name = "room_id", nullable = false, foreignKey = @ForeignKey(name = "fk_booking_room"))
     private Room room = new Room();
 
-    /** Kategorie des Zimmers. */
+    /** Room category. */
     @ManyToOne(optional = false, fetch = FetchType.EAGER)
     @JoinColumn(name = "room_category_id", nullable = false,
                 foreignKey = @ForeignKey(name = "fk_booking_room_category"))
     private RoomCategory roomCategory = new RoomCategory();
 
-    /** Zugehörige Rechnung. */
+    /** Associated invoice. */
 
     @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @JoinColumn(name = "invoice_id",
             foreignKey = @ForeignKey(name = "fk_booking_invoice"))
     private Invoice invoice;
 
-    /** Zahlungen, die auf diese Buchung verbucht wurden. */
+    /** Payments that have been booked to this booking. */
 
     @OneToMany(mappedBy = "booking",
     cascade = CascadeType.ALL,
@@ -122,7 +121,7 @@ public class Booking {
     fetch = FetchType.LAZY)
     private List<Payment> payments = new ArrayList<>();
 
-    /** Zusatzleistungen (Extras) dieser Buchung. */
+    /** Extras for this booking. */
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -132,25 +131,25 @@ public class Booking {
     )
     private Set<BookingExtra> extras = new HashSet<>();
 
-    /** Optionales Feedback zur Buchung. */
+    /** Optional feedback for the booking. */
 
     @OneToOne(mappedBy = "booking", fetch = FetchType.LAZY)
     private Feedback feedback;
 
-    /** Erstellungsdatum der Buchung. */
+    /** Creation date of the booking. */
     @Column(name = "created_at", nullable = false)
     private LocalDate createdAt;
 
     // ------------------------------------------------------------
-    // Konstruktoren
+    // Constructors
     // ------------------------------------------------------------
 
-    /** Leerer Konstruktor für JPA. */
+    /** Empty constructor for JPA. */
     protected Booking() {
     }
 
     /**
-     * Komfort-Konstruktor für Pflichtangaben.
+     * Convenience constructor for required fields.
      */
 
     public Booking(String bookingNumber,
@@ -168,7 +167,7 @@ public class Booking {
     }
 
     // ------------------------------------------------------------
-    // Getter/Setter
+    // Getters/Setters
     // ------------------------------------------------------------
 
     public Long getId() {
@@ -253,7 +252,7 @@ public class Booking {
         return createdAt;
     }
     
-    //Methode soll beim ersten persistieren einmalig ausgeführt werden -> Lifecycle
+    //Method should be executed once on first persist -> Lifecycle
     //Matthias Lohr
     @jakarta.persistence.PrePersist
     protected void onCreate() {
@@ -264,10 +263,8 @@ public class Booking {
 
 
     /**
-     * Einfache Validierung: stellt sicher, dass das Check-out nach dem Check-in
-     * liegt.
-     * Wirft eine {@link IllegalArgumentException}, wenn die Daten inkonsistent
-     * sind.
+     * Simple validation: ensures that check-out date is after check-in date.
+     * Throws an {@link IllegalArgumentException} if the data is inconsistent.
      */
     public void validateDates() {
         if (checkInDate != null && checkOutDate != null && !checkOutDate.isAfter(checkInDate)) {

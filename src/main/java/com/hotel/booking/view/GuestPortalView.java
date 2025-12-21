@@ -38,6 +38,18 @@ import com.vaadin.flow.router.Route;
 
 /**
  * Guest Portal View - Main view for guests to search and book rooms.
+ * 
+ * <p>
+ * Provides a search interface for available room categories with date pickers,
+ * guest count, and room type filters. Displays results in a grid of room cards
+ * with booking buttons. When a guest clicks "Book", a dialog opens with a
+ * pre-filled booking form for confirmation.
+ * </p>
+ * 
+ * <p>
+ * Flow: Search categories → Display in RoomGrid → Book dialog → Save via BookingService.
+ * Related: MyBookingsView (after booking), LoginView (redirect if not guest).
+ * </p>
  */
 @Route(value = "guest-portal", layout = MainLayout.class)
 @PageTitle("Guest Portal")
@@ -58,6 +70,10 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
     private NumberField guests;
     private Select<String> type;
 
+    /**
+     * Constructs a new GuestPortalView with the required services.
+     * Initializes the search form and room grid layout.
+     */
     public GuestPortalView(SessionService sessionService,
                            BookingService bookingService,
                            RoomCategoryService roomCategoryService,
@@ -135,7 +151,8 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
     }
 
     /**
-     * Executes the search for available room categories and displays them in the grid.
+     * Executes search for available room categories based on form values.
+     * Displays results in RoomGrid with booking buttons attached to each card.
      */
     private void executeSearch() {
         LocalDate in = checkIn.getValue();
@@ -170,7 +187,8 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
     }
 
     /**
-     * Opens a booking dialog for the selected category with pre-filled form values.
+     * Opens a booking confirmation dialog with pre-filled form values.
+     * On confirmation, validates the form and saves the booking via BookingService.
      */
     private void openCategoryBookingDialog(RoomCategory category, LocalDate checkIn, LocalDate checkOut, Integer occupancy) {
         Dialog dialog = new Dialog();
@@ -221,7 +239,9 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
     }
 
     /**
-     * Configures form fields for responsive design (flexGrow and full width).
+     * Configures form fields for responsive design by setting flexGrow and full width.
+     * 
+     * @param fields variable number of fields to configure
      */
     private void configureResponsiveFields(HorizontalLayout layout, HasSize... fields) {
         for (HasSize field : fields) {
@@ -230,6 +250,7 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
         }
     }
 
+    /** Security check: Redirects to LoginView if user is not logged in or not a guest. */
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         if (!sessionService.isLoggedIn() || !sessionService.hasRole(UserRole.GUEST)) {

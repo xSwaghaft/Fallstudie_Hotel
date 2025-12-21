@@ -54,7 +54,17 @@ public class createNewBookingForm extends FormLayout{
     }
 
     
-    // Constructor for pre-filled booking forms (e.g., from GuestPortalView)
+    /**
+     * Constructor for pre-filled booking forms (e.g., from GuestPortalView).
+     * 
+     * <p>
+     * Creates a booking form with pre-filled values for category, dates, and occupancy.
+     * If a category is provided, the category selection field is hidden and replaced with
+     * a read-only display field. The guest number field is automatically limited to the
+     * category's maximum occupancy. All provided values are applied to both the form fields
+     * and the booking object.
+     * </p>
+     */
     public createNewBookingForm(User user, SessionService sessionService, Booking existingBooking, BookingFormService formService, 
                                  RoomCategory category, LocalDate checkIn, LocalDate checkOut, Integer occupancy) {
         this.user = user;

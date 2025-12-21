@@ -9,14 +9,17 @@ import com.hotel.booking.entity.RoomImage;
  
 
 /**
- * Repository für RoomImage-Entitäten.
+ * Repository interface for RoomImage entity operations.
  * 
  * @author Viktor Götting
  */
 public interface RoomImageRepository extends JpaRepository<RoomImage, Long> {
 
     /**
-     * Findet alle Bilder einer Kategorie, sortiert nach displayOrder
+     * Finds all images for a category, sorted by displayOrder in ascending order.
+     * 
+     * @param category the room category
+     * @return list of room images sorted by display order
      */
     List<RoomImage> findByCategoryOrderByDisplayOrderAsc(RoomCategory category);
 

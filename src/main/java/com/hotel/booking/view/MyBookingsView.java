@@ -33,6 +33,8 @@ import com.vaadin.flow.router.RouterLink;
 
 /**
  * View for guest bookings with tabs (Upcoming, Past, Cancelled).
+ * Clicking booking opens BookingDetailsDialog. "Write Review" navigates to MyReviewsView.
+ * Related: GuestPortalView (creates bookings), LoginView (redirect if not guest).
  */
 @Route(value = "my-bookings", layout = MainLayout.class)
 @PageTitle("My Bookings")
@@ -77,6 +79,7 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
         initializeContent();
     }
 
+    /** Configures the layout styling for the view. */
     private void configureLayout() {
         setSpacing(true);
         setPadding(true);
@@ -85,6 +88,7 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
         addClassName("guest-portal-view");
     }
 
+    /** Initializes view content: loads bookings, recalculates prices, and creates tabs. */
     private void initializeContent() {
         add(new H1("My Bookings"));
 
@@ -109,6 +113,7 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
     // CONTENT MANAGEMENT (TABS & FILTERING)
     // =========================================================
 
+    /** Creates tab navigation (Upcoming, Past, Cancelled) and content area. Tab selection triggers updateContent(). */
     private void createTabsAndContent() {
         Tab upcomingTab = new Tab(TAB_UPCOMING);
         Tab pastTab = new Tab(TAB_PAST);
@@ -126,6 +131,7 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
         updateContent();
     }
 
+    /** Updates content area based on selected tab, filters bookings, and displays them. */
     private void updateContent() {
         contentArea.removeAll();
 
@@ -149,6 +155,7 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
         contentArea.add(bookingsLayout);
     }
 
+    /** Filters bookings by tab type: Upcoming (future/active), Past (completed), or Cancelled. */
     private List<Booking> filterBookingsByTabType(String tabLabel) {
         if (allBookings == null || allBookings.isEmpty()) {
             return List.of();
@@ -182,6 +189,7 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
     // BOOKING ITEM CREATION
     // =========================================================
 
+    /** Creates a booking card item with details and action buttons. Clicking opens BookingDetailsDialog. */
     private Div createBookingItem(Booking booking, String tabLabel) {
         Div card = new Div();
         card.addClassName("booking-item-card");
@@ -272,6 +280,7 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
     // BOOKING DETAILS DIALOG
     // =========================================================
 
+    /** Opens BookingDetailsDialog to show full booking information. */
     private void openBookingDetailsDialog(Booking booking) {
         BookingDetailsDialog dialog = new BookingDetailsDialog(booking);
         dialog.open();

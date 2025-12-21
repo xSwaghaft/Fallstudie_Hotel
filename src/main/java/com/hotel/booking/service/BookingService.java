@@ -7,7 +7,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -22,6 +21,17 @@ import com.hotel.booking.repository.BookingRepository;
 import com.hotel.booking.repository.RoomCategoryRepository;
 import com.hotel.booking.repository.RoomRepository;
 
+/**
+ * Service class for Booking entity operations.
+ * 
+ * <p>
+ * Provides business logic for managing bookings including creation, retrieval,
+ * availability checks, and price calculations. Handles room assignment and
+ * booking number generation.
+ * </p>
+ * 
+ * @author Viktor Götting
+ */
 @Service
 @Transactional
 public class BookingService {
@@ -40,38 +50,49 @@ public class BookingService {
         this.roomCategoryRepository = roomCategoryRepository;
     }
 
+    /**
+     * Retrieves all bookings.
+     * 
+     * @return list of all bookings
+     */
     public List<Booking> findAll() {
         return bookingRepository.findAll();
     }
 
-    public Optional<Booking> findById(Long id) {
-        return bookingRepository.findById(id);
-    }
-
-    public Optional<Booking> findByBookingNumber(String bookingNumber) {
-        return bookingRepository.findByBookingNumber(bookingNumber);
-    }
-
-    
+    /**
+     * Saves a booking with automatic booking number generation, room assignment, and price calculation.
+     * 
+     * @param booking the booking to save
+     * @return saved booking
+     */
     //Matthias Lohr
     public Booking save(Booking booking) {
         booking.setBookingNumber(generateBookingNumber());
         booking.setRoom(assignRoom(booking));
         calculateBookingPrice(booking); 
-        booking.validateDates(); // Validierung nach allen Änderungen
+        booking.validateDates(); // Validation after all changes
         return bookingRepository.save(booking);
     }
 
-    public void delete(Long id) {
-        bookingRepository.deleteById(id);
-    }
 
+    /**
+     * Gets all active bookings (excluding cancelled) in the specified date range.
+     * TODO: Note: Currently not used in the codebase.
+     * 
+     * @param start start date
+     * @param end end date
+     * @return list of active bookings
+     */
     //Matthias Lohr
     public List<Booking> getActiveBookings(LocalDate start, LocalDate end) {
         return bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(start, end, BookingStatus.CANCELLED);
     }
 
-    //Buchungen der letzten 5 Tage
+    /**
+     * Gets bookings from the last 5 days.
+     * 
+     * @return list of recent bookings
+     */
     //Matthias Lohr
     public List<Booking> getRecentBookings() {
         LocalDate today = LocalDate.now();
@@ -82,6 +103,11 @@ public class BookingService {
                 .toList();
     }
 
+    /**
+     * Calculates the total number of guests currently present in the hotel.
+     * 
+     * @return total number of guests present
+     */
     //Matthias Lohr
     public int getNumberOfGuestsPresent() {
         List<Booking> todayBookings = bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(LocalDate.now(), LocalDate.now(), BookingStatus.CANCELLED);
@@ -90,6 +116,11 @@ public class BookingService {
                 .sum();
     }
 
+    /**
+     * Gets the number of checkouts scheduled for today.
+     * 
+     * @return number of checkouts today
+     */
     //Matthias Lohr
     public int getNumberOfCheckoutsToday() {
         List<Booking> todayCheckouts = bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(LocalDate.now(), LocalDate.now(), BookingStatus.CANCELLED);
@@ -98,6 +129,11 @@ public class BookingService {
                 .count();
     }
 
+    /**
+     * Gets the number of check-ins scheduled for today.
+     * 
+     * @return number of check-ins today
+     */
     //Matthias Lohr
     public int getNumberOfCheckinsToday() {
         List<Booking> todayCheckins = bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(LocalDate.now(), LocalDate.now(), BookingStatus.CANCELLED);
@@ -106,6 +142,11 @@ public class BookingService {
                 .count();
     }
 
+    /**
+     * Generates a unique booking number in format YYYYMMDD-xxxxx.
+     * 
+     * @return unique booking number
+     */
     private String generateBookingNumber() {
     // Beispiel: YYYYMMDD-xxxxx
     String prefix = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
@@ -113,17 +154,22 @@ public class BookingService {
     return prefix + "-" + random;
     }
 
-    // Sucht ein verfügbares Zimmer der gewünschten Kategorie im Zeitraum der Buchung
+    /**
+     * Searches for an available room of the desired category in the booking period.
+     * 
+     * @param booking the booking to assign a room for
+     * @return available room or null if none found
+     */
     //Matthias Lohr
     private Room assignRoom(Booking booking) {
-        //Zur Sicherheit prüfen, sollte aber nicht null sein
+        // Check for safety, should not be null
         if (booking.getRoomCategory() == null || booking.getCheckInDate() == null || booking.getCheckOutDate() == null) {
             return null;
         }
-        // Alle Zimmer der gewünschten Kategorie
+        // All rooms of the desired category
         List<Room> rooms = roomRepository.findByCategory(booking.getRoomCategory());
         for (Room room : rooms) {
-            // Prüfe, ob das Zimmer im Zeitraum frei ist
+            // Check if the room is free in the period
             boolean overlaps = bookingRepository.existsByRoom_IdAndCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(
                 room.getId(),
                 booking.getCheckOutDate(),
@@ -133,10 +179,18 @@ public class BookingService {
                 return room;
             }
         }
-        return null; // Kein freies Zimmer gefunden
+        return null; // No free room found
     }
 
-    // Prüft, ob ein Zimmer der Kategorie im Zeitraum verfügbar ist (Für den Validator des Formulars)
+    /**
+     * Checks if at least one room of the given category is available in the specified date range.
+     * Used for form validation.
+     * 
+     * @param category the room category
+     * @param checkIn check-in date
+     * @param checkOut check-out date
+     * @return true if at least one room is available
+     */
     //Matthias Lohr
     public boolean isRoomAvailable(RoomCategory category, LocalDate checkIn, LocalDate checkOut) {
         List<Room> rooms = roomRepository.findByCategory(category);
@@ -147,14 +201,24 @@ public class BookingService {
                 checkIn
             );
             if (!overlaps) {
-                return true; // Mindestens ein Zimmer ist verfügbar
+                return true; // At least one room is available
             }
         }
-        return false; // Kein Zimmer verfügbar
+        return false; // No room available
     }
 
 
-    //Viktor Götting Sucht die verfügbaren Kategorien in der gesuchten Zeit und sortiert alle aus die mehr Gäste brauchen als MaxOccupancy zulässt
+    /**
+     * Searches for available room categories in the specified time period.
+     * Filters out categories that are not active, require more guests than MaxOccupancy allows,
+     * or have no available rooms in the period.
+     * 
+     * @param checkIn check-in date
+     * @param checkOut check-out date
+     * @param occupancy number of guests
+     * @param categoryName category name filter (null or "All Types" for all categories)
+     * @return list of available room categories
+     */
     public List<RoomCategory> availableRoomCategoriesSearch(
         LocalDate checkIn,
         LocalDate checkOut,
@@ -184,12 +248,17 @@ public class BookingService {
             continue;
         }
 
-        // Prüfe MaxOccupancy
+        // Check if category is active
+        if (category.getActive() == null || !category.getActive()) {
+            continue;
+        }
+
+        // Check MaxOccupancy
         if (occupancy > category.getMaxOccupancy()) {
             continue;
         }
 
-        // Prüfe, ob mindestens ein Zimmer der Kategorie im Zeitraum verfügbar ist
+        // Check if at least one room of the category is available in the period
         if (isRoomAvailable(category, checkIn, checkOut)) {
             availableCategories.add(category);
         }
@@ -201,8 +270,14 @@ public class BookingService {
 
     
 
-    //In diesem Service, da die Methode so nur fürs Booking verwendet wird
-    //Zählt alle Buchungen in einem Zeitraum - für den Report
+    /**
+     * Counts all unique bookings created within a date range. Used for reports.
+     * In this service, as this method is only used for bookings.
+     * 
+     * @param from start date
+     * @param to end date
+     * @return number of unique bookings in the period
+     */
     //Matthias Lohr
     public int getNumberOfBookingsInPeriod(LocalDate from, LocalDate to){
         List<Booking> bookings = bookingRepository.findByCreatedAtLessThanEqualAndCreatedAtGreaterThanEqual(to, from);
@@ -210,15 +285,27 @@ public class BookingService {
         return uniqueBookingsCount;
     }
 
+    /**
+     * Retrieves all bookings created within a date range.
+     * 
+     * @param from start date
+     * @param to end date
+     * @return list of bookings created in the period
+     */
     //Matthias Lohr
-    public List<Booking> getAllBookingsInPeriod (LocalDate from, LocalDate to) {
+    public List<Booking> getAllBookingsInPeriod(LocalDate from, LocalDate to) {
         return bookingRepository.findByCreatedAtLessThanEqualAndCreatedAtGreaterThanEqual(to, from);
     }
 
    
 
 
-    //Viktor Götting Sucht alle vergangenen CONFIRMED Buchungen für einen Gast
+    /**
+     * Finds all past completed bookings for a guest.
+     * 
+     * @param guestId the guest ID
+     * @return list of past completed bookings
+     */
     public List<Booking> findPastBookingsForGuest(Long guestId) {
         if (guestId == null) {
             return List.of();
@@ -230,6 +317,12 @@ public class BookingService {
         );
     }
 
+    /**
+     * Finds all bookings for a specific guest.
+     * 
+     * @param guestId the guest ID
+     * @return list of all bookings for the guest
+     */
     public List<Booking> findAllBookingsForGuest(Long guestId) {
         if (guestId == null) {
             return List.of();
@@ -237,7 +330,11 @@ public class BookingService {
         return bookingRepository.findByGuest_Id(guestId);
     }
 
-    // Viktor Götting berechnet den Gesamtpreis der Buchung
+    /**
+     * Calculates the total price of a booking including room price per night and extras.
+     * 
+     * @param booking the booking to calculate price for
+     */
     public void calculateBookingPrice(Booking booking) {
 
     if (booking.getCheckInDate() == null || booking.getCheckOutDate() == null) {

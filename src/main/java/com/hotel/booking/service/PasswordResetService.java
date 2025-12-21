@@ -37,7 +37,10 @@ public class PasswordResetService {
     }
 
     /**
-     * Verifies that a token exists and is not expired. Returns the associated email if valid.
+     * Verifies that a password reset token exists and is not expired.
+     * 
+     * @param token the token to verify
+     * @return the email address associated with the token if valid, empty otherwise
      */
     public Optional<String> verifyToken(String token) {
         Optional<com.hotel.booking.entity.PasswordResetToken> prtOpt = tokenRepository.findByToken(token);
@@ -50,7 +53,16 @@ public class PasswordResetService {
     }
 
     /**
-     * Resets the password for the user associated with the token. Returns true on success.
+     * Resets the password for the user associated with the given token.
+     * 
+     * <p>
+     * The token must be valid and not expired. After successful password reset,
+     * the token is automatically deleted to prevent reuse.
+     * </p>
+     * 
+     * @param token the password reset token
+     * @param newPassword the new password to set (will be hashed)
+     * @return true if the password was successfully reset, false if the token is invalid or expired
      */
     public boolean resetPassword(String token, String newPassword) {
         Optional<com.hotel.booking.entity.PasswordResetToken> prtOpt = tokenRepository.findByToken(token);
@@ -75,8 +87,17 @@ public class PasswordResetService {
     }
 
     /**
-     * Creates a password reset token for the given email (if user exists) and sends the reset email.
-     * Returns true if an email was sent (user found), false otherwise.
+     * Creates a password reset token for the given email and sends a reset email.
+     * 
+     * <p>
+     * If a user with the given email exists, a new token is created (valid for 1 hour)
+     * and an HTML email with a reset link is sent. If HTML email fails, a plain text
+     * fallback is attempted. For security reasons, the method returns true even if
+     * the user doesn't exist to prevent email enumeration attacks.
+     * </p>
+     * 
+     * @param email the email address of the user requesting password reset
+     * @return true if the email was sent (or user doesn't exist), false only on email delivery failure
      */
     public boolean createTokenAndSend(String email) {
         Optional<User> userOpt = userService.findByEmail(email);
@@ -125,6 +146,12 @@ public class PasswordResetService {
         }
     }
 
+    /**
+     * Escapes HTML special characters to prevent XSS attacks in email content.
+     * 
+     * @param s the string to escape
+     * @return the escaped string, or empty string if input is null
+     */
     private static String escapeHtml(String s) {
         if (s == null) return "";
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;");
