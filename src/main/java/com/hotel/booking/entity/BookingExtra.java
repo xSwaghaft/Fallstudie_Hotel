@@ -13,11 +13,22 @@ import jakarta.persistence.Id;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 
-//Matthias Lohr
+/**
+ * Represents an extra service or amenity that can be added to a hotel booking.
+ * <p>
+ * This entity is mapped to the <code>room_extras</code> table and can be associated with multiple bookings.
+ * </p>
+ *
+ * @author Matthias Lohr
+ */
 @Entity
 @Table(name = "room_extras")
 public class BookingExtra {
 
+
+    /**
+     * Unique identifier for the booking extra.
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long BookingExtra_id;
@@ -31,19 +42,40 @@ public class BookingExtra {
     @Column(name = "price", nullable = false)
     private Double price;
 
+
+    /**
+     * Indicates if the price is per person (true) or per booking (false).
+     */
     @Column(name = "per_person", nullable = false)
     private boolean perPerson = true;
 
-    @JsonIgnore //Wenn eine bidiraktionale Beziehung besteht, muss eine Seite ignoriert werden, sonst Endlosschleife bei JSON Serialisierung
+
+    /**
+     * List of bookings that include this extra.
+     * <p>
+     * This side is ignored during JSON serialization to prevent infinite recursion in bidirectional relationships.
+     */
+    @JsonIgnore
     @ManyToMany(mappedBy = "extras", fetch = FetchType.EAGER)
     private List<Booking> bookings = new ArrayList<>();
 
 
-    // Default constructor
+
+    /**
+     * Default constructor.
+     */
     public BookingExtra() {
     }
 
-    // Parameterized constructor
+
+    /**
+     * Constructs a BookingExtra with all main fields.
+     *
+     * @param BookingExtra_id unique identifier
+     * @param name name of the extra
+     * @param description description of the extra
+     * @param price price of the extra
+     */
     public BookingExtra(Long BookingExtra_id, String name, String description, Double price) {
         this.BookingExtra_id = BookingExtra_id;
         this.name = name;
