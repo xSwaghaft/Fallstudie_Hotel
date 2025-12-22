@@ -362,7 +362,7 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         return actions;
     }
 
-    // Führt die Stornierung mit Bestätigungsdialog, Berechnung der 48h/50% Regel
+    // Führt die Stornierung mit Bestätigungsdialog, Berechnung der gestaffelten Gebühren
     private void confirmAndCancelBooking(Booking b) {
         // Only allow cancellation via this action for bookings with PENDING or MODIFIED status
         if (b.getStatus() == null || (b.getStatus() != com.hotel.booking.entity.BookingStatus.PENDING && b.getStatus() != com.hotel.booking.entity.BookingStatus.MODIFIED)) {
@@ -371,133 +371,58 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         }
 
         try {
-            java.time.LocalDateTime now = java.time.LocalDateTime.now();
-            java.time.LocalDateTime checkInAtStart = b.getCheckInDate().atStartOfDay();
-            long hoursBefore = java.time.Duration.between(now, checkInAtStart).toHours();
+            // Calculate cancellation fee based on days before check-in
+            java.math.BigDecimal penalty = bookingCancellationService.calculateCancellationFee(b, b.getTotalPrice());
+            long daysBefore = java.time.Duration.between(java.time.LocalDateTime.now(), b.getCheckInDate().atStartOfDay()).toDays();
 
-            java.math.BigDecimal penalty = java.math.BigDecimal.ZERO;
-            boolean hasPenalty = false;
-            if (b.getTotalPrice() != null && hoursBefore < 48) {
-                penalty = b.getTotalPrice().multiply(new java.math.BigDecimal("0.5")).setScale(2, java.math.RoundingMode.HALF_UP);
-                hasPenalty = true;
-            }
-
-            if (hasPenalty) {
-                final java.math.BigDecimal penaltyFinal = penalty;
-                Dialog confirm = new Dialog();
-                confirm.setHeaderTitle("Stornierung bestätigen");
-                VerticalLayout cnt = new VerticalLayout();
-                cnt.add(new Paragraph("Sie stornieren weniger als 48 Stunden vor Check-in."));
-                cnt.add(new Paragraph("Es fällt eine Strafe in Höhe von 50% des Gesamtpreises an: " + String.format("%.2f €", penaltyFinal)));
-                cnt.add(new Paragraph("Möchten Sie die Stornierung mit der Strafe bestätigen?"));
-
-                Button confirmBtn = new Button("Bestätigen", ev -> {
-                    try {
-                        b.setStatus(com.hotel.booking.entity.BookingStatus.CANCELLED);
-                        bookingService.save(b);
-
-                        BookingCancellation bc = new BookingCancellation();
-                        bc.setBooking(b);
-                        bc.setCancelledAt(java.time.LocalDateTime.now());
-                        bc.setReason("Storniert vom Management innerhalb 48 Stunden");
-                        bc.setCancellationFee(penaltyFinal);
-                        
-                        // Calculate refunded amount (total - penalty)
-                        java.math.BigDecimal refundedAmount = b.getTotalPrice().subtract(penaltyFinal);
-                        bc.setRefundedAmount(refundedAmount);
-                        
-                        User current = sessionService.getCurrentUser();
-                        if (current != null) {
-                            bc.setHandledBy(current);
-                        }
-                        bookingCancellationService.save(bc);
-                        
-                        // Update Payment status to REFUNDED and set refunded amount
-                        List<Payment> payments = paymentService.findByBookingId(b.getId());
-                        for (Payment p : payments) {
-                            if (p.getStatus() == Invoice.PaymentStatus.PAID) {
-                                p.setStatus(Invoice.PaymentStatus.REFUNDED);
-                                p.setRefundedAmount(refundedAmount);  // Set the refund amount (total - penalty)
-                                paymentService.save(p);
-                                System.out.println("DEBUG: Payment " + p.getId() + " status changed to REFUNDED, refundAmount: " + refundedAmount);
-                                break;
-                            }
-                        }
-                        
-                        // Update Invoice status to REFUNDED (if exists)
-                        Invoice invoice = b.getInvoice();
-                        if (invoice != null && invoice.getInvoiceStatus() == Invoice.PaymentStatus.PAID) {
-                            invoice.setInvoiceStatus(Invoice.PaymentStatus.REFUNDED);
-                            invoiceService.save(invoice);
-                            System.out.println("DEBUG: Invoice " + invoice.getId() + " status changed to REFUNDED");
-                        }
-
-                        confirm.close();
-                        grid.setItems(bookingService.findAll());
-                        Notification.show("Buchung storniert. Rückerstattung: " + String.format("%.2f €", refundedAmount) + " | Strafe: " + String.format("%.2f €", penaltyFinal), 4000, Notification.Position.BOTTOM_START);
-                    } catch (Exception ex) {
-                        Notification.show(ex.getMessage() != null ? ex.getMessage() : "Fehler beim Stornieren", 5000, Notification.Position.MIDDLE);
-                    }
-                });
-
-                Button backBtn = new Button("Zurück", ev -> confirm.close());
-                confirm.add(cnt, new HorizontalLayout(confirmBtn, backBtn));
-                confirm.open();
+            String timeframe;
+            if (daysBefore >= 30) {
+                timeframe = "mehr als 30 Tage";
+            } else if (daysBefore >= 7) {
+                timeframe = "7-29 Tage";
+            } else if (daysBefore >= 1) {
+                timeframe = "1-6 Tage";
             } else {
-                Dialog confirm = new Dialog();
-                confirm.setHeaderTitle("Stornierung bestätigen");
-                confirm.add(new Paragraph("Möchten Sie die Buchung wirklich stornieren?"));
-                Button confirmBtn = new Button("Ja, stornieren", ev -> {
-                    try {
-                        b.setStatus(com.hotel.booking.entity.BookingStatus.CANCELLED);
-                        bookingService.save(b);
-
-                        BookingCancellation bc = new BookingCancellation();
-                        bc.setBooking(b);
-                        bc.setCancelledAt(java.time.LocalDateTime.now());
-                        bc.setReason("Storniert vom Management");
-                        bc.setCancellationFee(java.math.BigDecimal.ZERO);
-                        
-                        // Full refund (no penalty)
-                        bc.setRefundedAmount(b.getTotalPrice());
-                        
-                        User current = sessionService.getCurrentUser();
-                        if (current != null) {
-                            bc.setHandledBy(current);
-                        }
-                        bookingCancellationService.save(bc);
-                        
-                        // Update Payment status to REFUNDED and set refunded amount
-                        List<Payment> payments = paymentService.findByBookingId(b.getId());
-                        for (Payment p : payments) {
-                            if (p.getStatus() == Invoice.PaymentStatus.PAID) {
-                                p.setStatus(Invoice.PaymentStatus.REFUNDED);
-                                p.setRefundedAmount(b.getTotalPrice());  // Full refund (no penalty)
-                                paymentService.save(p);
-                                System.out.println("DEBUG: Payment " + p.getId() + " status changed to REFUNDED, refundAmount: " + b.getTotalPrice());
-                                break;
-                            }
-                        }
-                        
-                        // Update Invoice status to REFUNDED (if exists)
-                        Invoice invoice = b.getInvoice();
-                        if (invoice != null && invoice.getInvoiceStatus() == Invoice.PaymentStatus.PAID) {
-                            invoice.setInvoiceStatus(Invoice.PaymentStatus.REFUNDED);
-                            invoiceService.save(invoice);
-                            System.out.println("DEBUG: Invoice " + invoice.getId() + " status changed to REFUNDED");
-                        }
-
-                        confirm.close();
-                        grid.setItems(bookingService.findAll());
-                        Notification.show("Buchung wurde storniert. Gesamtbetrag wird rückerstellt.", 3000, Notification.Position.BOTTOM_START);
-                    } catch (Exception ex) {
-                        Notification.show(ex.getMessage() != null ? ex.getMessage() : "Fehler beim Stornieren", 5000, Notification.Position.MIDDLE);
-                    }
-                });
-                Button backBtn = new Button("Abbrechen", ev -> confirm.close());
-                confirm.add(new VerticalLayout(new Paragraph("Keine Strafe fällig."), new HorizontalLayout(confirmBtn, backBtn)));
-                confirm.open();
+                timeframe = "am Anreisetag";
             }
+
+            Dialog confirm = new Dialog();
+            confirm.setHeaderTitle("Stornierung bestätigen");
+            VerticalLayout cnt = new VerticalLayout();
+            cnt.add(new Paragraph("Stornierungszeitraum: " + timeframe + " vor Check-in"));
+            cnt.add(new Paragraph("Stornierungsgebühr: " + String.format("%.2f €", penalty)));
+            cnt.add(new Paragraph("Rückerstattung: " + String.format("%.2f €", b.getTotalPrice().subtract(penalty))));
+            cnt.add(new Paragraph("Möchten Sie die Stornierung bestätigen?"));
+
+            final java.math.BigDecimal penaltyFinal = penalty;
+            Button confirmBtn = new Button("Bestätigen", ev -> {
+                try {
+                    BookingCancellation bc = new BookingCancellation();
+                    bc.setBooking(b);
+                    bc.setCancelledAt(java.time.LocalDateTime.now());
+                    bc.setReason("Storniert vom Management");
+                    bc.setCancellationFee(penaltyFinal);
+                    java.math.BigDecimal refundedAmount = b.getTotalPrice().subtract(penaltyFinal);
+                    bc.setRefundedAmount(refundedAmount);
+                    User current = sessionService.getCurrentUser();
+                    if (current != null) {
+                        bc.setHandledBy(current);
+                    }
+                    
+                    // Use centralized cancellation logic
+                    bookingCancellationService.processCancellation(b, bc, refundedAmount);
+
+                    confirm.close();
+                    grid.setItems(bookingService.findAll());
+                    Notification.show("Buchung storniert. Rückerstattung: " + String.format("%.2f €", refundedAmount) + " | Gebühr: " + String.format("%.2f €", penaltyFinal), 4000, Notification.Position.BOTTOM_START);
+                } catch (Exception ex) {
+                    Notification.show(ex.getMessage() != null ? ex.getMessage() : "Fehler beim Stornieren", 5000, Notification.Position.MIDDLE);
+                }
+            });
+
+            Button backBtn = new Button("Zurück", ev -> confirm.close());
+            confirm.add(cnt, new HorizontalLayout(confirmBtn, backBtn));
+            confirm.open();
         } catch (Exception ex) {
             Notification.show(ex.getMessage() != null ? ex.getMessage() : "Fehler beim Stornieren", 5000, Notification.Position.MIDDLE);
         }

@@ -140,7 +140,13 @@ public class PaymentView extends VerticalLayout {
         grid = new Grid<>(Payment.class, false);
         
         grid.addColumn(Payment::getId).setHeader("ID").setSortable(true).setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(p -> p.getAmount()).setHeader("Amount").setSortable(true).setAutoWidth(true).setFlexGrow(1);
+        grid.addColumn(p -> {
+            // Show refunded amount if refund exists, otherwise show original amount
+            if (p.getRefundedAmount() != null && p.getRefundedAmount().compareTo(java.math.BigDecimal.ZERO) > 0) {
+                return String.format("%.2f € (refunded)", p.getRefundedAmount());
+            }
+            return String.format("%.2f €", p.getAmount());
+        }).setHeader("Amount").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.addColumn(Payment::getMethod).setHeader("Method").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.addColumn(Payment::getStatus).setHeader("Status").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.addColumn(Payment::getTransactionRef).setHeader("Transaction-Ref").setSortable(true).setAutoWidth(true).setFlexGrow(1);

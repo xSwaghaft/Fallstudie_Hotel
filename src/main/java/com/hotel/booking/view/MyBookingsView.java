@@ -446,7 +446,7 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
         details.add(new Paragraph("Gesamtpreis: " + totalPriceText));
 
         // Cancellation policy shown in Details as before
-        details.add(new Paragraph("Stornobedingungen: Stornierungen bis 48 Stunden vor Check-in sind kostenfrei. Bei späteren Stornierungen werden 50% des Gesamtpreises berechnet."));
+        details.add(new Paragraph("Stornobedingungen:\n- Bis 30 Tage vorher: Kostenlos\n- 7-29 Tage vorher: 20% Gebühr\n- 1-6 Tage vorher: 50% Gebühr\n- Am Anreisetag: 100% Gebühr"));
 
         // Wenn die Buchung bereits storniert wurde, zeige die gespeicherte Stornogebühr und Grund an (falls vorhanden)
         if (booking.getStatus() == BookingStatus.CANCELLED && booking.getId() != null) {
@@ -732,35 +732,36 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
                 return;
             }
 
-            java.time.LocalDateTime now = java.time.LocalDateTime.now();
-            java.time.LocalDateTime checkInAtStart = booking.getCheckInDate().atStartOfDay();
-            long hoursBefore = java.time.Duration.between(now, checkInAtStart).toHours();
-
-            java.math.BigDecimal penalty = java.math.BigDecimal.ZERO;
-            if (booking.getTotalPrice() != null && hoursBefore < 48) {
-                penalty = booking.getTotalPrice().multiply(new java.math.BigDecimal("0.5"));
-                penalty = penalty.setScale(2, java.math.RoundingMode.HALF_UP);
-            }
+            // Calculate cancellation fee based on days before check-in
+            java.math.BigDecimal penalty = bookingCancellationService.calculateCancellationFee(booking, booking.getTotalPrice());
+            long daysBefore = java.time.Duration.between(java.time.LocalDateTime.now(), booking.getCheckInDate().atStartOfDay()).toDays();
 
             Dialog confirm = new Dialog();
             confirm.setHeaderTitle("Stornierung bestätigen");
             VerticalLayout cnt = new VerticalLayout();
 
             if (penalty.compareTo(java.math.BigDecimal.ZERO) > 0) {
-                cnt.add(new Paragraph("Du stornierst weniger als 48 Stunden vor Check-in."));
-                cnt.add(new Paragraph("Es fällt eine Strafe in Höhe von 50% des Gesamtpreises an: " + String.format("%.2f €", penalty)));
-                cnt.add(new Paragraph("Möchtest du die Stornierung mit der Strafe bestätigen?"));
+                String timeframe;
+                if (daysBefore >= 7) {
+                    timeframe = "mehr als 7 Tage";
+                } else if (daysBefore >= 1) {
+                    timeframe = "1-6 Tage";
+                } else {
+                    timeframe = "am Anreisetag";
+                }
+                cnt.add(new Paragraph("Du stornierst " + timeframe + " vor Check-in."));
+                cnt.add(new Paragraph("Es fällt eine Gebühr an: " + String.format("%.2f €", penalty)));
+                cnt.add(new Paragraph("Rückerstattung: " + String.format("%.2f €", booking.getTotalPrice().subtract(penalty))));
+                cnt.add(new Paragraph("Möchtest du die Stornierung bestätigen?"));
             } else {
-                cnt.add(new Paragraph("Keine Strafe fällig."));
+                cnt.add(new Paragraph("Du stornierst mehr als 30 Tage vor Check-in."));
+                cnt.add(new Paragraph("Kostenlos stornierbar. Vollständige Rückerstattung!"));
                 cnt.add(new Paragraph("Möchtest du die Buchung wirklich stornieren?"));
             }
 
             final java.math.BigDecimal penaltyFinal = penalty;
             Button confirmBtn = new Button("Ja, stornieren", ev -> {
                 try {
-                    booking.setStatus(BookingStatus.CANCELLED);
-                    bookingService.save(booking);
-
                     BookingCancellation bc = new BookingCancellation();
                     bc.setBooking(booking);
                     bc.setCancelledAt(java.time.LocalDateTime.now());
@@ -775,27 +776,9 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
                     if (current != null) {
                         bc.setHandledBy(current);
                     }
-                    bookingCancellationService.save(bc);
                     
-                    // Update Payment status to REFUNDED and set refunded amount
-                    List<Payment> payments = paymentService.findByBookingId(booking.getId());
-                    for (Payment p : payments) {
-                        if (p.getStatus() == Invoice.PaymentStatus.PAID) {
-                            p.setStatus(Invoice.PaymentStatus.REFUNDED);
-                            p.setRefundedAmount(refundedAmount);  // Set the refund amount (total - penalty)
-                            paymentService.save(p);
-                            System.out.println("DEBUG: Payment " + p.getId() + " status changed to REFUNDED, refundAmount: " + refundedAmount);
-                            break;
-                        }
-                    }
-                    
-                    // Update Invoice status to REFUNDED (if exists)
-                    Invoice invoice = booking.getInvoice();
-                    if (invoice != null && invoice.getInvoiceStatus() == Invoice.PaymentStatus.PAID) {
-                        invoice.setInvoiceStatus(Invoice.PaymentStatus.REFUNDED);
-                        invoiceService.save(invoice);
-                        System.out.println("DEBUG: Invoice " + invoice.getId() + " status changed to REFUNDED");
-                    }
+                    // Use centralized cancellation logic
+                    bookingCancellationService.processCancellation(booking, bc, refundedAmount);
 
                     allBookings = loadAllBookingsForCurrentUser();
                     updateContent();
