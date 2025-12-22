@@ -369,7 +369,22 @@ p {
   color: var(--color-success);
 }
 
+.status-completed {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+}
+
 .status-pending {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.status-cancelled {
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.status-modified {
   background-color: var(--color-warning-bg);
   color: var(--color-warning);
 }
@@ -377,16 +392,6 @@ p {
 .status-checked-in {
   background-color: var(--color-info-bg);
   color: var(--color-info);
-}
-
-.status-paid {
-  background-color: var(--color-success-bg);
-  color: var(--color-success);
-}
-
-.status-partial {
-  background-color: var(--color-warning-bg);
-  color: var(--color-warning);
 }
 
 /* Room Status Badges */
@@ -472,17 +477,6 @@ p {
 .role-badge-guest {
   background: #f3e8ff;
   color: #5c065f;
-}
-
-
-.status-cancelled {
-  background-color: var(--color-error-bg);
-  color: var(--color-error);
-}
-
-.status-modified {
-  background-color: var(--color-warning-bg);
-  color: var(--color-warning);
 }
 
 /* =========================================================

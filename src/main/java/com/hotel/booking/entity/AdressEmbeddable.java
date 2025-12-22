@@ -1,8 +1,22 @@
+
+/**
+ * Represents an embeddable address entity for JPA.
+ * <p>
+ * This class is used to store address information such as street, house number, postal code, city, and country.
+ * It is intended to be embedded in other JPA entities.
+ * </p>
+ *
+ * @author Matthias Lohr
+ */
 package com.hotel.booking.entity;
 
 import jakarta.persistence.Embeddable;
 import java.io.Serializable;
 
+
+/**
+ * Embeddable class for address details.
+ */
 @Embeddable
 public class AdressEmbeddable implements Serializable {
 
@@ -17,6 +31,16 @@ public class AdressEmbeddable implements Serializable {
     // ----- Konstruktoren -----
     public AdressEmbeddable() {}
 
+
+    /**
+     * Constructs an address with all fields.
+     *
+     * @param street      the street name
+     * @param houseNumber the house number
+     * @param postalCode  the postal code
+     * @param city        the city
+     * @param country     the country
+     */
     public AdressEmbeddable(String street, String houseNumber, String postalCode, String city, String country) {
         this.street = street;
         this.houseNumber = houseNumber;
