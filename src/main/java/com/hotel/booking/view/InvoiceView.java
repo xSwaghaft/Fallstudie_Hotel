@@ -219,58 +219,69 @@ public class InvoiceView extends VerticalLayout implements BeforeEnterObserver {
     }
 
     private void loadInvoices(String query, String statusFilter, String methodFilter, LocalDate dateFilter) {
-        List<Invoice> items;
-        
-        // Get all invoices
-        if (query == null || query.isBlank()) {
-            items = invoiceService.findAll();
-        } else {
-            // Try exact match first by invoice number
-            var byNumber = invoiceService.findByInvoiceNumber(query);
-            if (byNumber.isPresent()) {
-                items = Collections.singletonList(byNumber.get());
-            } else {
-                // Fallback to contains search (case-insensitive)
-                items = invoiceService.findAll().stream()
-                        .filter(inv -> inv.getInvoiceNumber() != null && 
-                                inv.getInvoiceNumber().toLowerCase().contains(query.toLowerCase()))
-                        .collect(Collectors.toList());
-            }
-        }
-        
-        // If guest: filter to only their invoices
+        List<Invoice> items = getBaseInvoices();
+        items = applySearchFilter(items, query);
+        items = applyStatusFilter(items, statusFilter);
+        items = applyMethodFilter(items, methodFilter);
+        items = applyDateFilter(items, dateFilter);
+        grid.setItems(items);
+    }
+
+    // ===== FILTER HELPER METHODS =====
+
+    private List<Invoice> getBaseInvoices() {
+        List<Invoice> items = invoiceService.findAll();
         if (sessionService.getCurrentRole() == UserRole.GUEST) {
             Long guestId = sessionService.getCurrentUser().getId();
-            items = items.stream()
+            return items.stream()
                     .filter(inv -> inv.getBooking() != null && 
-                                 inv.getBooking().getGuest() != null && 
-                                 inv.getBooking().getGuest().getId().equals(guestId))
+                               inv.getBooking().getGuest() != null && 
+                               inv.getBooking().getGuest().getId().equals(guestId))
                     .collect(Collectors.toList());
         }
+        return items;
+    }
 
-        // Status Filter
+    private List<Invoice> applySearchFilter(List<Invoice> items, String query) {
+        if (query == null || query.isBlank()) {
+            return items;
+        }
+        var byNumber = invoiceService.findByInvoiceNumber(query);
+        if (byNumber.isPresent()) {
+            return Collections.singletonList(byNumber.get());
+        }
+        return items.stream()
+                .filter(inv -> inv.getInvoiceNumber() != null && 
+                        inv.getInvoiceNumber().toLowerCase().contains(query.toLowerCase()))
+                .collect(Collectors.toList());
+    }
+
+    private List<Invoice> applyStatusFilter(List<Invoice> items, String statusFilter) {
         if (statusFilter != null && !statusFilter.equals("All Status")) {
-            items = items.stream()
+            return items.stream()
                     .filter(i -> i.getInvoiceStatus() != null && i.getInvoiceStatus().toString().equals(statusFilter))
                     .collect(Collectors.toList());
         }
+        return items;
+    }
 
-        // Payment Method Filter
+    private List<Invoice> applyMethodFilter(List<Invoice> items, String methodFilter) {
         if (methodFilter != null && !methodFilter.equals("All Methods")) {
-            items = items.stream()
+            return items.stream()
                     .filter(i -> i.getPaymentMethod() != null && i.getPaymentMethod().toString().equals(methodFilter))
                     .collect(Collectors.toList());
         }
+        return items;
+    }
 
-        // Date Filter - nur anwenden wenn ein Datum ausgewählt wurde
+    private List<Invoice> applyDateFilter(List<Invoice> items, LocalDate dateFilter) {
         if (dateFilter != null) {
-            items = items.stream()
+            return items.stream()
                     .filter(i -> i.getIssuedAt() != null && 
                                i.getIssuedAt().toLocalDate().equals(dateFilter))
                     .collect(Collectors.toList());
         }
-
-        grid.setItems(items);
+        return items;
     }
 
     // Simple dialog for adding new invoices with Binder
