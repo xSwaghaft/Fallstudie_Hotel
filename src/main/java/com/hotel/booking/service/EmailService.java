@@ -1,6 +1,5 @@
 package com.hotel.booking.service;
 
-import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
 
@@ -14,13 +13,6 @@ import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.BookingCancellation;
 import com.hotel.booking.entity.BookingModification;
 import com.hotel.booking.entity.Invoice;
-import com.lowagie.text.Document;
-import com.lowagie.text.DocumentException;
-import com.lowagie.text.Element;
-import com.lowagie.text.Font;
-import com.lowagie.text.FontFactory;
-import com.lowagie.text.Paragraph;
-import com.lowagie.text.pdf.PdfWriter;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -40,18 +32,21 @@ import jakarta.mail.internet.MimeMessage;
 public class EmailService {
 
     private final JavaMailSender emailSender;
+    private final InvoicePdfService invoicePdfService;
 
     /** Default sender email address, configurable via app.mail.from property. */
     @Value("${app.mail.from:no-reply@example.com}")
     private String defaultFrom;
 
     /**
-     * Constructs an EmailService with the given JavaMailSender.
+     * Constructs an EmailService with the given JavaMailSender and InvoicePdfService.
      * 
      * @param emailSender the mail sender instance
+     * @param invoicePdfService the PDF service for generating invoice PDFs
      */
-    public EmailService(JavaMailSender emailSender) {
+    public EmailService(JavaMailSender emailSender, InvoicePdfService invoicePdfService) {
         this.emailSender = emailSender;
+        this.invoicePdfService = invoicePdfService;
     }
 
     /**
@@ -179,8 +174,8 @@ public class EmailService {
         String subject = "Invoice - " + invoice.getInvoiceNumber();
         String htmlBody = buildInvoiceTemplate(invoice);
         
-        // Generate PDF and attach it
-        byte[] pdfBytes = generateInvoicePdf(invoice);
+        // Generate PDF using InvoicePdfService and attach it
+        byte[] pdfBytes = invoicePdfService.generateInvoicePdf(invoice);
         sendHtmlMessageWithAttachment(email, subject, htmlBody, pdfBytes, 
             "invoice_" + invoice.getInvoiceNumber() + ".pdf", "application/pdf");
     }
@@ -357,86 +352,6 @@ public class EmailService {
             </body>
             </html>
             """, guestName, invoiceNumber, bookingNumber, amount, paymentMethod, status, issuedAt);
-    }
-
-    /**
-     * Generates a PDF document for the given invoice.
-     * 
-     * @param invoice the invoice to generate PDF for
-     * @return PDF as byte array
-     * @throws MessagingException if PDF generation fails
-     */
-    private byte[] generateInvoicePdf(Invoice invoice) throws MessagingException {
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            Document document = new Document();
-            PdfWriter.getInstance(document, baos);
-            document.open();
-
-            // Title
-            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18);
-            Paragraph title = new Paragraph("INVOICE", titleFont);
-            title.setAlignment(Element.ALIGN_CENTER);
-            title.setSpacingAfter(20);
-            document.add(title);
-
-            // Invoice details
-            Font labelFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12);
-            Font valueFont = FontFactory.getFont(FontFactory.HELVETICA, 12);
-
-            Booking booking = invoice.getBooking();
-            String guestName = booking != null && booking.getGuest() != null 
-                ? booking.getGuest().getUsername() : "Guest";
-            String invoiceNumber = invoice.getInvoiceNumber() != null ? invoice.getInvoiceNumber() : "N/A";
-            String bookingNumber = booking != null && booking.getBookingNumber() != null 
-                ? booking.getBookingNumber() : "N/A";
-            String amount = invoice.getAmount() != null ? invoice.getAmount().toString() : "0.00";
-            String paymentMethod = invoice.getPaymentMethod() != null 
-                ? invoice.getPaymentMethod().toString() : "N/A";
-            String status = invoice.getInvoiceStatus() != null 
-                ? invoice.getInvoiceStatus().toString() : "PENDING";
-            String issuedAt = invoice.getIssuedAt() != null 
-                ? invoice.getIssuedAt().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")) : "N/A";
-
-            document.add(new Paragraph("Invoice Number: ", labelFont));
-            document.add(new Paragraph(invoiceNumber, valueFont));
-            document.add(new Paragraph(" "));
-
-            document.add(new Paragraph("Guest Name: ", labelFont));
-            document.add(new Paragraph(guestName, valueFont));
-            document.add(new Paragraph(" "));
-
-            document.add(new Paragraph("Booking Number: ", labelFont));
-            document.add(new Paragraph(bookingNumber, valueFont));
-            document.add(new Paragraph(" "));
-
-            document.add(new Paragraph("Amount: ", labelFont));
-            document.add(new Paragraph("€" + amount, valueFont));
-            document.add(new Paragraph(" "));
-
-            document.add(new Paragraph("Payment Method: ", labelFont));
-            document.add(new Paragraph(paymentMethod, valueFont));
-            document.add(new Paragraph(" "));
-
-            document.add(new Paragraph("Status: ", labelFont));
-            document.add(new Paragraph(status, valueFont));
-            document.add(new Paragraph(" "));
-
-            document.add(new Paragraph("Issued At: ", labelFont));
-            document.add(new Paragraph(issuedAt, valueFont));
-            document.add(new Paragraph(" "));
-
-            // Footer
-            Paragraph footer = new Paragraph("Thank you for your business!", valueFont);
-            footer.setAlignment(Element.ALIGN_CENTER);
-            footer.setSpacingBefore(20);
-            document.add(footer);
-
-            document.close();
-            return baos.toByteArray();
-        } catch (DocumentException e) {
-            throw new MessagingException("Failed to generate PDF", e);
-        }
     }
 
     /**

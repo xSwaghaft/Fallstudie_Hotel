@@ -1,14 +1,18 @@
 package com.hotel.booking.view;
 
+import com.hotel.booking.entity.BookingExtra;
 import com.hotel.booking.entity.Room;
 import com.hotel.booking.entity.RoomCategory;
+import com.hotel.booking.entity.RoomImage;
 import com.hotel.booking.entity.RoomStatus;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
+import com.hotel.booking.service.BookingExtraService;
 import com.hotel.booking.service.RoomCategoryService;
 import com.hotel.booking.service.RoomService;
 import com.hotel.booking.view.components.RoomForm;
 import com.hotel.booking.view.components.RoomCategoryForm;
+import com.hotel.booking.view.components.AddExtraForm;
 import com.hotel.booking.view.components.CardFactory;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
@@ -36,20 +40,24 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
     private final SessionService sessionService;
     private final RoomService roomService;
     private final RoomCategoryService roomCategoryService;
+    private final BookingExtraService extraService;
 
     // UI-Komponenten
     private final Grid<Room> roomGrid = new Grid<>(Room.class, false);
     private final Grid<RoomCategory> categoryGrid = new Grid<>(RoomCategory.class, false);
+    private final Grid<BookingExtra> extraGrid = new Grid<>(BookingExtra.class, true);
     
     // Statistiken-Komponenten für Live-Updates
     private Component statsRow;
 
     public RoomManagementView(SessionService sessionService, 
                                RoomService roomService,
-                               RoomCategoryService roomCategoryService) {
+                               RoomCategoryService roomCategoryService,
+                                BookingExtraService extraService) {
         this.sessionService = sessionService;
         this.roomService = roomService;
         this.roomCategoryService = roomCategoryService;
+        this.extraService = extraService;
         
         setSpacing(true);
         setPadding(true);
@@ -59,6 +67,7 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
         try {
             configureRoomGrid();
             configureCategoryGrid();
+            configureExtraGrid();
             
             statsRow = createStatsRow();
             
@@ -66,7 +75,8 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
                 createHeader(), 
                 statsRow, 
                 createRoomsCard(),
-                createCategoriesCard()
+                createCategoriesCard(),
+                createExtraCard()
             );
             
             // Daten aus Datenbank laden
@@ -82,9 +92,11 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
         try {
             List<Room> rooms = roomService.getAllRooms();
             List<RoomCategory> categories = roomCategoryService.getAllRoomCategories();
+            List<BookingExtra> extras = extraService.getAllBookingExtras();
             
             roomGrid.setItems(rooms);
             categoryGrid.setItems(categories);
+            extraGrid.setItems(extras);
             
             if (statsRow != null) {
                 replace(statsRow, createStatsRow());
@@ -356,6 +368,27 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
         return actions;
     }
 
+    // =================== EXTRA CARD =====================
+    //Matthias Lohr
+    private Component createExtraCard() {
+        return CardFactory.createContentCard(
+            "Extras",
+            "Manage available Extras",
+            "Add Extra",
+            () -> openExtraDialog(extraService),
+            "#8b5cf6",
+            extraGrid
+        );
+    }
+
+    //Matthias Lohr
+    private void configureExtraGrid() {
+        extraGrid.getColumnByKey("bookings").setVisible(false);
+        extraGrid.setHeightFull();
+        extraGrid.setWidthFull();
+        extraGrid.setAllRowsVisible(true);
+    }
+
     // ==================== ROOM DIALOGS ====================
 
     // Dialog zum Hinzufügen eines neuen Rooms
@@ -494,9 +527,19 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
     private void openCategoryDialog(RoomCategory existing) {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle(existing == null ? "Add New Room Category" : "Edit Room Category");
-        dialog.setWidth("600px");
+        dialog.setWidth("700px");
 
         RoomCategoryForm form = new RoomCategoryForm(existing);
+
+        // Images section
+        VerticalLayout imagesSection = createCategoryImagesSection(existing, dialog);
+
+        // Main content layout
+        VerticalLayout contentLayout = new VerticalLayout();
+        contentLayout.setSpacing(true);
+        contentLayout.setPadding(false);
+        contentLayout.add(form, imagesSection);
+        contentLayout.setFlexGrow(1, form);
 
         Button saveBtn = new Button(existing == null ? "Add Category" : "Update Category");
         saveBtn.addClassName("primary-button");
@@ -519,8 +562,83 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
 
         HorizontalLayout buttonLayout = new HorizontalLayout(cancelBtn, saveBtn);
         buttonLayout.setSpacing(true);
-        dialog.add(form, buttonLayout);
+        dialog.add(contentLayout, buttonLayout);
         dialog.open();
+    }
+
+    /**
+     * Creates the images section for a room category dialog
+     */
+    private VerticalLayout createCategoryImagesSection(RoomCategory category, Dialog parentDialog) {
+        VerticalLayout section = new VerticalLayout();
+        section.setPadding(true);
+        section.setSpacing(true);
+        section.addClassName("category-images-section");
+
+        H3 title = new H3("Images");
+        title.getStyle().set("margin", "0 0 var(--lumo-space-m) 0");
+
+        // Get images for this category if it exists
+        HorizontalLayout imagesPreview = new HorizontalLayout();
+        imagesPreview.setSpacing(true);
+        imagesPreview.addClassName("category-images-preview");
+
+        if (category != null && category.getCategory_id() != null) {
+            // Load existing images
+            List<RoomImage> images = roomCategoryService.getRoomImageRepository()
+                .findByCategoryIdOrderByPrimaryFirst(category.getCategory_id());
+            
+            if (!images.isEmpty()) {
+                for (RoomImage image : images) {
+                    Div imageCard = createImagePreviewCard(image);
+                    imagesPreview.add(imageCard);
+                }
+            } else {
+                Paragraph emptyMsg = new Paragraph("No images assigned yet");
+                emptyMsg.getStyle().set("color", "var(--lumo-secondary-text-color)");
+                section.add(title, emptyMsg);
+                
+                Button addPicturesBtn = new Button("Add Pictures", VaadinIcon.PLUS.create());
+                addPicturesBtn.addClassName("primary-button");
+                addPicturesBtn.addClickListener(e -> {
+                    parentDialog.close();
+                    getUI().ifPresent(ui -> ui.navigate("image-management?categoryId=" + category.getCategory_id()));
+                });
+                section.add(addPicturesBtn);
+                return section;
+            }
+        } else {
+            Paragraph emptyMsg = new Paragraph("Save the category first, then add images");
+            emptyMsg.getStyle().set("color", "var(--lumo-secondary-text-color)");
+            section.add(title, emptyMsg);
+            return section;
+        }
+
+        Button addPicturesBtn = new Button("Add Pictures", VaadinIcon.PLUS.create());
+        addPicturesBtn.addClassName("primary-button");
+        addPicturesBtn.addClickListener(e -> {
+            parentDialog.close();
+            getUI().ifPresent(ui -> ui.navigate("image-management?categoryId=" + category.getCategory_id()));
+        });
+
+        section.add(title, imagesPreview, addPicturesBtn);
+        return section;
+    }
+
+    /**
+     * Creates a preview card for an image
+     */
+    private Div createImagePreviewCard(RoomImage image) {
+        Div card = new Div();
+        card.addClassName("image-preview-card");
+
+        Image preview = new Image(image.getImagePath(), "image");
+        preview.setWidth("80px");
+        preview.setHeight("80px");
+        preview.addClassName("image-preview-thumbnail");
+
+        card.add(preview);
+        return card;
     }
 
     // Löscht eine Category (Dialog)
@@ -553,6 +671,39 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
                     .addThemeVariants(NotificationVariant.LUMO_ERROR);
             }
         });
+    }
+
+    // ============ Extra Dialog =====================
+    //Matthias Lohr
+    private void openExtraDialog (BookingExtraService extraService) {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("Add Extra");
+        dialog.setWidth("500px");
+
+        AddExtraForm form = new AddExtraForm(extraService, null);
+        form.setExtra(new BookingExtra());
+
+        Button saveBtn = new Button("Add Extra");
+        saveBtn.addClassName("primary-button");
+        saveBtn.addClickListener(e -> {
+            if (form.writeBeanIfValid()) {
+                refreshData();
+                dialog.close();
+                Notification.show("Extra added successfully!", 3000, Notification.Position.BOTTOM_START)
+                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+            } else {
+                Notification.show("Please fill all required fields.", 3000, Notification.Position.MIDDLE)
+                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+            }
+        });
+
+        Button cancelBtn = new Button("Cancel");
+        cancelBtn.addClickListener(e -> dialog.close());
+
+        HorizontalLayout buttonLayout = new HorizontalLayout(saveBtn, cancelBtn);
+        buttonLayout.setSpacing(true);
+        dialog.add(form, buttonLayout);
+        dialog.open();
     }
 
     // ==================== SECURITY ====================

@@ -12,6 +12,7 @@ import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -38,6 +39,8 @@ public class RoomCard extends Div {
     private final RoomCategory category;
     private List<RoomImage> images;
     private VerticalLayout contentArea; // Cache for direct access
+    private VerticalLayout rightSide; // Cache für Rating-Platzierung rechts
+    private HorizontalLayout amenitiesRatingRow; // Cache für Rating-Platzierung auf derselben Ebene wie Amenities
     
     /**
      * Creates a RoomCard with the specified category.
@@ -118,17 +121,26 @@ public class RoomCard extends Div {
         priceDiv.addClassName("room-card__price-container");
         mainLayout.add(priceDiv);
         
-        VerticalLayout rightSide = createStyledLayout("room-card__right-side", false, false);
+        rightSide = createStyledLayout("room-card__right-side", false, false);
         H3 title = new H3(getCategoryName());
         title.addClassName("room-card__title");
         Paragraph description = new Paragraph(getDescription());
         description.addClassName("room-card__description");
         rightSide.add(title, description);
         
+        // Amenities und Rating auf derselben Ebene
+        amenitiesRatingRow = createStyledHorizontalLayout("room-card__amenities-rating-row", true);
+        amenitiesRatingRow.setWidthFull();
+        amenitiesRatingRow.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+        amenitiesRatingRow.setAlignItems(Alignment.CENTER);
+        
         Div amenitiesContainer = createAmenitiesContainer();
         if (amenitiesContainer != null) {
-            rightSide.add(amenitiesContainer);
+            amenitiesRatingRow.add(amenitiesContainer);
+            amenitiesRatingRow.setFlexGrow(1, amenitiesContainer);
         }
+        
+        rightSide.add(amenitiesRatingRow);
         
         mainLayout.add(rightSide);
         mainLayout.setFlexGrow(0, priceDiv);
@@ -136,6 +148,51 @@ public class RoomCard extends Div {
         content.add(mainLayout);
         
         return content;
+    }
+
+    // 5 Sterne rechts: gefüllt bis Rating, mit Halbsternen
+    public void setAverageRating(double average) {
+        if (amenitiesRatingRow == null || average <= 0d) return;
+        
+        HorizontalLayout starsLayout = new HorizontalLayout();
+        starsLayout.addClassName("room-card__rating");
+        starsLayout.setSpacing(false);
+        starsLayout.setPadding(false);
+        starsLayout.setAlignItems(Alignment.CENTER);
+        
+        int full = (int) average;
+        double remainder = average - full;
+        boolean hasHalf = remainder >= 0.25 && remainder < 0.75;
+        
+        for (int i = 1; i <= 5; i++) {
+            if (i <= full) {
+                Span star = new Span("★");
+                star.addClassName("filled");
+                starsLayout.add(star);
+            } else if (hasHalf && i == full + 1) {
+                Div halfStarContainer = new Div();
+                halfStarContainer.addClassName("half-star-container");
+                
+                Span emptyStar = new Span("★");
+                emptyStar.addClassName("half-star-empty");
+                
+                Span filledHalf = new Span("★");
+                filledHalf.addClassName("half-star-filled");
+                
+                halfStarContainer.add(emptyStar, filledHalf);
+                starsLayout.add(halfStarContainer);
+            } else {
+                Span star = new Span("★");
+                star.addClassName("empty");
+                starsLayout.add(star);
+            }
+        }
+        
+        Span text = new Span(String.format(java.util.Locale.US, "%.1f", average));
+        text.addClassName("room-card__rating-text");
+        starsLayout.add(text);
+        
+        amenitiesRatingRow.add(starsLayout);
     }
     
     /**

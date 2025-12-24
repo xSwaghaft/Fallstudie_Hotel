@@ -4,23 +4,31 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 
-//Matthias Lohr
+/**
+ * Represents an extra service or amenity that can be added to a hotel booking.
+ * <p>
+ * This entity is mapped to the <code>room_extras</code> table and can be associated with multiple bookings.
+ * </p>
+ *
+ * @author Matthias Lohr
+ */
 @Entity
 @Table(name = "room_extras")
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class BookingExtra {
 
+
+    /**
+     * Unique identifier for the booking extra.
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long BookingExtra_id;
@@ -34,29 +42,45 @@ public class BookingExtra {
     @Column(name = "price", nullable = false)
     private Double price;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "extra_type", nullable = false)
-    private ExtraTypeEnum extraType;
 
+    /**
+     * Indicates if the price is per person (true) or per booking (false).
+     */
     @Column(name = "per_person", nullable = false)
     private boolean perPerson = true;
 
+
+    /**
+     * List of bookings that include this extra.
+     * <p>
+     * This side is ignored during JSON serialization to prevent infinite recursion in bidirectional relationships.
+     */
     @JsonIgnore
-    @ManyToMany(mappedBy = "extras")
+    @ManyToMany(mappedBy = "extras", fetch = FetchType.EAGER)
     private List<Booking> bookings = new ArrayList<>();
 
 
-    // Default constructor
+
+    /**
+     * Default constructor.
+     */
     public BookingExtra() {
     }
 
-    // Parameterized constructor
-    public BookingExtra(Long BookingExtra_id, String name, String description, Double price, ExtraTypeEnum extraType) {
+
+    /**
+     * Constructs a BookingExtra with all main fields.
+     *
+     * @param BookingExtra_id unique identifier
+     * @param name name of the extra
+     * @param description description of the extra
+     * @param price price of the extra
+     */
+    public BookingExtra(Long BookingExtra_id, String name, String description, Double price) {
         this.BookingExtra_id = BookingExtra_id;
         this.name = name;
         this.description = description;
         this.price = price;
-        this.extraType = extraType;
     }
 
     // Getters and setters
@@ -98,14 +122,6 @@ public class BookingExtra {
 
     public void setPrice(Double price) {
         this.price = price;
-    }
-
-    public ExtraTypeEnum getExtraType() {
-        return extraType;
-    }
-
-    public void setExtraType(ExtraTypeEnum extraType) {
-        this.extraType = extraType;
     }
 
     public boolean isPerPerson() {

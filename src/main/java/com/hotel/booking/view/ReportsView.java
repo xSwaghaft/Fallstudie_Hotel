@@ -4,23 +4,33 @@ import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.BookingService;
 import com.hotel.booking.service.ReportService;
+import com.hotel.booking.view.components.CardFactory;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.*;
-import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.*;
-import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.router.*;
 
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
-import java.util.Locale;
 
+/**
+ * View for displaying reports and analytics KPIs.
+ * <p>
+ * This Vaadin view provides a dashboard-style overview of key performance
+ * indicators (KPIs) such as revenue, bookings, average stay duration and trends.
+ * Users can select a reporting period and compare the current period with the
+ * previous month.
+ * </p>
+ * <p>
+ * Access to this view is restricted to logged-in users with the MANAGER role.
+ * </p>
+ *
+ * @author Matthias Lohr
+ */
 @Route(value = "reports", layout = MainLayout.class)
 @PageTitle("Reports & Analytics")
 @CssImport("./themes/hotel/styles.css")
@@ -31,12 +41,16 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
     private final BookingService bookingService;
     private final ReportService reportService;
 
+    private CardFactory cardFactory = new CardFactory();
+
     DatePicker startDate = new DatePicker("Start Date");
     DatePicker endDate = new DatePicker("End Date");
 
     private final VerticalLayout kpiArea = new VerticalLayout();
 
-    public ReportsView(SessionService sessionService, BookingService bookingService, ReportService reportService) {
+    public ReportsView(SessionService sessionService, 
+                        BookingService bookingService, 
+                        ReportService reportService) {
         this.sessionService = sessionService;
 
         this.bookingService = bookingService;
@@ -50,28 +64,36 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
         kpiArea.add(createKpiArea());
     }
 
+    /**
+     * Creates the header section of the view, including title and subtitle.
+     */
     private Component createHeader() {
         H1 title = new H1("Reports & Analytics");
         title.addClassName("reports-header-title");
-        
+
         Paragraph subtitle = new Paragraph("Month-over-Month KPI Insights");
         subtitle.getStyle().set("margin", "0");
-        
-        Div headerLeft = new Div(title, subtitle);
-        
-        
-        HorizontalLayout header = new HorizontalLayout(headerLeft);
+
+        HorizontalLayout header = new HorizontalLayout(new Div(title, subtitle));
         header.setWidthFull();
-        
+
         return header;
     }
 
+      /**
+     * Creates the filter section allowing the user to define
+     * the reporting period for the KPIs.
+     * <p>
+     * The selected date range is used to compare the current period
+     * against the previous month.
+     * </p>
+     */
     private Component createFilters() {
         Div card = new Div();
         card.addClassName("card");
         card.setWidthFull();
         
-        H3 title = new H3("Report Filters");
+        H3 title = new H3("Reporting Period");
         title.addClassName("reports-filters-title");
         
         Paragraph subtitle = new Paragraph("Select date range - Current Period vs. Previous Month");
@@ -96,57 +118,74 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
         return card;
     }
 
-    //Matthias Lohr
+    /**
+     * Builds the KPI area containing multiple KPI cards arranged in rows.
+     * <p>
+     * Each card visualizes a specific KPI together with its trend
+     * compared to the previous period.
+     * </p>
+     */
     private Component createKpiArea() {
         VerticalLayout wrapper = new VerticalLayout();
         wrapper.setSpacing(true);
         wrapper.setPadding(false);
         wrapper.setWidthFull();
 
-        // erste Reihe
+        // first row
         HorizontalLayout row1 = new HorizontalLayout();
         row1.setWidthFull();
         row1.setSpacing(true);
 
-        Component card1 = createKpiCard("Total Revenue", 
-                reportService.getTotalRevenueInPeriod(startDate.getValue(), endDate.getValue()),
-                VaadinIcon.DOLLAR, "#D4AF37",
-                "+12.5% from last period", true);
+        Div card1 = cardFactory.createKpiCard("Total Revenue", 
+            reportService.getTotalRevenueInPeriod(startDate.getValue(), endDate.getValue()),
+            VaadinIcon.DOLLAR, "#D4AF37",
+            reportService.getTotalRevenueTrendString(startDate.getValue(), endDate.getValue()),
+            reportService.getTotalRevenueTrendPositive(startDate.getValue(), endDate.getValue()));
+        card1.setWidthFull();
 
-        Component card2 = createKpiCard("Top performing Category",
+        Div card2 = cardFactory.createKpiCard("Top performing Category",
          reportService.getTopCategoryInPeriod(startDate.getValue(), endDate.getValue()),
-                VaadinIcon.STAR, "#3b82f6",
-                "+5.2% from last period", true);
+            VaadinIcon.STAR, "#3b82f6",
+            reportService.getMostPopularCategoryLastPeriod(startDate.getValue(), endDate.getValue()),
+             false);
+        card2.setWidthFull();
 
-        Component card3 = createKpiCard("Total Bookings",
-                Integer.toString(bookingService.getNumberOfBookingsInPeriod(
-                        startDate.getValue(), endDate.getValue())),
-                VaadinIcon.CALENDAR, "#10b981",
-                reportService.getBookingTrendString(startDate.getValue(), endDate.getValue()),
-                reportService.getBookingTrend(startDate.getValue(), endDate.getValue()) > 0);
+        Div card3 = cardFactory.createKpiCard("Total Bookings",
+            Integer.toString(bookingService.getNumberOfBookingsInPeriod(
+                startDate.getValue(), endDate.getValue())),
+            VaadinIcon.CALENDAR, "#10b981",
+            reportService.getBookingTrendString(startDate.getValue(), endDate.getValue()),
+            reportService.getBookingTrendPositive(startDate.getValue(), endDate.getValue()));
+        card3.setWidthFull();
 
         row1.add(card1, card2, card3);
         row1.expand(card1, card2, card3);
 
-        // Zweite Reihe
+        // second row
         HorizontalLayout row2 = new HorizontalLayout();
         row2.setWidthFull();
         row2.setSpacing(true);
 
-        Component card4 = createKpiCard("Avg Stay Duration", 
-                reportService.getAvgStayDurationInPeriod(startDate.getValue(), endDate.getValue()),
-                VaadinIcon.CLOCK, "#8b5cf6",
-                "Consistent with last period", false);
+        Div card4 = cardFactory.createKpiCard("Avg Stay Duration", 
+            reportService.getAvgStayDurationInPeriod(startDate.getValue(), endDate.getValue()),
+            VaadinIcon.CLOCK, "#8b5cf6",
+            reportService.getAvgStayTrendString(startDate.getValue(), endDate.getValue()), 
+            reportService.getAvgStayTrendPositive(startDate.getValue(), endDate.getValue()));
+        card4.setWidthFull();
 
-        Component card5 = createKpiCard("Most popular Extra",
-                reportService.getMostPopularExtraInPeriod(startDate.getValue(), endDate.getValue()),
-                VaadinIcon.STAR, "#8b5cf6",
-                "Consistent with last period", true);
+        Div card5 = cardFactory.createKpiCard("Most popular Extra",
+            reportService.getMostPopularExtraInPeriod(startDate.getValue(), endDate.getValue()),
+            VaadinIcon.STAR, "#8b5cf6",
+            reportService.getMostPopularExtraLastPeriod(startDate.getValue(), endDate.getValue()),
+             false);
+        card5.setWidthFull();
 
-        Component card6 = createKpiCard("Revenue per Guest", 
-                "150.00€ test",
-                VaadinIcon.DOLLAR, "#6366f1",
-                "", false);
+        Div card6 = cardFactory.createKpiCard("Revenue per Booking", 
+            reportService.getAvgRevenuePerBookingInPeriod(startDate.getValue(), endDate.getValue()),
+            VaadinIcon.DOLLAR, "#6366f1",
+            reportService.getAvgRevenueTrendString(startDate.getValue(), endDate.getValue()),
+            reportService.getAvgRevenueTrendPositive(startDate.getValue(), endDate.getValue()));
+        card6.setWidthFull();
 
         row2.add(card4, card5, card6);
         row2.expand(card4, card5, card6);
@@ -156,46 +195,22 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
         return wrapper;
     }
 
-
-    //Matthias Lohr
-    private Component createKpiCard(String title, String value, VaadinIcon iconType, 
-                                   String color, String trend, boolean isPositive) {
-        Div card = new Div();
-        card.addClassName("kpi-card");
-        
-        // Header
-        Span titleSpan = new Span(title);
-        titleSpan.addClassName("kpi-card-title");
-        
-        Icon icon = iconType.create();
-        icon.getStyle().set("color", color);
-        
-        HorizontalLayout cardHeader = new HorizontalLayout(titleSpan, icon);
-        cardHeader.addClassName("kpi-card-header");
-        cardHeader.setWidthFull();
-        
-        // Value
-        H2 valueHeading = new H2(value);
-        valueHeading.addClassName("kpi-card-value");
-        
-        // Trend
-        Span trendSpan = new Span(trend);
-        trendSpan.addClassName("kpi-card-trend");
-        if (isPositive) {
-            trendSpan.addClassName("positive");
-        } else {
-            trendSpan.addClassName("neutral");
-        }
-        
-        card.add(cardHeader, valueHeading, trendSpan);
-        return card;
-    }
-
+    /**
+     * Refreshes the KPI area by rebuilding all KPI cards
+     * based on the currently selected date range.
+     */
     private void refreshKpiArea() {
         kpiArea.removeAll();
         kpiArea.add(createKpiArea());
     }
 
+     /**
+     * Navigation guard to restrict access to authorized users.
+     * <p>
+     * Users who are not logged in or do not have the MANAGER role
+     * are redirected to the login view.
+     * </p>
+     */
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         if (!sessionService.isLoggedIn() || !sessionService.hasRole(UserRole.MANAGER)) {
