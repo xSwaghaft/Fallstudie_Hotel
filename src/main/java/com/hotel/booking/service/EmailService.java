@@ -1,5 +1,6 @@
 package com.hotel.booking.service;
 
+import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
 
@@ -13,7 +14,13 @@ import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.BookingCancellation;
 import com.hotel.booking.entity.BookingModification;
 import com.hotel.booking.entity.Invoice;
-import com.hotel.booking.entity.Payment;
+import com.lowagie.text.Document;
+import com.lowagie.text.DocumentException;
+import com.lowagie.text.Element;
+import com.lowagie.text.Font;
+import com.lowagie.text.FontFactory;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.pdf.PdfWriter;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -81,6 +88,29 @@ public class EmailService {
         emailSender.send(mimeMessage);
     }
 
+    /**
+     * Sends an HTML email message with attachment.
+     * 
+     * @param to recipient email address
+     * @param subject email subject
+     * @param htmlBody HTML message body
+     * @param attachment attachment data
+     * @param attachmentName name of the attachment file
+     * @param contentType MIME type of the attachment
+     * @throws MessagingException if the message cannot be created or sent
+     */
+    public void sendHtmlMessageWithAttachment(String to, String subject, String htmlBody, 
+            byte[] attachment, String attachmentName, String contentType) throws MessagingException {
+        MimeMessage mimeMessage = emailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "utf-8");
+        helper.setFrom(defaultFrom);
+        helper.setTo(to);
+        helper.setSubject(subject);
+        helper.setText(htmlBody, true); // true indicates HTML
+        helper.addAttachment(attachmentName, () -> new java.io.ByteArrayInputStream(attachment), contentType);
+        emailSender.send(mimeMessage);
+    }
+
     // ==================== Booking-related emails ====================
 
     /**
@@ -136,7 +166,7 @@ public class EmailService {
     // ==================== Invoice-related emails ====================
 
     /**
-     * Sends an invoice notification email to the guest.
+     * Sends an invoice notification email to the guest with PDF attachment.
      * 
      * @param invoice the invoice
      * @throws MessagingException if the email cannot be sent
@@ -148,41 +178,11 @@ public class EmailService {
         String email = invoice.getBooking().getGuest().getEmail();
         String subject = "Invoice - " + invoice.getInvoiceNumber();
         String htmlBody = buildInvoiceTemplate(invoice);
-        sendHtmlMessage(email, subject, htmlBody);
-    }
-
-    // ==================== Payment-related emails ====================
-
-    /**
-     * Sends a payment confirmation email to the guest.
-     * 
-     * @param payment the confirmed payment
-     * @throws MessagingException if the email cannot be sent
-     */
-    public void sendPaymentConfirmation(Payment payment) throws MessagingException {
-        if (payment == null || payment.getBooking() == null || payment.getBooking().getGuest() == null) {
-            return;
-        }
-        String email = payment.getBooking().getGuest().getEmail();
-        String subject = "Payment Confirmation - " + payment.getBooking().getBookingNumber();
-        String htmlBody = buildPaymentConfirmationTemplate(payment);
-        sendHtmlMessage(email, subject, htmlBody);
-    }
-
-    /**
-     * Sends a payment reminder email for an overdue invoice.
-     * 
-     * @param invoice the overdue invoice
-     * @throws MessagingException if the email cannot be sent
-     */
-    public void sendPaymentReminder(Invoice invoice) throws MessagingException {
-        if (invoice == null || invoice.getBooking() == null || invoice.getBooking().getGuest() == null) {
-            return;
-        }
-        String email = invoice.getBooking().getGuest().getEmail();
-        String subject = "Payment Reminder - Invoice " + invoice.getInvoiceNumber();
-        String htmlBody = buildPaymentReminderTemplate(invoice);
-        sendHtmlMessage(email, subject, htmlBody);
+        
+        // Generate PDF and attach it
+        byte[] pdfBytes = generateInvoicePdf(invoice);
+        sendHtmlMessageWithAttachment(email, subject, htmlBody, pdfBytes, 
+            "invoice_" + invoice.getInvoiceNumber() + ".pdf", "application/pdf");
     }
 
     // ==================== Email template builders ====================
@@ -349,6 +349,7 @@ public class EmailService {
                         <p><strong>Issued At:</strong> %s</p>
                     </div>
                     
+                    <p>Please find the invoice PDF attached to this email.</p>
                     <p>Please ensure payment is made by the due date.</p>
                     <hr style="border:none;border-top:1px solid #eee;margin:20px 0">
                     <p style="color:#999;font-size:80%%">HotelBookingApp Team</p>
@@ -359,87 +360,83 @@ public class EmailService {
     }
 
     /**
-     * Builds HTML template for payment confirmation email.
+     * Generates a PDF document for the given invoice.
+     * 
+     * @param invoice the invoice to generate PDF for
+     * @return PDF as byte array
+     * @throws MessagingException if PDF generation fails
      */
-    private String buildPaymentConfirmationTemplate(Payment payment) {
-        Booking booking = payment.getBooking();
-        String guestName = booking != null && booking.getGuest() != null ? escapeHtml(booking.getGuest().getUsername()) : "Guest";
-        String bookingNumber = booking != null ? escapeHtml(booking.getBookingNumber()) : "N/A";
-        String amount = payment.getAmount() != null ? payment.getAmount().toString() : "0.00";
-        String paymentMethod = payment.getMethod() != null ? escapeHtml(payment.getMethod().toString()) : "N/A";
-        String transactionRef = payment.getTransactionRef() != null ? escapeHtml(payment.getTransactionRef()) : "N/A";
-        String paidAt = payment.getPaidAt() != null ? payment.getPaidAt().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")) : "N/A";
+    private byte[] generateInvoicePdf(Invoice invoice) throws MessagingException {
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            Document document = new Document();
+            PdfWriter.getInstance(document, baos);
+            document.open();
 
-        return String.format("""
-            <!doctype html>
-            <html>
-            <head>
-                <meta charset="utf-8">
-                <title>Payment Confirmation</title>
-            </head>
-            <body style="font-family:Arial,sans-serif;color:#333;margin:0;padding:0;background:#f5f5f5">
-                <div style="max-width:600px;margin:20px auto;padding:20px;border:1px solid #eaeaea;border-radius:8px;background:#fff">
-                    <h2 style="color:#4caf50;margin-top:0">Payment Confirmed</h2>
-                    <p>Dear %s,</p>
-                    <p>Your payment has been successfully processed.</p>
-                    
-                    <div style="background:#e8f5e9;padding:15px;border-radius:6px;margin:20px 0;border-left:4px solid #4caf50">
-                        <h3 style="margin-top:0;color:#333">Payment Details</h3>
-                        <p><strong>Booking Number:</strong> %s</p>
-                        <p><strong>Amount:</strong> €%s</p>
-                        <p><strong>Payment Method:</strong> %s</p>
-                        <p><strong>Transaction Reference:</strong> %s</p>
-                        <p><strong>Paid At:</strong> %s</p>
-                    </div>
-                    
-                    <p>Thank you for your payment!</p>
-                    <hr style="border:none;border-top:1px solid #eee;margin:20px 0">
-                    <p style="color:#999;font-size:80%%">HotelBookingApp Team</p>
-                </div>
-            </body>
-            </html>
-            """, guestName, bookingNumber, amount, paymentMethod, transactionRef, paidAt);
-    }
+            // Title
+            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18);
+            Paragraph title = new Paragraph("INVOICE", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            title.setSpacingAfter(20);
+            document.add(title);
 
-    /**
-     * Builds HTML template for payment reminder email.
-     */
-    private String buildPaymentReminderTemplate(Invoice invoice) {
-        Booking booking = invoice.getBooking();
-        String guestName = booking != null && booking.getGuest() != null ? escapeHtml(booking.getGuest().getUsername()) : "Guest";
-        String invoiceNumber = escapeHtml(invoice.getInvoiceNumber());
-        String amount = invoice.getAmount() != null ? invoice.getAmount().toString() : "0.00";
-        String bookingNumber = booking != null ? escapeHtml(booking.getBookingNumber()) : "N/A";
-        String issuedAt = invoice.getIssuedAt() != null ? invoice.getIssuedAt().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")) : "N/A";
+            // Invoice details
+            Font labelFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12);
+            Font valueFont = FontFactory.getFont(FontFactory.HELVETICA, 12);
 
-        return String.format("""
-            <!doctype html>
-            <html>
-            <head>
-                <meta charset="utf-8">
-                <title>Payment Reminder</title>
-            </head>
-            <body style="font-family:Arial,sans-serif;color:#333;margin:0;padding:0;background:#f5f5f5">
-                <div style="max-width:600px;margin:20px auto;padding:20px;border:1px solid #eaeaea;border-radius:8px;background:#fff">
-                    <h2 style="color:#ff9800;margin-top:0">Payment Reminder</h2>
-                    <p>Dear %s,</p>
-                    <p>This is a friendly reminder that your invoice payment is due.</p>
-                    
-                    <div style="background:#fff3cd;padding:15px;border-radius:6px;margin:20px 0;border-left:4px solid #ff9800">
-                        <h3 style="margin-top:0;color:#333">Outstanding Invoice</h3>
-                        <p><strong>Invoice Number:</strong> %s</p>
-                        <p><strong>Booking Number:</strong> %s</p>
-                        <p><strong>Amount Due:</strong> €%s</p>
-                        <p><strong>Issued:</strong> %s</p>
-                    </div>
-                    
-                    <p>Please make the payment as soon as possible to avoid any inconvenience.</p>
-                    <hr style="border:none;border-top:1px solid #eee;margin:20px 0">
-                    <p style="color:#999;font-size:80%%">HotelBookingApp Team</p>
-                </div>
-            </body>
-            </html>
-            """, guestName, invoiceNumber, bookingNumber, amount, issuedAt);
+            Booking booking = invoice.getBooking();
+            String guestName = booking != null && booking.getGuest() != null 
+                ? booking.getGuest().getUsername() : "Guest";
+            String invoiceNumber = invoice.getInvoiceNumber() != null ? invoice.getInvoiceNumber() : "N/A";
+            String bookingNumber = booking != null && booking.getBookingNumber() != null 
+                ? booking.getBookingNumber() : "N/A";
+            String amount = invoice.getAmount() != null ? invoice.getAmount().toString() : "0.00";
+            String paymentMethod = invoice.getPaymentMethod() != null 
+                ? invoice.getPaymentMethod().toString() : "N/A";
+            String status = invoice.getInvoiceStatus() != null 
+                ? invoice.getInvoiceStatus().toString() : "PENDING";
+            String issuedAt = invoice.getIssuedAt() != null 
+                ? invoice.getIssuedAt().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")) : "N/A";
+
+            document.add(new Paragraph("Invoice Number: ", labelFont));
+            document.add(new Paragraph(invoiceNumber, valueFont));
+            document.add(new Paragraph(" "));
+
+            document.add(new Paragraph("Guest Name: ", labelFont));
+            document.add(new Paragraph(guestName, valueFont));
+            document.add(new Paragraph(" "));
+
+            document.add(new Paragraph("Booking Number: ", labelFont));
+            document.add(new Paragraph(bookingNumber, valueFont));
+            document.add(new Paragraph(" "));
+
+            document.add(new Paragraph("Amount: ", labelFont));
+            document.add(new Paragraph("€" + amount, valueFont));
+            document.add(new Paragraph(" "));
+
+            document.add(new Paragraph("Payment Method: ", labelFont));
+            document.add(new Paragraph(paymentMethod, valueFont));
+            document.add(new Paragraph(" "));
+
+            document.add(new Paragraph("Status: ", labelFont));
+            document.add(new Paragraph(status, valueFont));
+            document.add(new Paragraph(" "));
+
+            document.add(new Paragraph("Issued At: ", labelFont));
+            document.add(new Paragraph(issuedAt, valueFont));
+            document.add(new Paragraph(" "));
+
+            // Footer
+            Paragraph footer = new Paragraph("Thank you for your business!", valueFont);
+            footer.setAlignment(Element.ALIGN_CENTER);
+            footer.setSpacingBefore(20);
+            document.add(footer);
+
+            document.close();
+            return baos.toByteArray();
+        } catch (DocumentException e) {
+            throw new MessagingException("Failed to generate PDF", e);
+        }
     }
 
     /**
