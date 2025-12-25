@@ -42,7 +42,9 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
 /**
- * Guest Portal View - Main view for guests to search and book rooms.
+ * Main view for guests to search and book rooms.
+ * 
+ * @author Viktor Götting
  */
 @Route(value = "guest-portal", layout = MainLayout.class)
 @PageTitle("Guest Portal")
@@ -92,7 +94,7 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
     }
 
     /**
-     * Creates the search form card with date pickers, guest count, and room type selector.
+     * Creates the search form card.
      */
     private Div createSearchCard() {
         Div card = new Div();
@@ -143,7 +145,7 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
     }
 
     /**
-     * Executes the search for available room categories and displays them in the grid.
+     * Executes the search for available room categories.
      */
     private void executeSearch() {
         LocalDate in = checkIn.getValue();
@@ -182,7 +184,7 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
     }
 
     /**
-     * Opens a booking dialog for the selected category with pre-filled form values.
+     * Opens a booking dialog for the selected category.
      */
     private void openCategoryBookingDialog(RoomCategory category, LocalDate checkIn, LocalDate checkOut, Integer occupancy) {
         Dialog dialog = new Dialog();
@@ -248,7 +250,7 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
     }
 
     /**
-     * Configures form fields for responsive design (flexGrow and full width).
+     * Configures form fields for responsive design.
      */
     private void configureResponsiveFields(HorizontalLayout layout, HasSize... fields) {
         for (HasSize field : fields) {
@@ -329,7 +331,7 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
     }
     
     /**
-     * Maps UI payment method string to PaymentMethod enum
+     * Maps UI payment method string to PaymentMethod enum.
      */
     private Invoice.PaymentMethod mapPaymentMethod(String uiMethod) {
         if ("Banküberweisung".equals(uiMethod)) {

@@ -19,9 +19,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 
 /**
  * Component for displaying a room category as a card.
- * 
- * Shows the main image, name, price per night, and description.
- * Clicking on the image opens a gallery with all available images of the category.
+ * @author Viktor Götting
  */
 public class RoomCard extends Div {
   
@@ -33,9 +31,6 @@ public class RoomCard extends Div {
     
     /**
      * Creates a RoomCard with the specified category.
-     * Images are loaded directly from the category (EAGER fetch).
-     * 
-     * @param category The room category to display
      */
     public RoomCard(RoomCategory category) {
         this.category = category;
@@ -46,13 +41,14 @@ public class RoomCard extends Div {
     
     /**
      * Returns the room category displayed by this card.
-     * 
-     * @return The room category
      */
     public RoomCategory getCategory() {
         return category;
     }
     
+    /**
+     * Retrieves all images associated with the room category.
+     */
     private List<RoomImage> getCategoryImages() {
         return category != null && category.getImages() != null && !category.getImages().isEmpty() 
                 ? category.getImages() 
@@ -60,8 +56,7 @@ public class RoomCard extends Div {
     }
 
     /**
-     * Builds the visible card with image, title, price, and description.
-     * The first image is displayed as the main image. Clicking on it opens the gallery.
+     * Builds the visible card structure with image container and content area.
      */
     private void buildCard() {
         // Image container: Shows the first image of the category or a placeholder
@@ -75,8 +70,6 @@ public class RoomCard extends Div {
     
     /**
      * Creates the image container with the main image or a placeholder.
-     * 
-     * @return The image container Div
      */
     private Div createImageContainer() {
         Div imageContainer = new Div();
@@ -99,8 +92,6 @@ public class RoomCard extends Div {
     
     /**
      * Creates the content area with title, price, and description.
-     * 
-     * @return The content area as VerticalLayout
      */
     private VerticalLayout createContentArea() {
         VerticalLayout content = createStyledLayout("room-card__content", false, true);
@@ -188,6 +179,9 @@ public class RoomCard extends Div {
         amenitiesRatingRow.add(starsLayout);
     }
     
+    /**
+     * Creates a styled VerticalLayout with the specified class name and spacing/padding settings.
+     */
     private VerticalLayout createStyledLayout(String className, boolean spacing, boolean padding) {
         VerticalLayout layout = new VerticalLayout();
         layout.addClassName(className);
@@ -197,6 +191,9 @@ public class RoomCard extends Div {
         return layout;
     }
     
+    /**
+     * Creates a styled HorizontalLayout with the specified class name and spacing setting.
+     */
     private HorizontalLayout createStyledHorizontalLayout(String className, boolean spacing) {
         HorizontalLayout layout = new HorizontalLayout();
         layout.addClassName(className);
@@ -206,10 +203,16 @@ public class RoomCard extends Div {
         return layout;
     }
     
+    /**
+     * Gets the category name, or a default value if null.
+     */
     private String getCategoryName() {
         return category != null ? category.getName() : "Unknown";
     }
     
+    /**
+     * Gets the category description, or a default value if null.
+     */
     private String getDescription() {
         return category != null && category.getDescription() != null
                 ? category.getDescription()
@@ -218,8 +221,6 @@ public class RoomCard extends Div {
     
     /**
      * Creates the price area with main price and "per night" text.
-     * 
-     * @return The price area as Div
      */
     private Div createPriceDiv() {
         String priceText = category != null && category.getPricePerNight() != null
@@ -238,8 +239,6 @@ public class RoomCard extends Div {
     
     /**
      * Creates the amenities container with badges for each amenity.
-     * 
-     * @return The amenities container Div, or null if no amenities available
      */
     private Div createAmenitiesContainer() {
         if (category == null || category.getAmenities() == null || category.getAmenities().isEmpty()) {
@@ -261,11 +260,7 @@ public class RoomCard extends Div {
     }
     
     /**
-     * Formats the amenity enum name to a readable string.
-     * Converts UPPER_CASE to "Upper Case" format (e.g., AIR_CONDITIONING -> "Air Conditioning").
-     * 
-     * @param amenity The amenity enum value
-     * @return Formatted amenity name
+     * Formats amenity enum name from UPPER_CASE to "Upper Case" format.
      */
     private String formatAmenityName(Amenities amenity) {
         if (amenity == null) return "";
@@ -282,8 +277,6 @@ public class RoomCard extends Div {
  
     /**
      * Adds a booking button at the end of the card.
-     * 
-     * @param bookButton The button to add
      */
     public void setBookButton(Button bookButton) {
         if (contentArea != null) {
@@ -295,8 +288,7 @@ public class RoomCard extends Div {
     }
  
     /**
-     * Opens a dialog with a gallery of all images of the category.
-     * Clicking on an image in the gallery opens a larger view.
+     * Opens a dialog with a gallery of all category images.
      */
     private void openGallery() {
         if ((images == null || images.isEmpty()) && category != null) {
@@ -313,8 +305,6 @@ public class RoomCard extends Div {
     
     /**
      * Creates the gallery dialog with all images of the category.
-     * 
-     * @return The fully configured gallery dialog
      */
     private Dialog createGalleryDialog() {
         VerticalLayout content = createStyledLayout("room-gallery-content", false, false);
@@ -331,6 +321,9 @@ public class RoomCard extends Div {
         return dialog;
     }
     
+    /**
+     * Creates a dialog with the specified title and content components.
+     */
     private Dialog createDialog(String title, com.vaadin.flow.component.Component... content) {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle(title);
@@ -342,10 +335,7 @@ public class RoomCard extends Div {
     }
     
     /**
-     * Creates the grid with all images of the category.
-     * Each image is clickable and opens a larger view.
-     * 
-     * @return The grid Div with all images
+     * Creates the grid with all category images.
      */
     private Div createGalleryGrid() {
         Div gallery = new Div();
@@ -378,8 +368,6 @@ public class RoomCard extends Div {
     
     /**
      * Opens a dialog with a large view of a single image.
-     * 
-     * @param image The image to display in full size
      */
     private void openImageDialog(RoomImage image) {
         Image img = new Image(image.getImagePath(), image.getAltText() != null ? image.getAltText() : "Room Image");

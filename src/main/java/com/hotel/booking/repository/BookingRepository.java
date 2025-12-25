@@ -14,64 +14,62 @@ import org.springframework.stereotype.Repository;
 import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.BookingStatus;
 
+/**
+ * Repository interface for Booking entity operations.
+ * Provides methods to query bookings by various criteria.
+ */
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpecificationExecutor<Booking> {
 
     // --- Basics ---------------------------------------------------------------
 
+    /**
+     * Finds a booking by its unique booking number.
+     * Uses EntityGraph to eagerly load guest, room, invoice, and feedback.
+     */
     @EntityGraph(attributePaths = {"guest", "room", "invoice", "feedback"})
     Optional<Booking> findByBookingNumber(String bookingNumber);
 
-    boolean existsByBookingNumber(String bookingNumber);
+    // --- Room-related queries --------------------------------------------------
 
-    void deleteByBookingNumber(String bookingNumber);
+    /**
+     * Finds all bookings for a specific room.
+     */
+    List<Booking> findByRoom_Id(Long roomId);
 
-    // --- Room-bezogene Abfragen ----------------------------------------------
+    // --- RoomCategory-related queries -----------------------------------------
+    
+    /**
+     * Finds all bookings for a specific room category.
+     */
+    @Query("SELECT b FROM Booking b WHERE b.roomCategory.category_id = :categoryId")
+    List<Booking> findByRoomCategoryId(@Param("categoryId") Long categoryId);
 
-        List<Booking> findByRoom_Id(Long roomId);
+    // Same logic as Exists - useful for "is room available?"
+    boolean existsByRoom_IdAndCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(
+            Long roomId,
+            LocalDate endInclusive,
+            LocalDate startInclusive);
 
-        // --- RoomCategory-bezogene Abfragen ----------------------------------
-        
-        @Query("SELECT b FROM Booking b WHERE b.roomCategory.category_id = :categoryId")
-        List<Booking> findByRoomCategoryId(@Param("categoryId") Long categoryId);
+    // --- Time period queries --------------------------------------------------
 
-        // Gleiche Logik als Exists – nützlich für "ist Zimmer frei?"
-        boolean existsByRoom_IdAndCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(
-                Long roomId,
-                LocalDate endInclusive,
-                LocalDate startInclusive);
-
-    // Gleiche Prüfung, aber eine bestehende Buchung beim Update ignorieren
-    @Query("""
-            SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END
-            FROM Booking b
-            WHERE b.room.id = :roomId
-              AND b.id <> :excludeId
-              AND b.checkInDate <= :endInclusive
-              AND b.checkOutDate >= :startInclusive
-            """)
-    boolean overlapsInRoomExcludingBooking(
-            @Param("roomId") Long roomId,
-            @Param("excludeId") Long excludeBookingId,
-            @Param("startInclusive") LocalDate startInclusive,
-            @Param("endInclusive") LocalDate endInclusive);
-
-    // --- Zeitraum-Abfragen ----------------------------------------------------
-
-        // Alle Buchungen, in einem Zeitraum erstellt wurden:
+     // Alle Buchungen, in einem Zeitraum erstellt wurden:
         // (checkIn <= end) AND (checkOut >= start)
         //Matthias Lohr
-        List<Booking> findByCreatedAtLessThanEqualAndCreatedAtGreaterThanEqual(LocalDate endInclusive, LocalDate startInclusive);
+    List<Booking> findByCreatedAtLessThanEqualAndCreatedAtGreaterThanEqual(LocalDate endInclusive, LocalDate startInclusive);
 
-         //Liefert alle aktiven (cancelled ausschließen) Buchungen im Zeitraum.
-        List<Booking> findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(
+   //Liefert alle aktiven (cancelled ausschließen) Buchungen im Zeitraum.
+    List<Booking> findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(
             LocalDate endInclusive,
             LocalDate startInclusive,
             BookingStatus statusToExclude
-        );
+    );
 
-    
-    
+    /**
+     * Finds all bookings for a guest that have checked out before a specific date
+     * and match a specific status. Uses EntityGraph to eagerly load feedback,
+     * roomCategory, and room.
+     */
     @EntityGraph(attributePaths = {"feedback", "roomCategory", "room"})
     @Query("""
             SELECT b FROM Booking b 
@@ -85,4 +83,19 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
             @Param("status") com.hotel.booking.entity.BookingStatus status);
     
     List<Booking> findByGuest_Id(Long guestId);
+    
+    // Prüfung, aber eine bestehende Buchung beim Update ignorieren
+    @Query("""
+            SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END
+            FROM Booking b
+            WHERE b.room.id = :roomId
+              AND b.id <> :excludeId
+              AND b.checkInDate <= :endInclusive
+              AND b.checkOutDate >= :startInclusive
+            """)
+    boolean overlapsInRoomExcludingBooking(
+            @Param("roomId") Long roomId,
+            @Param("excludeId") Long excludeBookingId,
+            @Param("startInclusive") LocalDate startInclusive,
+            @Param("endInclusive") LocalDate endInclusive);
 }
