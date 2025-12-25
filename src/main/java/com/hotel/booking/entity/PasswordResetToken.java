@@ -49,10 +49,6 @@ public class PasswordResetToken {
 
     /**
      * Creates a new password reset token.
-     * 
-     * @param token the unique token string
-     * @param email the email address of the user
-     * @param expiresAt the expiration timestamp
      */
     public PasswordResetToken(String token, String email, Instant expiresAt) {
         this.token = token;

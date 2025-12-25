@@ -24,6 +24,7 @@ import com.hotel.booking.repository.RoomRepository;
 
 /**
  * Service for booking operations.
+ * @author Viktor Götting
  */
 @Service
 @Transactional
@@ -56,7 +57,7 @@ public class BookingService {
         return bookingRepository.findByBookingNumber(bookingNumber);
     }
 
-    // Durchschnittliches Rating für eine Kategorie (0, wenn keine Bewertungen)
+    // Average rating for a category (0 if no ratings)
     public double getAverageRatingForCategory(RoomCategory category) {
         if (category == null || category.getCategory_id() == null) {
             return 0d;
@@ -220,9 +221,9 @@ public class BookingService {
     }
 
     private String generateBookingNumber() {
-    // Beispiel: YYYYMMDD-xxxxx
+    // Example: YYYYMMDD-xxxxx
     String prefix = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
-    String random = UUID.randomUUID().toString().substring(0, 8).toUpperCase(); // 8 zufällige Zeichen durch universally unique identifier
+    String random = UUID.randomUUID().toString().substring(0, 8).toUpperCase(); // 8 random characters via universally unique identifier
     return prefix + "-" + random;
     }
 

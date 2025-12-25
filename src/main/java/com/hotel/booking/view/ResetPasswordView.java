@@ -19,15 +19,7 @@ import com.vaadin.flow.server.auth.AnonymousAllowed;
 /**
  * View for resetting user passwords using a reset token.
  * 
- * <p>
- * Accessible via URL parameter "token" (e.g., /reset-password?token=xxx).
- * Validates the token before displaying the password reset form. If the token
- * is missing, invalid, or expired, the user is redirected to the login page.
- * </p>
- * 
- * <p>
- * Related: LoginView (forgot password link), PasswordResetService (token validation).
- * </p>
+ * @author Viktor Götting
  */
 @Route("reset-password")
 @AnonymousAllowed
@@ -43,20 +35,12 @@ public class ResetPasswordView extends VerticalLayout implements BeforeEnterObse
     private final PasswordResetService passwordResetService;
     private String token;
 
-    /**
-     * Constructs a new ResetPasswordView with the password reset service.
-     * Initializes the layout configuration.
-     */
     public ResetPasswordView(PasswordResetService passwordResetService) {
         this.passwordResetService = passwordResetService;
         setWidth("100%");
         setAlignItems(Alignment.CENTER);
     }
 
-    /**
-     * Validates the reset token from URL parameters before displaying the form.
-     * Redirects to login if token is missing, invalid, or expired.
-     */
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         token = extractTokenFromQuery(event);
@@ -89,7 +73,7 @@ public class ResetPasswordView extends VerticalLayout implements BeforeEnterObse
     }
 
     /**
-     * Builds and displays the password reset form with two password fields.
+     * Builds and displays the password reset form.
      */
     private void buildForm() {
         removeAll();
@@ -108,7 +92,7 @@ public class ResetPasswordView extends VerticalLayout implements BeforeEnterObse
     }
 
     /**
-     * Handles the password reset submission with validation.
+     * Handles the password reset submission.
      */
     private void handlePasswordReset(PasswordField newPasswordField, PasswordField confirmPasswordField) {
         String newPassword = newPasswordField.getValue();
@@ -132,8 +116,6 @@ public class ResetPasswordView extends VerticalLayout implements BeforeEnterObse
 
     /**
      * Validates that passwords are provided and match.
-     * 
-     * @return true if validation passes, false otherwise
      */
     private boolean validatePasswords(String newPassword, String confirmPassword) {
         if (newPassword == null || newPassword.isBlank()) {

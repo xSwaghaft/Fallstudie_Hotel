@@ -16,14 +16,7 @@ import com.hotel.booking.entity.BookingStatus;
 
 /**
  * Repository interface for Booking entity operations.
- * 
- * <p>
- * Provides methods to query bookings by various criteria such as booking number,
- * room, guest, dates, and status. Includes specialized queries for availability
- * checks and time period filtering.
- * </p>
- * 
- * @author Viktor Götting
+ * Provides methods to query bookings by various criteria.
  */
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpecificationExecutor<Booking> {
@@ -33,9 +26,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
     /**
      * Finds a booking by its unique booking number.
      * Uses EntityGraph to eagerly load guest, room, invoice, and feedback.
-     * 
-     * @param bookingNumber the booking number
-     * @return optional booking
      */
     @EntityGraph(attributePaths = {"guest", "room", "invoice", "feedback"})
     Optional<Booking> findByBookingNumber(String bookingNumber);
@@ -44,9 +34,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
 
     /**
      * Finds all bookings for a specific room.
-     * 
-     * @param roomId the room ID
-     * @return list of bookings for the room
      */
     List<Booking> findByRoom_Id(Long roomId);
 
@@ -54,9 +41,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
     
     /**
      * Finds all bookings for a specific room category.
-     * 
-     * @param categoryId the room category ID
-     * @return list of bookings for the category
      */
     @Query("SELECT b FROM Booking b WHERE b.roomCategory.category_id = :categoryId")
     List<Booking> findByRoomCategoryId(@Param("categoryId") Long categoryId);
@@ -69,12 +53,12 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
 
     // --- Time period queries --------------------------------------------------
 
-    // All bookings created within a date range:
-    // (checkIn <= end) AND (checkOut >= start)
-    //Matthias Lohr
+     // Alle Buchungen, in einem Zeitraum erstellt wurden:
+        // (checkIn <= end) AND (checkOut >= start)
+        //Matthias Lohr
     List<Booking> findByCreatedAtLessThanEqualAndCreatedAtGreaterThanEqual(LocalDate endInclusive, LocalDate startInclusive);
 
-    // Returns all active (excluding cancelled) bookings in the period.
+   //Liefert alle aktiven (cancelled ausschließen) Buchungen im Zeitraum.
     List<Booking> findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(
             LocalDate endInclusive,
             LocalDate startInclusive,
@@ -85,11 +69,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
      * Finds all bookings for a guest that have checked out before a specific date
      * and match a specific status. Uses EntityGraph to eagerly load feedback,
      * roomCategory, and room.
-     * 
-     * @param guestId the guest ID
-     * @param beforeDate the date before which check-out occurred
-     * @param status the booking status
-     * @return list of matching bookings
      */
     @EntityGraph(attributePaths = {"feedback", "roomCategory", "room"})
     @Query("""

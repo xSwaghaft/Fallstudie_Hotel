@@ -252,7 +252,7 @@ public class Booking {
         return createdAt;
     }
     
-    //Method should be executed once on first persist -> Lifecycle
+    //Methode soll beim ersten persistieren einmalig ausgeführt werden -> Lifecycle
     //Matthias Lohr
     @jakarta.persistence.PrePersist
     protected void onCreate() {

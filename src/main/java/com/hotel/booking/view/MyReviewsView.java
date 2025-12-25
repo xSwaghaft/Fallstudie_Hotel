@@ -40,16 +40,7 @@ import java.util.stream.Collectors;
 /**
  * View for displaying and managing guest reviews.
  * 
- * <p>
- * Allows guests to view their past reviews, edit existing reviews, and add
- * reviews for bookings that don't have feedback yet. Displays statistics
- * including total bookings, written reviews, pending reviews, and average rating.
- * </p>
- * 
- * <p>
- * Related: MyBookingsView (navigates here via "Write Review" link),
- * GuestPortalView (creates bookings that can be reviewed).
- * </p>
+ * @author Viktor Götting
  */
 @Route(value = "my-reviews", layout = MainLayout.class)
 @PageTitle("My Reviews")
@@ -64,10 +55,6 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
 
     private List<Booking> bookings;
 
-    /**
-     * Constructs a new MyReviewsView with the required services.
-     * Loads past bookings and initializes the view.
-     */
     public MyReviewsView(SessionService sessionService,
                          BookingService bookingService,
                          FeedbackService feedbackService,
@@ -88,7 +75,7 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
     }
 
     /**
-     * Refreshes the entire view by removing all components and rebuilding them.
+     * Refreshes the entire view.
      */
     private void refreshView() {
         removeAll();
@@ -99,7 +86,7 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
     }
 
     /**
-     * Creates a statistics row showing total bookings, written reviews, pending reviews, and average rating.
+     * Creates a statistics row.
      */
     private Component createStatsRow(List<Booking> bookings) {
         int total = bookings.size();
@@ -126,8 +113,7 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
     }
 
     /**
-     * Creates a list of all reviews (bookings with feedback).
-     * Shows an empty message if no reviews exist.
+     * Creates a list of all reviews.
      */
     private Component createReviewsList() {
         Div container = new Div();
@@ -150,7 +136,7 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
     }
 
     /**
-     * Creates a card displaying a single review with booking number, room info, rating stars, comment, and edit button.
+     * Creates a card displaying a single review.
      */
     private Div createReviewCard(Booking booking) {
         Div card = new Div();
@@ -185,7 +171,7 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
     }
 
     /**
-     * Renders 5 stars: filled up to the rating value, empty for the rest.
+     * Renders rating stars.
      */
     private Div createStars(Integer rating) {
         Div starsDiv = new Div();
@@ -207,7 +193,6 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
 
     /**
      * Creates a section listing all bookings without reviews.
-     * Each booking has an "Add Review" button to create a new review.
      */
     private Component createBookingsWithoutReview() {
         List<Booking> bookingsWithoutReview = bookings.stream()
@@ -239,7 +224,6 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
 
     /**
      * Opens a dialog for adding or editing a review.
-     * Automatically detects if the booking already has feedback and loads it for editing.
      */
     private void openReviewDialog(Booking booking, Feedback existingFeedback) {
         Dialog dialog = new Dialog();
@@ -321,7 +305,9 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
         dialog.open();
     }
 
-    /** Returns room info as "RoomType #RoomNumber" or just "RoomType" if room number is missing. */
+    /**
+     * Returns room info.
+     */
     private String getRoomInfo(Booking booking) {
         String type = booking.getRoomCategory() != null ? booking.getRoomCategory().getName() : "Room";
         String number = booking.getRoom() != null ? booking.getRoom().getRoomNumber() : null;
@@ -339,9 +325,6 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
         return bookingService.findPastBookingsForGuest(user.getId());
     }
 
-    /**
-     * Security check: Redirects to LoginView if user is not logged in or not a guest.
-     */
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         if (!sessionService.isLoggedIn() || !sessionService.hasRole(UserRole.GUEST)) {

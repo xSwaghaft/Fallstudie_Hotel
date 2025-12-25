@@ -8,9 +8,6 @@ package com.hotel.booking.entity;
  * from creation through confirmation to check-in, check-out,
  * or a possible cancellation.
  * </p>
- * 
- * @author Viktor Götting
- * @since 1.0
  */
 public enum BookingStatus {
     

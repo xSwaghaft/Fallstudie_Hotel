@@ -22,9 +22,6 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
     
     /**
      * Finds a password reset token by its token string.
-     * 
-     * @param token the token string
-     * @return optional password reset token
      */
     Optional<PasswordResetToken> findByToken(String token);
 }
