@@ -103,11 +103,20 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
             @Param("beforeDate") LocalDate beforeDate,
             @Param("status") com.hotel.booking.entity.BookingStatus status);
     
-    /**
-     * Finds all bookings for a specific guest.
-     * 
-     * @param guestId the guest ID
-     * @return list of bookings for the guest
-     */
     List<Booking> findByGuest_Id(Long guestId);
+    
+    // Prüfung, aber eine bestehende Buchung beim Update ignorieren
+    @Query("""
+            SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END
+            FROM Booking b
+            WHERE b.room.id = :roomId
+              AND b.id <> :excludeId
+              AND b.checkInDate <= :endInclusive
+              AND b.checkOutDate >= :startInclusive
+            """)
+    boolean overlapsInRoomExcludingBooking(
+            @Param("roomId") Long roomId,
+            @Param("excludeId") Long excludeBookingId,
+            @Param("startInclusive") LocalDate startInclusive,
+            @Param("endInclusive") LocalDate endInclusive);
 }
