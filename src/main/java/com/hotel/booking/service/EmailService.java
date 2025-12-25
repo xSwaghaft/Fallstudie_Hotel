@@ -230,6 +230,64 @@ public class EmailService {
     // ==================== Email template builders ====================
 
     /**
+     * Builds a complete HTML email with common structure.
+     * 
+     * @param title the email title
+     * @param recipientName the recipient's name
+     * @param content the main content HTML
+     * @param footerText optional footer text (default: "HotelBookingApp Team")
+     * @param titleColor optional title color (default: "#1a73e8")
+     * @return complete HTML email
+     */
+    private String buildEmailWrapper(String title, String recipientName, String content, String footerText, String titleColor) {
+        String footer = footerText != null ? footerText : "HotelBookingApp Team";
+        String color = titleColor != null ? titleColor : "#1a73e8";
+        return String.format("""
+            <!doctype html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>%s</title>
+            </head>
+            <body style="font-family:Arial,sans-serif;color:#333;margin:0;padding:0;background:#f5f5f5">
+                <div style="max-width:600px;margin:20px auto;padding:20px;border:1px solid #eaeaea;border-radius:8px;background:#fff">
+                    <h2 style="color:%s;margin-top:0">%s</h2>
+                    <p>Dear %s,</p>
+                    %s
+                    <hr style="border:none;border-top:1px solid #eee;margin:20px 0">
+                    <p style="color:#999;font-size:80%%">%s</p>
+                </div>
+            </body>
+            </html>
+            """, title, color, title, recipientName, content, footer);
+    }
+    
+    /**
+     * Overload without titleColor (uses default blue).
+     */
+    private String buildEmailWrapper(String title, String recipientName, String content, String footerText) {
+        return buildEmailWrapper(title, recipientName, content, footerText, null);
+    }
+
+    /**
+     * Builds a styled content box for email templates.
+     * 
+     * @param title the box title
+     * @param content the box content HTML
+     * @param color the accent color (e.g., "#1a73e8", "#ff9800", "#d32f2f")
+     * @param backgroundColor the background color (e.g., "#f9f9f9", "#fff3cd", "#ffebee")
+     * @return styled content box HTML
+     */
+    private String buildContentBox(String title, String content, String color, String backgroundColor) {
+        return String.format("""
+            <div style="background:%s;padding:15px;border-radius:6px;margin:20px 0;border-left:4px solid %s">
+                <h3 style="margin-top:0;color:#333">%s</h3>
+                %s
+            </div>
+            """, backgroundColor, color, title, content);
+    }
+
+    /**
      * Builds HTML template for booking confirmation email.
      */
     private String buildBookingConfirmationTemplate(Booking booking) {
@@ -259,39 +317,23 @@ public class EmailService {
             extrasList.append("<p style=\"color:#666;font-style:italic\">No extras selected</p>");
         }
 
-        return String.format("""
-            <!doctype html>
-            <html>
-            <head>
-                <meta charset="utf-8">
-                <title>Booking Confirmation</title>
-            </head>
-            <body style="font-family:Arial,sans-serif;color:#333;margin:0;padding:0;background:#f5f5f5">
-                <div style="max-width:600px;margin:20px auto;padding:20px;border:1px solid #eaeaea;border-radius:8px;background:#fff">
-                    <h2 style="color:#1a73e8;margin-top:0">Booking Confirmation</h2>
-                    <p>Dear %s,</p>
-                    <p>Your booking has been confirmed! We look forward to welcoming you.</p>
-                    
-                    <div style="background:#f9f9f9;padding:15px;border-radius:6px;margin:20px 0">
-                        <h3 style="margin-top:0;color:#333">Booking Details</h3>
-                        <p><strong>Booking Number:</strong> %s</p>
-                        <p><strong>Check-in:</strong> %s</p>
-                        <p><strong>Check-out:</strong> %s</p>
-                        <p><strong>Room Category:</strong> %s</p>
-                        <p><strong>Room Number:</strong> %s</p>
-                        <p><strong>Guests:</strong> %s</p>
-                        <p><strong>Extras:</strong></p>
-                        %s
-                        <p style="margin-top:15px"><strong>Total Price:</strong> €%s</p>
-                    </div>
-                    
-                    <p>If you have any questions, please don't hesitate to contact us.</p>
-                    <hr style="border:none;border-top:1px solid #eee;margin:20px 0">
-                    <p style="color:#999;font-size:80%%">HotelBookingApp Team</p>
-                </div>
-            </body>
-            </html>
-            """, guestName, bookingNumber, checkIn, checkOut, roomCategory, roomNumber, amount, extrasList.toString(), totalPrice);
+        String detailsContent = String.format("""
+            <p><strong>Booking Number:</strong> %s</p>
+            <p><strong>Check-in:</strong> %s</p>
+            <p><strong>Check-out:</strong> %s</p>
+            <p><strong>Room Category:</strong> %s</p>
+            <p><strong>Room Number:</strong> %s</p>
+            <p><strong>Guests:</strong> %s</p>
+            <p><strong>Extras:</strong></p>
+            %s
+            <p style="margin-top:15px"><strong>Total Price:</strong> €%s</p>
+            """, bookingNumber, checkIn, checkOut, roomCategory, roomNumber, amount, extrasList.toString(), totalPrice);
+        
+        String contentBox = buildContentBox("Booking Details", detailsContent, "#1a73e8", "#f9f9f9");
+        String mainContent = "<p>Your booking has been confirmed! We look forward to welcoming you.</p>\n" + contentBox + 
+                            "\n<p>If you have any questions, please don't hesitate to contact us.</p>";
+        
+        return buildEmailWrapper("Booking Confirmation", guestName, mainContent, null);
     }
 
     /**
@@ -346,33 +388,17 @@ public class EmailService {
             changesList.append("</ul>");
         }
 
-        return String.format("""
-            <!doctype html>
-            <html>
-            <head>
-                <meta charset="utf-8">
-                <title>Booking Modified</title>
-            </head>
-            <body style="font-family:Arial,sans-serif;color:#333;margin:0;padding:0;background:#f5f5f5">
-                <div style="max-width:600px;margin:20px auto;padding:20px;border:1px solid #eaeaea;border-radius:8px;background:#fff">
-                    <h2 style="color:#ff9800;margin-top:0">Booking Modified</h2>
-                    <p>Dear %s,</p>
-                    <p>Your booking has been modified. Please review the changes below.</p>
-                    
-                    <div style="background:#fff3cd;padding:15px;border-radius:6px;margin:20px 0;border-left:4px solid #ff9800">
-                        <h3 style="margin-top:0;color:#333">Modification Details</h3>
-                        <p><strong>Booking Number:</strong> %s</p>
-                        <p><strong>Changes:</strong></p>
-                        %s
-                    </div>
-                    
-                    <p>If you have any questions about these changes, please contact us.</p>
-                    <hr style="border:none;border-top:1px solid #eee;margin:20px 0">
-                    <p style="color:#999;font-size:80%%">HotelBookingApp Team</p>
-                </div>
-            </body>
-            </html>
-            """, guestName, bookingNumber, changesList.toString());
+        String detailsContent = String.format("""
+            <p><strong>Booking Number:</strong> %s</p>
+            <p><strong>Changes:</strong></p>
+            %s
+            """, bookingNumber, changesList.toString());
+        
+        String contentBox = buildContentBox("Modification Details", detailsContent, "#ff9800", "#fff3cd");
+        String mainContent = "<p>Your booking has been modified. Please review the changes below.</p>\n" + contentBox + 
+                            "\n<p>If you have any questions about these changes, please contact us.</p>";
+        
+        return buildEmailWrapper("Booking Modified", guestName, mainContent, null, "#ff9800");
     }
 
     /**
@@ -388,36 +414,20 @@ public class EmailService {
         String cancellationFee = cancellation.getCancellationFee() != null ? String.format("%.2f", cancellation.getCancellationFee()) : "0.00";
         String refundAmount = cancellation.getRefundedAmount() != null ? String.format("%.2f", cancellation.getRefundedAmount()) : "0.00";
 
-        return String.format("""
-            <!doctype html>
-            <html>
-            <head>
-                <meta charset="utf-8">
-                <title>Booking Cancelled</title>
-            </head>
-            <body style="font-family:Arial,sans-serif;color:#333;margin:0;padding:0;background:#f5f5f5">
-                <div style="max-width:600px;margin:20px auto;padding:20px;border:1px solid #eaeaea;border-radius:8px;background:#fff">
-                    <h2 style="color:#d32f2f;margin-top:0">Booking Cancelled</h2>
-                    <p>Dear %s,</p>
-                    <p>Your booking has been cancelled.</p>
-                    
-                    <div style="background:#ffebee;padding:15px;border-radius:6px;margin:20px 0;border-left:4px solid #d32f2f">
-                        <h3 style="margin-top:0;color:#333">Cancellation Details</h3>
-                        <p><strong>Booking Number:</strong> %s</p>
-                        <p><strong>Reason:</strong> %s</p>
-                        <hr style="border:none;border-top:1px solid #ddd;margin:15px 0">
-                        <p><strong>Original Booking Price:</strong> €%s</p>
-                        <p><strong>Cancellation Fee:</strong> €%s</p>
-                        <p style="margin-top:10px;padding-top:10px;border-top:1px solid #ddd"><strong>Refund Amount:</strong> <span style="color:#2e7d32;font-size:110%%">€%s</span></p>
-                    </div>
-                    
-                    <p>We hope to welcome you again in the future.</p>
-                    <hr style="border:none;border-top:1px solid #eee;margin:20px 0">
-                    <p style="color:#999;font-size:80%%">HotelBookingApp Team</p>
-                </div>
-            </body>
-            </html>
-            """, guestName, bookingNumber, reason, originalPrice, cancellationFee, refundAmount);
+        String detailsContent = String.format("""
+            <p><strong>Booking Number:</strong> %s</p>
+            <p><strong>Reason:</strong> %s</p>
+            <hr style="border:none;border-top:1px solid #ddd;margin:15px 0">
+            <p><strong>Original Booking Price:</strong> €%s</p>
+            <p><strong>Cancellation Fee:</strong> €%s</p>
+            <p style="margin-top:10px;padding-top:10px;border-top:1px solid #ddd"><strong>Refund Amount:</strong> <span style="color:#2e7d32;font-size:110%%">€%s</span></p>
+            """, bookingNumber, reason, originalPrice, cancellationFee, refundAmount);
+        
+        String contentBox = buildContentBox("Cancellation Details", detailsContent, "#d32f2f", "#ffebee");
+        String mainContent = "<p>Your booking has been cancelled.</p>\n" + contentBox + 
+                            "\n<p>We hope to welcome you again in the future.</p>";
+        
+        return buildEmailWrapper("Booking Cancelled", guestName, mainContent, null, "#d32f2f");
     }
 
     /**
@@ -463,39 +473,23 @@ public class EmailService {
         String issuedAt = after.getIssuedAt() != null ? after.getIssuedAt().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")) : "N/A";
         String bookingNumber = booking != null ? escapeHtml(booking.getBookingNumber()) : "N/A";
 
-        return String.format("""
-            <!doctype html>
-            <html>
-            <head>
-                <meta charset="utf-8">
-                <title>Invoice Updated</title>
-            </head>
-            <body style="font-family:Arial,sans-serif;color:#333;margin:0;padding:0;background:#f5f5f5">
-                <div style="max-width:600px;margin:20px auto;padding:20px;border:1px solid #eaeaea;border-radius:8px;background:#fff">
-                    <h2 style="color:#ff9800;margin-top:0">Invoice Updated</h2>
-                    <p>Dear %s,</p>
-                    <p>Your invoice has been updated. Please review the changes below.</p>
-                    
-                    <div style="background:#fff3cd;padding:15px;border-radius:6px;margin:20px 0;border-left:4px solid #ff9800">
-                        <h3 style="margin-top:0;color:#333">Invoice Details</h3>
-                        <p><strong>Invoice Number:</strong> %s</p>
-                        <p><strong>Booking Number:</strong> %s</p>
-                        <p><strong>Changes:</strong></p>
-                        %s
-                        <hr style="border:none;border-top:1px solid #ddd;margin:15px 0">
-                        <p><strong>Current Amount:</strong> €%s</p>
-                        <p><strong>Payment Method:</strong> %s</p>
-                        <p><strong>Status:</strong> %s</p>
-                        <p><strong>Issued At:</strong> %s</p>
-                    </div>
-                    
-                    <p>Please find the updated invoice PDF attached to this email.</p>
-                    <hr style="border:none;border-top:1px solid #eee;margin:20px 0">
-                    <p style="color:#999;font-size:80%%">HotelBookingApp Team</p>
-                </div>
-            </body>
-            </html>
-            """, guestName, invoiceNumber, bookingNumber, changesList.toString(), amount, paymentMethod, status, issuedAt);
+        String detailsContent = String.format("""
+            <p><strong>Invoice Number:</strong> %s</p>
+            <p><strong>Booking Number:</strong> %s</p>
+            <p><strong>Changes:</strong></p>
+            %s
+            <hr style="border:none;border-top:1px solid #ddd;margin:15px 0">
+            <p><strong>Current Amount:</strong> €%s</p>
+            <p><strong>Payment Method:</strong> %s</p>
+            <p><strong>Status:</strong> %s</p>
+            <p><strong>Issued At:</strong> %s</p>
+            """, invoiceNumber, bookingNumber, changesList.toString(), amount, paymentMethod, status, issuedAt);
+        
+        String contentBox = buildContentBox("Invoice Details", detailsContent, "#ff9800", "#fff3cd");
+        String mainContent = "<p>Your invoice has been updated. Please review the changes below.</p>\n" + contentBox + 
+                            "\n<p>Please find the updated invoice PDF attached to this email.</p>";
+        
+        return buildEmailWrapper("Invoice Updated", guestName, mainContent, null, "#ff9800");
     }
 
     /**
@@ -511,37 +505,21 @@ public class EmailService {
         String status = invoice.getInvoiceStatus() != null ? escapeHtml(invoice.getInvoiceStatus().toString()) : "PENDING";
         String bookingNumber = booking != null ? escapeHtml(booking.getBookingNumber()) : "N/A";
 
-        return String.format("""
-            <!doctype html>
-            <html>
-            <head>
-                <meta charset="utf-8">
-                <title>Invoice</title>
-            </head>
-            <body style="font-family:Arial,sans-serif;color:#333;margin:0;padding:0;background:#f5f5f5">
-                <div style="max-width:600px;margin:20px auto;padding:20px;border:1px solid #eaeaea;border-radius:8px;background:#fff">
-                    <h2 style="color:#1a73e8;margin-top:0">Invoice</h2>
-                    <p>Dear %s,</p>
-                    <p>Please find your invoice details below.</p>
-                    
-                    <div style="background:#f9f9f9;padding:15px;border-radius:6px;margin:20px 0">
-                        <h3 style="margin-top:0;color:#333">Invoice Details</h3>
-                        <p><strong>Invoice Number:</strong> %s</p>
-                        <p><strong>Booking Number:</strong> %s</p>
-                        <p><strong>Amount:</strong> €%s</p>
-                        <p><strong>Payment Method:</strong> %s</p>
-                        <p><strong>Status:</strong> %s</p>
-                        <p><strong>Issued At:</strong> %s</p>
-                    </div>
-                    
-                    <p>Please find the invoice PDF attached to this email.</p>
-                    <p>Please ensure payment is made by the due date.</p>
-                    <hr style="border:none;border-top:1px solid #eee;margin:20px 0">
-                    <p style="color:#999;font-size:80%%">HotelBookingApp Team</p>
-                </div>
-            </body>
-            </html>
-            """, guestName, invoiceNumber, bookingNumber, amount, paymentMethod, status, issuedAt);
+        String detailsContent = String.format("""
+            <p><strong>Invoice Number:</strong> %s</p>
+            <p><strong>Booking Number:</strong> %s</p>
+            <p><strong>Amount:</strong> €%s</p>
+            <p><strong>Payment Method:</strong> %s</p>
+            <p><strong>Status:</strong> %s</p>
+            <p><strong>Issued At:</strong> %s</p>
+            """, invoiceNumber, bookingNumber, amount, paymentMethod, status, issuedAt);
+        
+        String contentBox = buildContentBox("Invoice Details", detailsContent, "#1a73e8", "#f9f9f9");
+        String mainContent = "<p>Please find your invoice details below.</p>\n" + contentBox + 
+                            "\n<p>Please find the invoice PDF attached to this email.</p>" +
+                            "\n<p>Please ensure payment is made by the due date.</p>";
+        
+        return buildEmailWrapper("Invoice", guestName, mainContent, null);
     }
 
     /**
@@ -552,32 +530,16 @@ public class EmailService {
         String firstName = escapeHtml(user.getFirstName() != null ? user.getFirstName() : "");
         String displayName = !firstName.isEmpty() ? firstName : userName;
 
-        return String.format("""
-            <!doctype html>
-            <html>
-            <head>
-                <meta charset="utf-8">
-                <title>Welcome</title>
-            </head>
-            <body style="font-family:Arial,sans-serif;color:#333;margin:0;padding:0;background:#f5f5f5">
-                <div style="max-width:600px;margin:20px auto;padding:20px;border:1px solid #eaeaea;border-radius:8px;background:#fff">
-                    <h2 style="color:#1a73e8;margin-top:0">Welcome to HotelBookingApp!</h2>
-                    <p>Dear %s,</p>
-                    <p>Thank you for registering with us! We're excited to have you as part of our community.</p>
-                    
-                    <div style="background:#e3f2fd;padding:15px;border-radius:6px;margin:20px 0;border-left:4px solid #1a73e8">
-                        <h3 style="margin-top:0;color:#333">Your Account</h3>
-                        <p><strong>Username:</strong> %s</p>
-                        <p>You can now log in and start booking rooms at our hotel.</p>
-                    </div>
-                    
-                    <p>If you have any questions, please don't hesitate to contact us.</p>
-                    <hr style="border:none;border-top:1px solid #eee;margin:20px 0">
-                    <p style="color:#999;font-size:80%%">HotelBookingApp Team</p>
-                </div>
-            </body>
-            </html>
-            """, displayName, userName);
+        String accountContent = String.format("""
+            <p><strong>Username:</strong> %s</p>
+            <p>You can now log in and start booking rooms at our hotel.</p>
+            """, userName);
+        
+        String contentBox = buildContentBox("Your Account", accountContent, "#1a73e8", "#e3f2fd");
+        String mainContent = "<p>Thank you for registering with us! We're excited to have you as part of our community.</p>\n" + contentBox + 
+                            "\n<p>If you have any questions, please don't hesitate to contact us.</p>";
+        
+        return buildEmailWrapper("Welcome to HotelBookingApp!", displayName, mainContent, null);
     }
 
     /**
