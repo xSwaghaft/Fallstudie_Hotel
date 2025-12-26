@@ -10,8 +10,15 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.data.renderer.ComponentRenderer;
+import com.vaadin.flow.data.renderer.TextRenderer;
+
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
 
 /**
  * Encapsulates all grid configurations for the Room Management View.
@@ -276,16 +283,130 @@ public class RoomManagementGrid {
     // ==================== EXTRA GRID ====================
 
     /**
-     * Configures the booking extras grid.
-     * Hides the bookings column and sets up sizing properties.
+        * Configures the booking extras grid.
+        * <p>
+        * This method applies view-specific presentation rules:
+        * </p>
+        * <ul>
+        *   <li>Hide the {@code bookings} column (to avoid large/unhelpful output in the grid).</li>
+        *   <li>Hide the technical identifier column ({@code BookingExtra_id}/{@code bookingExtra_id}).</li>
+        *   <li>Render the {@code price} column in German currency format (e.g. {@code 12,50€}).</li>
+        * </ul>
+        * <p>
+        * It also sets the grid sizing so that it fills the card container.
+        * </p>
      *
      * @param extraGrid the grid to configure
      */
-    public void configureExtraGrid(Grid<BookingExtra> extraGrid) {
-        extraGrid.getColumnByKey("bookings").setVisible(false);
+    public void configureExtraGrid(Grid<BookingExtra> extraGrid, GridActionListener<BookingExtra> actionListener) {
+        var bookingsCol = extraGrid.getColumnByKey("bookings");
+        if (bookingsCol != null) {
+            bookingsCol.setVisible(false);
+        }
+
+        var idCol = extraGrid.getColumnByKey("bookingExtra_id");
+        if (idCol == null) {
+            idCol = extraGrid.getColumnByKey("BookingExtra_id");
+        }
+        if (idCol != null) {
+            idCol.setVisible(false);
+        }
+
+        var priceCol = extraGrid.getColumnByKey("price");
+        if (priceCol != null) {
+            priceCol.setRenderer(new TextRenderer<>(extra -> formatEuroDe(extra != null ? extra.getPrice() : null)));
+        }
+
+        var existingActionsCol = extraGrid.getColumnByKey("actions");
+        if (existingActionsCol != null) {
+            extraGrid.removeColumn(existingActionsCol);
+        }
+
+        Grid.Column<BookingExtra> actionsCol = null;
+        if (actionListener != null) {
+            actionsCol = extraGrid.addComponentColumn(extra -> createExtraActions(extra, actionListener))
+                .setHeader("Actions")
+                .setAutoWidth(true)
+                .setFlexGrow(0)
+                .setKey("actions");
+        }
+
+        var nameCol = extraGrid.getColumnByKey("name");
+        var descriptionCol = extraGrid.getColumnByKey("description");
+        var perPersonCol = extraGrid.getColumnByKey("perPerson");
+        if (perPersonCol != null) {
+            perPersonCol.setRenderer(new ComponentRenderer<>(extra -> createPerPersonIndicator(extra)));
+        }
+
+        java.util.ArrayList<Grid.Column<BookingExtra>> columnOrder = new java.util.ArrayList<>();
+        java.util.HashSet<Grid.Column<BookingExtra>> seen = new java.util.HashSet<>();
+        java.util.function.Consumer<Grid.Column<BookingExtra>> add = col -> {
+            if (col != null && seen.add(col)) {
+                columnOrder.add(col);
+            }
+        };
+
+        // Desired order: name first, then the commown fields.
+        add.accept(nameCol);
+        add.accept(descriptionCol);
+        add.accept(priceCol);
+        add.accept(perPersonCol);
+        add.accept(actionsCol);
+
+        // Append remaining columns (including hidden ones) to satisfy Vaadin's ordering requirements.
+        for (var col : extraGrid.getColumns()) {
+            add.accept(col);
+        }
+
+        if (!columnOrder.isEmpty()) {
+            extraGrid.setColumnOrder(columnOrder);
+        }
         extraGrid.setHeightFull();
         extraGrid.setWidthFull();
         extraGrid.setAllRowsVisible(true);
+    }
+
+    private Component createExtraActions(BookingExtra extra, GridActionListener<BookingExtra> actionListener) {
+        HorizontalLayout actions = new HorizontalLayout();
+        actions.setSpacing(true);
+
+        Button editBtn = new Button("Edit", VaadinIcon.EDIT.create());
+        editBtn.addClickListener(e -> actionListener.onEdit(extra));
+
+        Button deleteBtn = new Button("Delete", VaadinIcon.TRASH.create());
+        deleteBtn.addClassName("delete-btn");
+        deleteBtn.addClickListener(e -> actionListener.onDelete(extra));
+
+        actions.add(editBtn, deleteBtn);
+        return actions;
+    }
+
+    private Component createPerPersonIndicator(BookingExtra extra) {
+        boolean perPerson = extra != null && extra.isPerPerson();
+        Icon icon = perPerson ? VaadinIcon.CHECK.create() : VaadinIcon.CLOSE_SMALL.create();
+        icon.getElement().setAttribute("title", perPerson ? "Per person" : "Per booking");
+        icon.getStyle().set("color", perPerson ? "var(--lumo-success-color)" : "var(--lumo-error-color)");
+        return icon;
+    }
+
+    /**
+     * Formats a numeric value as a German-style Euro amount.
+     * <p>
+     * Uses a comma as decimal separator and always prints two decimals, followed by {@code €}
+     * (no space), e.g. {@code 12,50€}. Returns {@code "N/A"} for {@code null} values.
+     * </p>
+     *
+     * @param value amount to format
+     * @return formatted amount or {@code "N/A"}
+     */
+    private static String formatEuroDe(Double value) {
+        if (value == null) {
+            return "N/A";
+        }
+
+        DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance(Locale.GERMANY);
+        DecimalFormat df = new DecimalFormat("0.00", symbols);
+        return df.format(value) + "€";
     }
 
     // ==================== LISTENER INTERFACE ====================

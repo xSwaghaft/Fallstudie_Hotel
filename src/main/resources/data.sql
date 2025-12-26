@@ -108,16 +108,13 @@ VALUES
 
 
 
--- ---------- Room extras (BookingExtra) (at least 5 entries) ----------
 INSERT INTO room_extras (name, description, price, per_person) VALUES
--- per person
-('Frühstück','Buffetfrühstück inklusive',12.50, 1),
-('SPA Zugang','Tagespass für SPA',20.00, 1),
+('Breakfast','Breakfast buffet included',12.50, 1),
+('Spa access','Day pass for spa',20.00, 1),
 
--- once per booking
-('Parkplatz','Tagesparkplatz',8.00, 0),
-('Zusatzbett','Aufstellbett pro Nacht',25.00, 0),
-('WLAN Premium','Highspeed Internet',5.00, 0);
+('Parking','Day parking',8.00, 0),
+('Extra bed','Rollaway bed per night',25.00, 0),
+('Premium Wi-Fi','High-speed internet',5.00, 0);
 
 
 -- ---------- booking_extra (Bookings <-> Extras mappings) ----------

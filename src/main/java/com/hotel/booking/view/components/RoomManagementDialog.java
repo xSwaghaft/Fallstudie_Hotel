@@ -309,6 +309,48 @@ public class RoomManagementDialog {
         dialog.open();
     }
 
+    /**
+     * Opens a dialog for editing an existing extra/additional service.
+     * The dialog contains a form for updating extra details and save/cancel buttons.
+     * On successful save, triggers the onDataChanged callback to refresh the view.
+     *
+     * @param extra the existing extra to edit
+     */
+    public void openEditExtraDialog(BookingExtra extra) {
+        if (extra == null) {
+            showErrorDialog("Cannot Edit Extra", "Extra is null");
+            return;
+        }
+
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("Edit Extra");
+        dialog.setWidth("500px");
+
+        AddExtraForm form = new AddExtraForm(extraService, extra);
+
+        Button saveBtn = new Button("Save Changes");
+        saveBtn.addClassName("primary-button");
+        saveBtn.addClickListener(e -> {
+            if (form.writeBeanIfValid()) {
+                onDataChanged.run();
+                dialog.close();
+                Notification.show("Extra updated successfully!", 3000, Notification.Position.BOTTOM_START)
+                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+            } else {
+                Notification.show("Please fill all required fields.", 3000, Notification.Position.MIDDLE)
+                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+            }
+        });
+
+        Button cancelBtn = new Button("Cancel");
+        cancelBtn.addClickListener(e -> dialog.close());
+
+        HorizontalLayout buttonLayout = new HorizontalLayout(saveBtn, cancelBtn);
+        buttonLayout.setSpacing(true);
+        dialog.add(form, buttonLayout);
+        dialog.open();
+    }
+
     // ==================== DIALOG HELPER METHODS ====================
 
     /**

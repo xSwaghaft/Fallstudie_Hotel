@@ -114,8 +114,45 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
             public void onEdit(RoomCategory category) { dialogManager.openCategoryDialog(category); }
             public void onDelete(RoomCategory category) { deleteCategory(category); }
         });
-        
-        gridManager.configureExtraGrid(extraGrid);
+
+        gridManager.configureExtraGrid(extraGrid, new RoomManagementGrid.GridActionListener<BookingExtra>() {
+            public void onEdit(BookingExtra extra) { dialogManager.openEditExtraDialog(extra); }
+            public void onDelete(BookingExtra extra) { deleteExtra(extra); }
+        });
+    }
+
+    /**
+     * Initiates the booking extra deletion process with a confirmation dialog.
+     *
+     * @param extra the extra to be deleted
+     */
+    private void deleteExtra(BookingExtra extra) {
+        if (extra == null) {
+            showError("Error: Extra is null");
+            return;
+        }
+
+        String title = "Delete Extra";
+        String message = "Delete extra '" + extra.getName() + "' permanently? This cannot be undone!";
+        String buttonLabel = "Delete Permanently";
+
+        dialogManager.showConfirmDialog(title, message, buttonLabel, () -> executeDeleteExtra(extra));
+    }
+
+    /**
+     * Executes the booking extra deletion and refreshes the data grid.
+     * Calls {@link BookingExtraService#deleteBookingExtra(Long)} and updates the grid on success.
+     *
+     * @param extra the extra to delete
+     */
+    private void executeDeleteExtra(BookingExtra extra) {
+        try {
+            extraService.deleteBookingExtra(extra.getBookingExtra_id());
+            refreshData();
+            showSuccess("Extra operation successful!");
+        } catch (Exception e) {
+            showError("Error: " + e.getMessage());
+        }
     }
 
     /**
