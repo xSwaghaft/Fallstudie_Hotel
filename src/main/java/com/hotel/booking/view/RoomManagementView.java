@@ -3,32 +3,32 @@ package com.hotel.booking.view;
 import com.hotel.booking.entity.BookingExtra;
 import com.hotel.booking.entity.Room;
 import com.hotel.booking.entity.RoomCategory;
-import com.hotel.booking.entity.RoomImage;
-import com.hotel.booking.entity.RoomStatus;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.BookingExtraService;
 import com.hotel.booking.service.RoomCategoryService;
+import com.hotel.booking.service.RoomManagementDeleteActionType;
 import com.hotel.booking.service.RoomService;
-import com.hotel.booking.view.components.RoomForm;
-import com.hotel.booking.view.components.RoomCategoryForm;
-import com.hotel.booking.view.components.AddExtraForm;
 import com.hotel.booking.view.components.CardFactory;
+import com.hotel.booking.view.components.RoomManagementDialog;
+import com.hotel.booking.view.components.RoomManagementGrid;
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dependency.CssImport;
-import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.*;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
-import com.vaadin.flow.component.orderedlayout.*;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.*;
 
-import java.util.List;
-
-// Room Management View - Verwaltung von Zimmern und Zimmerkategorien
+/**
+ * Room Management View - Main user interface for managing rooms, room categories, and extras.
+ * Only accessible to RECEPTIONIST or MANAGER roles.
+ *
+ * Delegates business logic to services and UI coordination to helper classes.
+ *
+ * @author Artur Derr
+ */
 @Route(value = "rooms", layout = MainLayout.class)
 @PageTitle("Room Management")
 @CssImport("./themes/hotel/styles.css")
@@ -36,20 +36,36 @@ import java.util.List;
 @CssImport("./themes/hotel/views/room-management.css")
 public class RoomManagementView extends VerticalLayout implements BeforeEnterObserver {
 
-    // Services (direkt injiziert)
+    /** Service for managing user sessions and authentication */
     private final SessionService sessionService;
+    /** Service for room CRUD operations */
     private final RoomService roomService;
+    /** Service for managing room categories */
     private final RoomCategoryService roomCategoryService;
+    /** Service for managing booking extras */
     private final BookingExtraService extraService;
+    /** Dialog manager for all room management dialogs */
+    private final RoomManagementDialog dialogManager;
+    /** Grid configuration manager for all grids */
+    private final RoomManagementGrid gridManager;
 
-    // UI-Komponenten
+    /** Grid displaying all rooms */
     private final Grid<Room> roomGrid = new Grid<>(Room.class, false);
+    /** Grid displaying all room categories */
     private final Grid<RoomCategory> categoryGrid = new Grid<>(RoomCategory.class, false);
+    /** Grid displaying all available booking extras */
     private final Grid<BookingExtra> extraGrid = new Grid<>(BookingExtra.class, true);
-    
-    // Statistiken-Komponenten für Live-Updates
+    /** Component container for statistics row */
     private Component statsRow;
 
+    /**
+     * Constructs the RoomManagementView and initializes all services and UI components.
+     *
+     * @param sessionService service for session management
+     * @param roomService service for room operations
+     * @param roomCategoryService service for room category operations
+     * @param extraService service for booking extras operations
+     */
     public RoomManagementView(SessionService sessionService, 
                                RoomService roomService,
                                RoomCategoryService roomCategoryService,
@@ -58,665 +74,295 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
         this.roomService = roomService;
         this.roomCategoryService = roomCategoryService;
         this.extraService = extraService;
+        this.dialogManager = new RoomManagementDialog(roomService, roomCategoryService, extraService, this::refreshData);
+        this.gridManager = new RoomManagementGrid(roomService, roomCategoryService);
         
+        initializeLayout();
+        configureGrids();
+        initializeData();
+    }
+
+    /**
+     * Initializes the main layout structure with header, statistics, and content cards.
+     * Sets up spacing, padding, and adds the header, statistics row, and three content cards for
+     * rooms, room categories, and extras management.
+     */
+    private void initializeLayout() {
         setSpacing(true);
         setPadding(true);
         setSizeFull();
-        setDefaultHorizontalComponentAlignment(Alignment.STRETCH);
+        add(createHeader(), statsRow = createStatsRow(), 
+            addCardClass(createCard("Individual Rooms", "Manage room availability", "Add Room", 
+                dialogManager::openAddRoomDialog, roomGrid), "card-rooms"),
+            addCardClass(createCard("Room Categories", "Define types and pricing", "Add Room Category", 
+                () -> dialogManager.openCategoryDialog(null), categoryGrid), "card-categories"),
+            addCardClass(createCard("Extras", "Manage available extras", "Add Extra", 
+                dialogManager::openExtraDialog, extraGrid), "card-extras"));
+    }
 
+    /**
+     * Configures all grids (rooms, categories, extras) with columns and action listeners.
+     * Sets up edit and delete action listeners for each grid type.
+     */
+    private void configureGrids() {
+        gridManager.configureRoomGrid(roomGrid, new RoomManagementGrid.GridActionListener<Room>() {
+            public void onEdit(Room room) { dialogManager.openEditRoomDialog(room); }
+            public void onDelete(Room room) { deleteRoom(room); }
+        });
+        
+        gridManager.configureCategoryGrid(categoryGrid, new RoomManagementGrid.GridActionListener<RoomCategory>() {
+            public void onEdit(RoomCategory category) { dialogManager.openCategoryDialog(category); }
+            public void onDelete(RoomCategory category) { deleteCategory(category); }
+        });
+        
+        gridManager.configureExtraGrid(extraGrid);
+    }
+
+    /**
+     * Loads initial data from services into the grids.
+     * Attempts to refresh all data and displays an error if the operation fails.
+     */
+    private void initializeData() {
         try {
-            configureRoomGrid();
-            configureCategoryGrid();
-            configureExtraGrid();
-            
-            statsRow = createStatsRow();
-            
-            add(
-                createHeader(), 
-                statsRow, 
-                createRoomsCard(),
-                createCategoriesCard(),
-                createExtraCard()
-            );
-            
-            // Daten aus Datenbank laden
             refreshData();
         } catch (Exception e) {
-            e.printStackTrace();
-            Notification.show("Fehler beim Laden der View: " + e.getMessage(), 5000, Notification.Position.MIDDLE)
-                .addThemeVariants(NotificationVariant.LUMO_ERROR);
+            showError("Error loading view: " + e.getMessage());
         }
     }
 
+    /**
+     * Refreshes all grid data from services and updates statistics.
+     * Reloads rooms, categories, and extras from the database and recalculates statistics.
+     * Displays an error notification if the operation fails.
+     */
     private void refreshData() {
         try {
-            List<Room> rooms = roomService.getAllRooms();
-            List<RoomCategory> categories = roomCategoryService.getAllRoomCategories();
-            List<BookingExtra> extras = extraService.getAllBookingExtras();
+            roomGrid.setItems(roomService.getAllRooms());
+            categoryGrid.setItems(roomCategoryService.getAllRoomCategories());
+            extraGrid.setItems(extraService.getAllBookingExtras());
             
-            roomGrid.setItems(rooms);
-            categoryGrid.setItems(categories);
-            extraGrid.setItems(extras);
-            
-            if (statsRow != null) {
-                replace(statsRow, createStatsRow());
-                statsRow = getComponentAt(1);
-            }
+            Component newStats = createStatsRow();
+            if (statsRow != null) replace(statsRow, newStats);
+            statsRow = newStats;
         } catch (Exception e) {
-            Notification.show("Error loading data: " + e.getMessage(), 5000, Notification.Position.MIDDLE)
-                .addThemeVariants(NotificationVariant.LUMO_ERROR);
+            showError("Error loading data: " + e.getMessage());
         }
     }
 
-    // ==================== HEADER ====================
-
-    // Header mit Titel
+    /**
+     * Creates the header component with title and subtitle.
+     * Displays "Room Management" as the title with a descriptive subtitle.
+     *
+     * @return the header component as a Div
+     */
     private Component createHeader() {
         H1 title = new H1("Room Management");
         title.addClassName("room-management-header-title");
-        
         Paragraph subtitle = new Paragraph("Manage rooms, categories, pricing, and availability");
         subtitle.addClassName("room-management-header-subtitle");
-        
-        Div headerLeft = new Div(title, subtitle);
-        headerLeft.addClassName("room-management-header");
-        
-        HorizontalLayout header = new HorizontalLayout(headerLeft);
-        header.setWidthFull();
-        
-        return header;
+        Div headerDiv = new Div(title, subtitle);
+        headerDiv.addClassName("room-management-header");
+        return headerDiv;
     }
 
-    // Statistiken-Zeile: Total Rooms, Available, Occupied, Cleaning, Categories 
+    /**
+     * Creates the statistics row component showing room availability status and counts.
+     * Displays cards for total rooms, availability, status distribution, and categories.
+     * Uses {@link RoomService#calculateStatistics()} to gather the metrics.
+     *
+     * @return the statistics row component
+     */
     private Component createStatsRow() {
         try {
-            RoomService.RoomStatistics roomStats = roomService.getStatistics();
-            RoomCategoryService.CategoryStatistics categoryStats = roomCategoryService.getStatistics();
-
+            RoomService.RoomStatistics stats = roomService.calculateStatistics();
             return CardFactory.createStatsRow(
-                CardFactory.createStatCard("Total Rooms", String.valueOf(roomStats.getTotalRooms()), "#3b82f6"),
-                CardFactory.createStatCard("Available", String.valueOf(roomStats.getAvailableRooms()), "#10b981"),
-                CardFactory.createStatCard("Occupied", String.valueOf(roomStats.getOccupiedRooms()), "#ef4444"),
-                CardFactory.createStatCard("Cleaning", String.valueOf(roomStats.getCleaningRooms()), "#d97706"),
-                CardFactory.createStatCard("Categories", String.valueOf(categoryStats.getTotalCategories()), "#8b5cf6")
-            );
+                addCardClass(CardFactory.createStatCard("Total Rooms", String.valueOf(stats.totalRooms)), "card-stats"),
+                addCardClass(CardFactory.createStatCard("Available", String.valueOf(stats.availableRooms)), "card-stats-available"),
+                addCardClass(CardFactory.createStatCard("Occupied", String.valueOf(stats.occupiedRooms)), "card-stats-occupied"),
+                addCardClass(CardFactory.createStatCard("Cleaning", String.valueOf(stats.cleaningRooms)), "card-stats-cleaning"),
+                addCardClass(CardFactory.createStatCard("Renovating", String.valueOf(stats.renovatingRooms)), "card-stats-renovating"),
+                addCardClass(CardFactory.createStatCard("Out of Service", String.valueOf(stats.outOfServiceRooms)), "card-stats-out-of-service"),
+                addCardClass(CardFactory.createStatCard("Inactive", String.valueOf(stats.inactiveRooms)), "card-stats-inactive"),
+                addCardClass(CardFactory.createStatCard("Categories", String.valueOf(stats.totalCategories)), "card-stats-categories"));
         } catch (Exception e) {
-            e.printStackTrace();
             return new Div(new Paragraph("Error loading statistics"));
         }
     }
 
-
-
-    // ==================== ROOMS CARD ====================
-
-    private Component createRoomsCard() {
-        return CardFactory.createContentCard(
-            "Individual Rooms",
-            "Manage individual room availability and pricing",
-            "Add Room",
-            this::openAddRoomDialog,
-            "#10b981",
-            roomGrid
-        );
-    }
-
-    private void configureRoomGrid() {
-            roomGrid.removeAllColumns();
-            
-            roomGrid.addColumn(Room::getRoomNumber)
-                .setHeader("Room Number")
-                .setAutoWidth(true)
-                .setSortable(true);
-
-            roomGrid.addColumn(room -> {
-                try {
-                    Integer floor = room.getFloor();
-                    return floor != null ? "Floor " + floor : "N/A";
-                } catch (Exception e) {
-                    return "N/A";
-                }
-            })
-                .setHeader("Floor")
-                .setAutoWidth(true)
-                .setSortable(true);
-
-            roomGrid.addColumn(room -> {
-                try {
-                    RoomCategory cat = room.getCategory();
-                    return cat != null ? cat.getName() : "N/A";
-                } catch (Exception e) {
-                    return "N/A";
-                }
-            })
-                .setHeader("Category")
-                .setAutoWidth(true)
-                .setSortable(true);
-
-            roomGrid.addColumn(room -> {
-                try {
-                    // ✅ CHANGED: Get price from category, not from room.price field
-                    // This ensures the price updates live when category price changes
-                    RoomCategory cat = room.getCategory();
-                    var categoryPrice = cat != null ? cat.getPricePerNight() : null;
-                    return categoryPrice != null ? String.format("%.2f €", categoryPrice.doubleValue()) : "N/A";
-                } catch (Exception e) {
-                    return "N/A";
-                }
-            })
-                .setHeader("Price/Night")
-                .setAutoWidth(true)
-                .setSortable(true);
-
-            roomGrid.addComponentColumn(this::createAvailabilityBadge)
-                .setHeader("Status")
-                .setAutoWidth(true);
-
-            roomGrid.addComponentColumn(this::createRoomActions)
-                .setHeader("Actions")
-                .setAutoWidth(true)
-                .setFlexGrow(0);
-
-            roomGrid.setAllRowsVisible(true);
-            roomGrid.setWidthFull();
-            roomGrid.setHeightFull();
-    }
-
-    private Component createAvailabilityBadge(Room room) {
-        RoomStatus status = room.getStatus();
-        if (status == null) status = RoomStatus.AVAILABLE;
-        
-        Span badge = new Span(status.toString());
-        
-        switch(status) {
-            case AVAILABLE:
-                badge.addClassName("room-status-available");
-                break;
-            case OCCUPIED:
-                badge.addClassName("room-status-occupied");
-                break;
-            case CLEANING:
-                badge.addClassName("room-status-cleaning");
-                break;
-            case RENOVATING:
-                badge.addClassName("room-status-renovating");
-                break;
-            case OUT_OF_SERVICE:
-                badge.addClassName("room-status-out-of-service");
-                break;
-            default:
-                badge.addClassName("room-status-default");
-        }
-        
-        badge.addClassName("room-status-badge");
-        return badge;
-    }
-
-    // Erstellt Action-Buttons für Rooms (Edit, Delete)
-    private Component createRoomActions(Room room) {
-        HorizontalLayout actions = new HorizontalLayout();
-        actions.setSpacing(true);
-        
-        Button editBtn = new Button("Edit", VaadinIcon.EDIT.create());
-        editBtn.addClickListener(e -> openEditRoomDialog(room));
-        
-        Button deleteBtn = new Button("Delete", VaadinIcon.TRASH.create());
-        deleteBtn.addClassName("delete-btn");
-        deleteBtn.addClickListener(e -> deleteRoom(room));
-        
-        actions.add(editBtn, deleteBtn);
-        return actions;
-    }
-
-    // ==================== CATEGORIES CARD ==
-    private Component createCategoriesCard() {
-        return CardFactory.createContentCard(
-            "Room Categories",
-            "Define room types, pricing, and maximum occupancy",
-            "Add Room Category",
-            () -> openCategoryDialog(null),
-            "#8b5cf6",
-            categoryGrid
-        );
-    }
-
-    private void configureCategoryGrid() {
-        categoryGrid.removeAllColumns();            
-            categoryGrid.addColumn(RoomCategory::getName)
-                .setHeader("Name")
-                .setAutoWidth(true)
-                .setSortable(true);
-
-            categoryGrid.addColumn(RoomCategory::getDescription)
-                .setHeader("Description")
-                .setFlexGrow(1);
-
-            categoryGrid.addColumn(cat -> {
-                try {
-                    var price = cat.getPricePerNight();
-                    return price != null ? String.format("%.2f €", price.doubleValue()) : "N/A";
-                } catch (Exception e) {
-                    return "N/A";
-                }
-            })
-                .setHeader("Price/Night")
-                .setAutoWidth(true)
-                .setSortable(true);
-
-            categoryGrid.addColumn(RoomCategory::getMaxOccupancy)
-                .setHeader("Max Guests")
-                .setAutoWidth(true)
-                .setSortable(true);
-
-            categoryGrid.addColumn(cat -> {
-                try {
-                    // Verwenden von der Service-Methode zum Zählen der Zimmer pro Kategorie
-                    // Dies funktioniert auch bei Lazy Loading und ist genau
-                    long roomCount = roomService.countRoomsByCategory(cat);
-                    return roomCount;
-                } catch (Exception e) {
-                    return 0;
-                }
-            })
-                .setHeader("Total Rooms")
-                .setAutoWidth(true)
-                .setSortable(true);
-
-            categoryGrid.addComponentColumn(this::createCategoryStatusBadge)
-                .setHeader("Status")
-                .setAutoWidth(true);
-
-            categoryGrid.addComponentColumn(this::createCategoryActions)
-                .setHeader("Actions")
-                .setAutoWidth(true)
-                .setFlexGrow(0);
-
-            categoryGrid.setAllRowsVisible(true);
-            categoryGrid.setWidthFull();
-            categoryGrid.setHeightFull();
-    }
-
-    private Component createCategoryStatusBadge(RoomCategory category) {
-        Boolean isActive = category.getActive();
-        String text = (isActive != null && isActive) ? "Active" : "Inactive";
-        
-        Span badge = new Span(text);
-        badge.addClassName("category-status-badge");
-        
-        if (isActive != null && isActive) {
-            badge.addClassName("category-status-active");
-        } else {
-            badge.addClassName("category-status-inactive");
-        }
-        
-        return badge;
-    }
-
-    // Erstellt Action-Buttons für Categories (Edit, Delete)
-    private Component createCategoryActions(RoomCategory category) {
-        HorizontalLayout actions = new HorizontalLayout();
-        actions.setSpacing(true);
-        
-        Button editBtn = new Button("Edit", VaadinIcon.EDIT.create());
-        editBtn.addClickListener(e -> openCategoryDialog(category));
-        
-        Button deleteBtn = new Button("Delete", VaadinIcon.TRASH.create());
-        deleteBtn.addClassName("delete-btn");
-        deleteBtn.addClickListener(e -> deleteCategory(category));
-        
-        actions.add(editBtn, deleteBtn);
-        return actions;
-    }
-
-    // =================== EXTRA CARD =====================
-    //Matthias Lohr
-    private Component createExtraCard() {
-        return CardFactory.createContentCard(
-            "Extras",
-            "Manage available Extras",
-            "Add Extra",
-            () -> openExtraDialog(extraService),
-            "#8b5cf6",
-            extraGrid
-        );
-    }
-
-    //Matthias Lohr
-    private void configureExtraGrid() {
-        extraGrid.getColumnByKey("bookings").setVisible(false);
-        extraGrid.setHeightFull();
-        extraGrid.setWidthFull();
-        extraGrid.setAllRowsVisible(true);
-    }
-
-    // ==================== ROOM DIALOGS ====================
-
-    // Dialog zum Hinzufügen eines neuen Rooms
-    private void openAddRoomDialog() {
-        Dialog dialog = new Dialog();
-        dialog.setHeaderTitle("Add New Room");
-        dialog.setWidth("600px");
-
-        RoomForm form = new RoomForm(null, roomCategoryService);
-
-        Button saveBtn = new Button("Add Room");
-        saveBtn.addClassName("primary-button");
-        saveBtn.addClickListener(e -> {
-            try {
-                form.writeBean();
-                roomService.saveRoom(form.getRoom());
-                refreshData();
-                dialog.close();
-                Notification.show("Room added successfully!", 3000, Notification.Position.BOTTOM_START)
-                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-            } catch (Exception ex) {
-                Notification.show("Error: " + ex.getMessage(), 3000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-            }
-        });
-
-        Button cancelBtn = new Button("Cancel");
-        cancelBtn.addClickListener(e -> dialog.close());
-
-        HorizontalLayout buttonLayout = new HorizontalLayout(cancelBtn, saveBtn);
-        buttonLayout.setSpacing(true);
-        dialog.add(form, buttonLayout);
-        dialog.open();
-    }
-
-    private void openEditRoomDialog(Room room) {
-        Dialog dialog = new Dialog();
-        dialog.setHeaderTitle("Edit Room " + room.getRoomNumber());
-        dialog.setWidth("600px");
-
-        RoomForm form = new RoomForm(room, roomCategoryService);
-
-        Button saveBtn = new Button("Update Room");
-        saveBtn.addClassName("primary-button");
-        saveBtn.addClickListener(e -> {
-            try {
-                form.writeBean();
-                roomService.saveRoom(form.getRoom());
-                refreshData();
-                dialog.close();
-                Notification.show("Room updated successfully!", 3000, Notification.Position.BOTTOM_START)
-                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-            } catch (Exception ex) {
-                Notification.show("Error: " + ex.getMessage(), 3000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-            }
-        });
-
-        Button cancelBtn = new Button("Cancel");
-        cancelBtn.addClickListener(e -> dialog.close());
-
-        HorizontalLayout buttonLayout = new HorizontalLayout(cancelBtn, saveBtn);
-        buttonLayout.setSpacing(true);
-        dialog.add(form, buttonLayout);
-        dialog.open();
-    }
-
-    // Löscht einen Room (Dialog)
-    private void deleteRoom(Room room) {
-        RoomService.RoomDeleteAction action = roomService.getDeletionAction(room.getId());
-        
-        // Wenn durch Bookings blockiert
-        if (action.isBlocked()) {
-            Dialog errorDialog = new Dialog();
-            errorDialog.setHeaderTitle("Cannot Delete Room");
-            Paragraph message = new Paragraph(action.getErrorMessage());
-            message.addClassName("dialog-message");
-            Button okBtn = new Button("OK", e -> errorDialog.close());
-            errorDialog.add(message);
-            errorDialog.getFooter().add(okBtn);
-            errorDialog.open();
-            return;
-        }
-        
-        String message = action.getMessageTemplate().replace("{roomNumber}", room.getRoomNumber());
-        
-        showConfirmDialog(action.getDialogTitle(), message, action.getButtonLabel(), () -> {
-            try {
-                roomService.deleteRoom(room.getId());
-                refreshData();
-                Notification.show(action.getSuccessMessage(), 3000, Notification.Position.BOTTOM_START)
-                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-            } catch (Exception ex) {
-                Notification.show("Error: " + ex.getMessage(), 3000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-            }
-        });
-    }
-
-    // Hilfsmethode für generische Bestätigungsdialoge
-    private void showConfirmDialog(String title, String message, String confirmLabel, Runnable onConfirm) {
-        Dialog dialog = new Dialog();
-        dialog.setHeaderTitle(title);
-        
-        VerticalLayout content = new VerticalLayout();
-        content.setSpacing(true);
-        content.setPadding(false);
-        
-        // Teile Text in Absätze auf (getrennt durch doppelte Zeilenumbrüche)
-        String[] paragraphs = message.split("\n\n");
-        for (String para : paragraphs) {
-            if (!para.trim().isEmpty()) {
-                Paragraph p = new Paragraph(para.trim());
-                p.addClassName("dialog-message");
-                content.add(p);
-            }
-        }
-        
-        Button confirmBtn = new Button(confirmLabel);
-        confirmBtn.addClassName("confirm-delete-btn");
-        confirmBtn.addClickListener(e -> {
-            dialog.close();
-            onConfirm.run();
-        });
-        
-        Button cancelBtn = new Button("Cancel");
-        cancelBtn.addClickListener(e -> dialog.close());
-        
-        dialog.add(content);
-        dialog.getFooter().add(new HorizontalLayout(cancelBtn, confirmBtn));
-        dialog.open();
-    }
-
-    // ==================== CATEGORY DIALOGS ====================
-
-    private void openCategoryDialog(RoomCategory existing) {
-        Dialog dialog = new Dialog();
-        dialog.setHeaderTitle(existing == null ? "Add New Room Category" : "Edit Room Category");
-        dialog.setWidth("700px");
-
-        RoomCategoryForm form = new RoomCategoryForm(existing);
-
-        // Images section
-        VerticalLayout imagesSection = createCategoryImagesSection(existing, dialog);
-
-        // Main content layout
-        VerticalLayout contentLayout = new VerticalLayout();
-        contentLayout.setSpacing(true);
-        contentLayout.setPadding(false);
-        contentLayout.add(form, imagesSection);
-        contentLayout.setFlexGrow(1, form);
-
-        Button saveBtn = new Button(existing == null ? "Add Category" : "Update Category");
-        saveBtn.addClassName("primary-button");
-        saveBtn.addClickListener(e -> {
-            try {
-                form.writeBean();
-                roomCategoryService.saveRoomCategory(form.getCategory());
-                refreshData();
-                dialog.close();
-                Notification.show("Category saved successfully!", 3000, Notification.Position.BOTTOM_START)
-                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-            } catch (Exception ex) {
-                Notification.show("Error: " + ex.getMessage(), 3000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-            }
-        });
-
-        Button cancelBtn = new Button("Cancel");
-        cancelBtn.addClickListener(e -> dialog.close());
-
-        HorizontalLayout buttonLayout = new HorizontalLayout(cancelBtn, saveBtn);
-        buttonLayout.setSpacing(true);
-        dialog.add(contentLayout, buttonLayout);
-        dialog.open();
+    /**
+     * Creates a content card with title, subtitle, button, and grid.
+     * Wraps the card creation logic via {@link CardFactory#createContentCard(String, String, String, Runnable, Grid)}.
+     *
+     * @param title the card title
+     * @param subtitle the card subtitle
+     * @param buttonLabel the label for the action button
+     * @param onAdd callback executed when the action button is clicked
+     * @param grid the grid component to display in the card
+     * @return the created content card component
+     */
+    private Component createCard(String title, String subtitle, String buttonLabel, 
+                                  Runnable onAdd, Grid<?> grid) {
+        return CardFactory.createContentCard(title, subtitle, buttonLabel, onAdd, grid);
     }
 
     /**
-     * Creates the images section for a room category dialog
+     * Adds a CSS class to a component and returns it for method chaining.
+     * Useful for styling components in a fluent API style.
+     *
+     * @param card the component to add the class to
+     * @param className the CSS class name to add
+     * @return the modified component for method chaining
      */
-    private VerticalLayout createCategoryImagesSection(RoomCategory category, Dialog parentDialog) {
-        VerticalLayout section = new VerticalLayout();
-        section.setPadding(true);
-        section.setSpacing(true);
-        section.addClassName("category-images-section");
-
-        H3 title = new H3("Images");
-        title.getStyle().set("margin", "0 0 var(--lumo-space-m) 0");
-
-        // Get images for this category if it exists
-        HorizontalLayout imagesPreview = new HorizontalLayout();
-        imagesPreview.setSpacing(true);
-        imagesPreview.addClassName("category-images-preview");
-
-        if (category != null && category.getCategory_id() != null) {
-            // Load existing images
-            List<RoomImage> images = roomCategoryService.getRoomImageRepository()
-                .findByCategoryIdOrderByPrimaryFirst(category.getCategory_id());
-            
-            if (!images.isEmpty()) {
-                for (RoomImage image : images) {
-                    Div imageCard = createImagePreviewCard(image);
-                    imagesPreview.add(imageCard);
-                }
-            } else {
-                Paragraph emptyMsg = new Paragraph("No images assigned yet");
-                emptyMsg.getStyle().set("color", "var(--lumo-secondary-text-color)");
-                section.add(title, emptyMsg);
-                
-                Button addPicturesBtn = new Button("Add Pictures", VaadinIcon.PLUS.create());
-                addPicturesBtn.addClassName("primary-button");
-                addPicturesBtn.addClickListener(e -> {
-                    parentDialog.close();
-                    getUI().ifPresent(ui -> ui.navigate("image-management?categoryId=" + category.getCategory_id()));
-                });
-                section.add(addPicturesBtn);
-                return section;
-            }
-        } else {
-            Paragraph emptyMsg = new Paragraph("Save the category first, then add images");
-            emptyMsg.getStyle().set("color", "var(--lumo-secondary-text-color)");
-            section.add(title, emptyMsg);
-            return section;
-        }
-
-        Button addPicturesBtn = new Button("Add Pictures", VaadinIcon.PLUS.create());
-        addPicturesBtn.addClassName("primary-button");
-        addPicturesBtn.addClickListener(e -> {
-            parentDialog.close();
-            getUI().ifPresent(ui -> ui.navigate("image-management?categoryId=" + category.getCategory_id()));
-        });
-
-        section.add(title, imagesPreview, addPicturesBtn);
-        return section;
-    }
-
-    /**
-     * Creates a preview card for an image
-     */
-    private Div createImagePreviewCard(RoomImage image) {
-        Div card = new Div();
-        card.addClassName("image-preview-card");
-
-        Image preview = new Image(image.getImagePath(), "image");
-        preview.setWidth("80px");
-        preview.setHeight("80px");
-        preview.addClassName("image-preview-thumbnail");
-
-        card.add(preview);
+    private Component addCardClass(Component card, String className) {
+        card.addClassName(className);
         return card;
     }
 
-    // Löscht eine Category (Dialog)
-    private void deleteCategory(RoomCategory category) {
-        RoomCategoryService.CategoryDeleteAction action = roomCategoryService.getDeletionAction(category.getCategory_id());
+    /**
+     * Initiates the room deletion process with appropriate confirmation dialog.
+     * Checks the deletion action type and prevents deletion of rooms with active bookings.
+     * Shows a deactivation or permanent deletion confirmation based on room status.
+     *
+     * @param room the room to be deleted
+     */
+    private void deleteRoom(Room room) {
+        RoomManagementDeleteActionType actionType = roomService.getDeletionActionType(room.getId());
         
-        // Wenn durch Invoices blockiert
-        if (action.isBlocked()) {
-            Dialog errorDialog = new Dialog();
-            errorDialog.setHeaderTitle("Cannot Delete Category");
-            Paragraph message = new Paragraph(action.getErrorMessage());
-            message.addClassName("dialog-message");
-            Button okBtn = new Button("OK", e -> errorDialog.close());
-            errorDialog.add(message);
-            errorDialog.getFooter().add(okBtn);
-            errorDialog.open();
+        if (actionType == RoomManagementDeleteActionType.BLOCKED_BY_BOOKINGS) {
+            showErrorDialog("Cannot Delete Room", 
+                "Cannot delete Room \"" + room.getRoomNumber() + "\": Active bookings reference this room");
             return;
         }
         
-        String message = action.getMessageTemplate().replace("{categoryName}", category.getName());
+        String title = actionType == RoomManagementDeleteActionType.SET_INACTIVE 
+            ? "Deactivate Room" : "Delete Room Permanently";
+        String message = actionType == RoomManagementDeleteActionType.SET_INACTIVE
+            ? "Set Room " + room.getRoomNumber() + " to INACTIVE? It will no longer be available for bookings."
+            : "Delete Room " + room.getRoomNumber() + " permanently? This cannot be undone!";
+        String buttonLabel = actionType == RoomManagementDeleteActionType.SET_INACTIVE 
+            ? "Set to INACTIVE" : "Delete Permanently";
         
-        showConfirmDialog(action.getDialogTitle(), message, action.getButtonLabel(), () -> {
-            try {
-                roomCategoryService.deleteRoomCategory(category.getCategory_id());
-                refreshData();
-                Notification.show(action.getSuccessMessage(), 3000, Notification.Position.BOTTOM_START)
-                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-            } catch (Exception ex) {
-                Notification.show("Error: " + ex.getMessage(), 3000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-            }
-        });
+        dialogManager.showConfirmDialog(title, message, buttonLabel, () -> executeDelete(room));
     }
 
-    // ============ Extra Dialog =====================
-    //Matthias Lohr
-    private void openExtraDialog (BookingExtraService extraService) {
-        Dialog dialog = new Dialog();
-        dialog.setHeaderTitle("Add Extra");
-        dialog.setWidth("500px");
-
-        AddExtraForm form = new AddExtraForm(extraService, null);
-        form.setExtra(new BookingExtra());
-
-        Button saveBtn = new Button("Add Extra");
-        saveBtn.addClassName("primary-button");
-        saveBtn.addClickListener(e -> {
-            if (form.writeBeanIfValid()) {
-                refreshData();
-                dialog.close();
-                Notification.show("Extra added successfully!", 3000, Notification.Position.BOTTOM_START)
-                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-            } else {
-                Notification.show("Please fill all required fields.", 3000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-            }
-        });
-
-        Button cancelBtn = new Button("Cancel");
-        cancelBtn.addClickListener(e -> dialog.close());
-
-        HorizontalLayout buttonLayout = new HorizontalLayout(saveBtn, cancelBtn);
-        buttonLayout.setSpacing(true);
-        dialog.add(form, buttonLayout);
-        dialog.open();
+    /**
+     * Initiates the room category deletion process with appropriate confirmation dialog.
+     * Checks the deletion action type and prevents deletion of categories with active bookings.
+     * Shows a deactivation or permanent deletion confirmation based on category status.
+     *
+     * @param category the room category to be deleted
+     */
+    private void deleteCategory(RoomCategory category) {
+        RoomManagementDeleteActionType actionType = roomCategoryService.getDeletionActionType(category.getCategory_id());
+        
+        if (actionType == RoomManagementDeleteActionType.BLOCKED_BY_BOOKINGS) {
+            showErrorDialog("Cannot Delete Category", 
+                "Cannot delete category \"" + category.getName() + "\": Active bookings reference this category");
+            return;
+        }
+        
+        String title = actionType == RoomManagementDeleteActionType.SET_INACTIVE 
+            ? "Deactivate Category" : "Delete Category Permanently";
+        String message = actionType == RoomManagementDeleteActionType.SET_INACTIVE
+            ? "Set category '" + category.getName() + "' to INACTIVE? It can be reactivated later."
+            : "Delete category '" + category.getName() + "' permanently? This cannot be undone!";
+        String buttonLabel = actionType == RoomManagementDeleteActionType.SET_INACTIVE 
+            ? "Set to INACTIVE" : "Delete Permanently";
+        
+        dialogManager.showConfirmDialog(title, message, buttonLabel, () -> executeDeleteCategory(category));
     }
 
-    // ==================== SECURITY ====================
+    /**
+     * Executes the room deletion and refreshes the data grid.
+     * Calls {@link RoomService#deleteRoom(Long)} and updates the grid on success.
+     * Displays an error notification if the operation fails.
+     *
+     * @param room the room to delete
+     */
+    private void executeDelete(Room room) {
+        try {
+            roomService.deleteRoom(room.getId());
+            refreshData();
+            showSuccess("Room operation successful!");
+        } catch (Exception e) {
+            showError("Error: " + e.getMessage());
+        }
+    }
 
+    /**
+     * Executes the room category deletion and refreshes the data grid.
+     * Calls {@link RoomCategoryService#deleteRoomCategory(Long)} and updates the grid on success.
+     * Displays an error notification if the operation fails.
+     *
+     * @param category the room category to delete
+     */
+    private void executeDeleteCategory(RoomCategory category) {
+        try {
+            roomCategoryService.deleteRoomCategory(category.getCategory_id());
+            refreshData();
+            showSuccess("Category operation successful!");
+        } catch (Exception e) {
+            showError("Error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Displays a success notification to the user.
+     * Shows a green success notification at the bottom left for 3 seconds.
+     *
+     * @param message the success message to display
+     */
+    private void showSuccess(String message) {
+        Notification.show(message, 3000, Notification.Position.BOTTOM_START)
+            .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+    }
+
+    /**
+     * Displays an error notification to the user.
+     * Shows a red error notification in the middle of the screen for 5 seconds.
+     *
+     * @param message the error message to display
+     */
+    private void showError(String message) {
+        Notification.show(message, 5000, Notification.Position.MIDDLE)
+            .addThemeVariants(NotificationVariant.LUMO_ERROR);
+    }
+
+    /**
+     * Displays an error dialog to the user.
+     * Delegates to the {@link RoomManagementDialog#showErrorDialog(String, String)} method.
+     *
+     * @param title the dialog title
+     * @param message the error message
+     */
+    private void showErrorDialog(String title, String message) {
+        dialogManager.showErrorDialog(title, message);
+    }
+
+    /**
+     * Checks user authorization before entering the view.
+     * Redirects non-authorized users to the login page using {@link LoginView}.
+     * Part of the {@link BeforeEnterObserver} lifecycle.
+     *
+     * @param event the navigation event
+     */
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
+        if (!isUserAuthorized()) event.rerouteTo(LoginView.class);
+    }
+
+    /**
+     * Checks if the current user has the required authorization level (RECEPTIONIST or MANAGER).
+     * Verifies that the user is logged in and has one of the required roles.
+     *
+     * @return true if the user is authorized, false otherwise
+     */
+    private boolean isUserAuthorized() {
         try {
-            if (sessionService == null || !sessionService.isLoggedIn() || 
-                !sessionService.hasAnyRole(UserRole.RECEPTIONIST, UserRole.MANAGER)) {
-                event.rerouteTo(LoginView.class);
-            }
+            return sessionService != null && sessionService.isLoggedIn() && 
+                sessionService.hasAnyRole(UserRole.RECEPTIONIST, UserRole.MANAGER);
         } catch (Exception e) {
-            event.rerouteTo(LoginView.class);
+            return false;
         }
     }
 }

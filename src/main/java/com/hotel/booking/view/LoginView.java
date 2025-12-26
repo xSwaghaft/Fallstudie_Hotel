@@ -126,14 +126,23 @@ public class LoginView extends Div implements BeforeEnterObserver {
      */
     private void handleLogin(LoginForm loginForm) {
         LoginForm.LoginCredentials credentials = loginForm.getCredentials();
-        
-        var user = userService.authenticate(credentials.getUsername(), credentials.getPassword());
-        if (user.isPresent()) {
-            sessionService.login(user.get());
-            navigateAfterLogin(user.get().getRole());
-        } else {
-            Notification.show("Invalid username or password", 3000, Notification.Position.MIDDLE);
-            loginForm.clearPassword();
+
+        try {
+            var user = userService.authenticate(credentials.getUsername(), credentials.getPassword());
+            if (user.isPresent()) {
+                sessionService.login(user.get());
+                navigateAfterLogin(user.get().getRole());
+            } else {
+                Notification.show("Invalid username or password", 3000, Notification.Position.MIDDLE);
+                loginForm.clearPassword();
+            }
+        } catch (IllegalStateException ex) {
+            if ("User account is inactive".equals(ex.getMessage())) {
+                Notification.show("Account is inactive", 3000, Notification.Position.MIDDLE);
+                loginForm.clearPassword();
+            } else {
+                throw ex;
+            }
         }
     }
 

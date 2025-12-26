@@ -42,6 +42,8 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
     private final List<User> users = new ArrayList<>();
     private TextField searchField;
     private Select<String> roleFilter;
+    private Select<String> statusFilter;
+    private Component statsRow;
 
     public UserManagementView(SessionService sessionService, UserService userService) {
         this.sessionService = sessionService;
@@ -50,7 +52,7 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
         setPadding(true);
         setSizeFull();
         users.addAll(userService.findAll());
-        add(createHeader(), createStatsRow(), createFilters(), createUsersCard());
+        add(createHeader(), statsRow = createStatsRow(), createFilters(), createUsersCard());
     }
 
     private Component createHeader() {
@@ -83,8 +85,16 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
             CardFactory.createStatCard("Employees", 
                     String.valueOf(users.stream().filter(u -> u.getRole() == UserRole.MANAGER || u.getRole() == UserRole.RECEPTIONIST).count()), VaadinIcon.USER_STAR),
             CardFactory.createStatCard("Guests", 
-                    String.valueOf(users.stream().filter(u -> "GUEST".equals(u.getRole().name())).count()), VaadinIcon.USER)
+                    String.valueOf(users.stream().filter(u -> u.getRole() == UserRole.GUEST).count()), VaadinIcon.USER)
         );
+    }
+
+    private void refreshStatsRow() {
+        Component newStats = createStatsRow();
+        if (statsRow != null) {
+            replace(statsRow, newStats);
+        }
+        statsRow = newStats;
     }
 
     private Component createFilters() {
@@ -109,7 +119,7 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
         roleFilter.setValue("All Roles");
         roleFilter.addValueChangeListener(e -> filterUsers());
 
-        Select<String> statusFilter = new Select<>();
+        statusFilter = new Select<>();
         statusFilter.setLabel("Status");
         statusFilter.setItems("All Status", "Active", "Inactive");
         statusFilter.setValue("All Status");
@@ -131,13 +141,18 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
                 String search = searchField.getValue().toLowerCase();
                 boolean matchesSearch = search.isEmpty() || 
                     user.getUsername().toLowerCase().contains(search) ||
-                    user.getEmail().toLowerCase().contains(search);
+                    user.getEmail().toLowerCase().contains(search) ||
                     user.getFullName().toLowerCase().contains(search);
                 
                 String role = roleFilter.getValue();
                 boolean matchesRole = "All Roles".equals(role) || user.getRole().name().equals(role);
+
+                String status = statusFilter.getValue();
+                boolean matchesStatus = "All Status".equals(status)
+                    || ("Active".equals(status) && user.isActive())
+                    || ("Inactive".equals(status) && !user.isActive());
                 
-                return matchesSearch && matchesRole;
+                return matchesSearch && matchesRole && matchesStatus;
             })
             .toList();
         
@@ -218,17 +233,14 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
 
     private Component createStatusBadge(User user) {
         Span badge = new Span(user.isActive() ? "Active" : "Inactive");
-        badge.addClassName("status-badge");
-        badge.addClassName(user.isActive() ? "status-confirmed" : "status-pending");
+        badge.addClassName("category-status-badge");
+        badge.addClassName(user.isActive() ? "category-status-active" : "category-status-inactive");
         return badge;
     }
 
     private Component createUserActions(User user) {
         HorizontalLayout actions = new HorizontalLayout();
         actions.setSpacing(true);
-        
-        User currentUser = sessionService.getCurrentUser();
-        boolean isCurrentUser = currentUser != null && currentUser.getId().equals(user.getId());
         
         Button viewBtn = new Button(VaadinIcon.EYE.create());
         viewBtn.addClickListener(e -> openUserDetailsDialog(user));
@@ -238,7 +250,6 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
         
         Button deleteBtn = new Button(VaadinIcon.TRASH.create());
         deleteBtn.addClassName("user-delete-action-btn");
-        deleteBtn.setEnabled(!isCurrentUser); // Deaktiviere Button wenn aktueller User
         deleteBtn.addClickListener(e -> confirmDelete(user));
         
         actions.add(viewBtn, editBtn, deleteBtn);
@@ -259,7 +270,8 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
                 userService.save(form.getUser()); // Speichert das User-Objekt aus dem Formular in der Datenbank
                 users.clear();
                 users.addAll(userService.findAll());
-                grid.getDataProvider().refreshAll();
+                refreshStatsRow();
+                filterUsers();
                 dialog.close();
                 Notification.show("User saved successfully.", 3000, Notification.Position.BOTTOM_START);
             } catch (ValidationException ex) {
@@ -328,6 +340,43 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
             return;
         }
 
+        // Match RoomManagement behavior: first deactivate ACTIVE users.
+        if (user.isActive()) {
+            Dialog dialog = new Dialog();
+            dialog.setHeaderTitle("Deactivate User");
+            dialog.setWidth("420px");
+
+            Paragraph message = new Paragraph(
+                "Set user \"" + user.getUsername() + "\" to INACTIVE? They will no longer be able to log in.");
+            message.getStyle().set("margin", "0");
+
+            Button confirmBtn = new Button("Set to INACTIVE");
+            confirmBtn.addClassName("confirm-delete-btn");
+            confirmBtn.addClickListener(e -> {
+                try {
+                    userService.setInactive(user.getId());
+                    users.clear();
+                    users.addAll(userService.findAll());
+                    refreshStatsRow();
+                    filterUsers();
+                    dialog.close();
+                    Notification.show("User set to inactive successfully", 3000, Notification.Position.BOTTOM_START)
+                        .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                } catch (Exception ex) {
+                    Notification.show("Error deactivating user: " + ex.getMessage(), 5000, Notification.Position.TOP_CENTER);
+                    ex.printStackTrace();
+                }
+            });
+
+            Button cancelBtn = new Button("Cancel");
+            cancelBtn.addClickListener(e -> dialog.close());
+
+            dialog.add(message);
+            dialog.getFooter().add(new HorizontalLayout(cancelBtn, confirmBtn));
+            dialog.open();
+            return;
+        }
+
         UserService.DeleteAction action = userService.getDeletionAction(user.getId());
         
         // Wenn durch Bookings blockiert
@@ -344,19 +393,22 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
         }
 
         Dialog dialog = new Dialog();
-        dialog.setHeaderTitle("Confirm Delete");
+        dialog.setHeaderTitle("Delete User Permanently");
         dialog.setWidth("400px");
 
-        Paragraph message = new Paragraph("Are you sure you want to delete user " + user.getUsername() + "?");
+        Paragraph message = new Paragraph(
+            "Delete user \"" + user.getUsername() + "\" permanently? This cannot be undone!");
         message.getStyle().set("margin", "0");
 
-        Button confirmBtn = new Button("Yes, Delete");
+        Button confirmBtn = new Button("Delete Permanently");
         confirmBtn.addClassName("logout-btn-header");
         confirmBtn.addClickListener(e -> {
             try {
                 userService.delete(user);
-                users.remove(user);
-                grid.getDataProvider().refreshAll();
+                users.clear();
+                users.addAll(userService.findAll());
+                refreshStatsRow();
+                filterUsers();
                 dialog.close();
                 Notification.show("User deleted successfully", 3000, Notification.Position.BOTTOM_START)
                     .addThemeVariants(NotificationVariant.LUMO_SUCCESS);

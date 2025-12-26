@@ -19,12 +19,12 @@ public class CardFactory {
     // ==================== STAT CARD (mit Farbe) ====================
     
     /**
-     * Erstellt eine Statistik-Card mit Label und Wert
+     * Erstellt eine Statistik-Card mit Label und Wert (ohne Farbe)
      * @param label Beschriftung (z.B. "Total Rooms")
      * @param value Anzahl/Wert
      * @return Div-Komponente als Card
      */
-    public static Div createStatCard(String label, String value, String color) {
+    public static Div createStatCard(String label, String value) {
         Div card = new Div();
         card.addClassName("stat-card");
 
@@ -36,6 +36,17 @@ public class CardFactory {
 
         card.add(labelP, valueH);
         return card;
+    }
+
+    /**
+     * Erstellt eine Statistik-Card mit Label, Wert und Farbe
+     * @param label Beschriftung (z.B. "Total Rooms")
+     * @param value Anzahl/Wert
+     * @param color Farbe (wird nicht mehr verwendet, nur für Rückwärtskompatibilität)
+     * @return Div-Komponente als Card
+     */
+    public static Div createStatCard(String label, String value, String color) {
+        return createStatCard(label, value);
     }
 
     // ==================== STAT CARD MIT ICON ====================
@@ -78,7 +89,6 @@ public class CardFactory {
      * @param subtitle Untertitel/Beschreibung
      * @param buttonText Text für Add-Button (null wenn nicht gewünscht)
      * @param buttonClickListener Click-Listener für Button (null wenn nicht gewünscht)
-     * @param buttonColor Farbe des Buttons
      * @param grid Grid-Komponente mit Daten
      * @return VerticalLayout als Card
      */
@@ -87,7 +97,6 @@ public class CardFactory {
             String subtitle,
             String buttonText,
             Runnable buttonClickListener,
-            String buttonColor,
             Grid<?> grid) {
 
         VerticalLayout card = new VerticalLayout();
@@ -115,7 +124,6 @@ public class CardFactory {
             Button addBtn = new Button(buttonText, VaadinIcon.PLUS.create());
             addBtn.addClassName("primary-button");
             addBtn.addClassName("content-card-button");
-            addBtn.getStyle().set("background", buttonColor).set("color", "white");
             addBtn.addClickListener(e -> buttonClickListener.run());
             headerRow.add(addBtn);
         }
@@ -139,7 +147,7 @@ public class CardFactory {
      * @return VerticalLayout als Card
      */
     public static VerticalLayout createContentCard(String title, String subtitle, Grid<?> grid) {
-        return createContentCard(title, subtitle, null, null, null, grid);
+        return createContentCard(title, subtitle, null, null, grid);
     }
 
     // ==================== CUSTOM CONTENT CARD ====================

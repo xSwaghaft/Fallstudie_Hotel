@@ -208,9 +208,6 @@ public class ImageManagementView extends VerticalLayout implements BeforeEnterOb
         return CardFactory.createContentCard(
             "All Images",
             "All uploaded images (assigned and unassigned to categories)",
-            null,
-            null,
-            null,
             roomImageGrid
         );
     }

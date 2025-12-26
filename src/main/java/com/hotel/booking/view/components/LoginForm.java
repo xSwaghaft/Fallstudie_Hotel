@@ -90,9 +90,6 @@ public class LoginForm extends Div {
             if (onSignupClick != null) onSignupClick.run();
         });
 
-        // Allow Enter key to trigger login
-        passwordField.addKeyDownListener(Key.ENTER, e -> loginBtn.click());
-        usernameField.addKeyDownListener(Key.ENTER, e -> loginBtn.click());
     }
 
     /**

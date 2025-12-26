@@ -152,17 +152,24 @@ public class RoomForm extends FormLayout {
             formRoom = new Room();
             statusSelect.setValue(RoomStatus.AVAILABLE);
             priceField.setValue(0.0);
+            binder.readBean(formRoom);
         } else {
             formRoom = existingRoom;
-        }
-        
-        binder.readBean(formRoom);
-        
-        // Display price from category
-        if (formRoom.getCategory() != null && formRoom.getCategory().getPricePerNight() != null) {
-            priceField.setValue(formRoom.getCategory().getPricePerNight().doubleValue());
-        } else {
-            priceField.setValue(0.0);
+            binder.readBean(formRoom);
+            
+            // Explicitly set the category in the select dropdown
+            if (formRoom.getCategory() != null && formRoom.getCategory().getCategory_id() != null) {
+                java.util.List<RoomCategory> allCategories = roomCategoryService.getAllRoomCategories();
+                RoomCategory matchingCategory = allCategories.stream()
+                    .filter(cat -> cat.getCategory_id().equals(formRoom.getCategory().getCategory_id()))
+                    .findFirst()
+                    .orElse(null);
+                
+                if (matchingCategory != null) {
+                    categorySelect.setValue(matchingCategory);
+                    priceField.setValue(matchingCategory.getPricePerNight().doubleValue());
+                }
+            }
         }
     }
 

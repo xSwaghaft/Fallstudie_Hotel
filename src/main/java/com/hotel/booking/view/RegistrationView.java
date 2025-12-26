@@ -2,7 +2,7 @@ package com.hotel.booking.view;
 
 import com.hotel.booking.service.UserService;
 import com.hotel.booking.security.SessionService;
-import com.hotel.booking.view.components.AddUserForm;
+import com.hotel.booking.view.components.RegistrationForm;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dependency.CssImport;
@@ -26,7 +26,7 @@ import com.vaadin.flow.server.auth.AnonymousAllowed;
  * User registration view for creating new accounts.
  * <p>
  * This view provides a registration form for new users to create accounts in the system.
- * Uses AddUserForm in registration mode for form layout and validation.
+ * Uses RegistrationForm for form layout and validation.
  * The view is publicly accessible and redirects already-logged-in users to the dashboard.
  * </p>
  *
@@ -107,8 +107,8 @@ public class RegistrationView extends Div implements BeforeEnterObserver {
         Paragraph info = new Paragraph("Register to get started with our platform");
         info.addClassName("registration-subtitle");
 
-        // Use AddUserForm in registration mode
-        AddUserForm registrationForm = AddUserForm.forRegistration(userService);
+        // Use RegistrationForm for registration
+        RegistrationForm registrationForm = new RegistrationForm(userService);
         
         registrationForm.setOnRegisterClick(() -> handleRegistration(registrationForm));
         registrationForm.setOnCancelClick(() -> UI.getCurrent().navigate(LoginView.class));
@@ -126,9 +126,9 @@ public class RegistrationView extends Div implements BeforeEnterObserver {
      * or error notification depending on the result.
      * </p>
      *
-     * @param registrationForm the AddUserForm containing the user registration data
+     * @param registrationForm the RegistrationForm containing the user registration data
      */
-    private void handleRegistration(AddUserForm registrationForm) {
+    private void handleRegistration(RegistrationForm registrationForm) {
         // AddUserForm validates and writes the bean before calling this callback.
         try {
             userService.registerUser(registrationForm.getUser());
