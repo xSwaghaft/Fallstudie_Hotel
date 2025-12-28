@@ -9,8 +9,15 @@ import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 
-//Simples Formular zum Anlegen von Extras
-//Matthias Lohr
+/**
+ * Simple form component for creating or editing {@link BookingExtra} entities.
+ * <p>
+ * Uses Vaadin {@link Binder} for data binding and validation and delegates
+ * persistence to the {@link BookingExtraService}.
+ * </p>
+ *
+ * @author Matthias Lohr
+ */
 public class AddExtraForm extends FormLayout {
 
     private BookingExtra bookingExtra;
@@ -27,13 +34,12 @@ public class AddExtraForm extends FormLayout {
         this.extraService = extraService;
         this.bookingExtra = bookingExtra;
 
-
         priceField.setMin(0.0);
         priceField.setStep(0.01);
         priceField.setRequiredIndicatorVisible(true);
         nameField.setRequired(true);
-        
-        perPersonCheckbox.setValue(true); // Standardwert: true
+
+        perPersonCheckbox.setValue(true); // default value
 
         add(nameField, descriptionField, priceField, perPersonCheckbox);
 
@@ -47,15 +53,22 @@ public class AddExtraForm extends FormLayout {
         binder.forField(priceField)
             .asRequired("Price is required")
             .bind(BookingExtra::getPrice, BookingExtra::setPrice);
-        
+
         binder.forField(perPersonCheckbox)
             .bind(BookingExtra::isPerPerson, BookingExtra::setPerPerson);
-        
+
         setExtra(bookingExtra);
     }
 
+    /**
+     * Sets the {@link BookingExtra} instance to be edited by the form.
+     * <p>
+     * If the provided instance is {@code null}, a new {@link BookingExtra}
+     * is created and bound to the form.
+     * </p>
+     */
     public void setExtra(BookingExtra extra) {
-        if(bookingExtra == null) {
+        if (bookingExtra == null) {
             bookingExtra = new BookingExtra();
         } else {
             bookingExtra = extra;
@@ -67,6 +80,13 @@ public class AddExtraForm extends FormLayout {
         return bookingExtra;
     }
 
+    /**
+     * Validates the form input, writes the values into the bound entity
+     * and persists it using the service layer.
+     *
+     * @return {@code true} if validation and persistence were successful,
+     *         {@code false} otherwise
+     */
     public boolean writeBeanIfValid() {
         if (binder.validate().isOk()) {
             try {
@@ -79,5 +99,4 @@ public class AddExtraForm extends FormLayout {
         }
         return false;
     }
-
 }

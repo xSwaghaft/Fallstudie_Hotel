@@ -15,6 +15,11 @@ import com.hotel.booking.entity.User;
 import com.hotel.booking.repository.PasswordResetTokenRepository;
 import com.hotel.booking.security.BcryptPasswordEncoder;
 
+
+/**
+ * Service for password reset operations.
+ * @author Viktor Götting
+ */
 @Service
 @Transactional
 public class PasswordResetService {
@@ -36,9 +41,6 @@ public class PasswordResetService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    /**
-     * Verifies that a token exists and is not expired. Returns the associated email if valid.
-     */
     public Optional<String> verifyToken(String token) {
         Optional<com.hotel.booking.entity.PasswordResetToken> prtOpt = tokenRepository.findByToken(token);
         if (prtOpt.isEmpty()) return Optional.empty();
@@ -49,9 +51,6 @@ public class PasswordResetService {
         return Optional.of(prt.getEmail());
     }
 
-    /**
-     * Resets the password for the user associated with the token. Returns true on success.
-     */
     public boolean resetPassword(String token, String newPassword) {
         Optional<com.hotel.booking.entity.PasswordResetToken> prtOpt = tokenRepository.findByToken(token);
         if (prtOpt.isEmpty()) return false;
@@ -74,10 +73,6 @@ public class PasswordResetService {
         return true;
     }
 
-    /**
-     * Creates a password reset token for the given email (if user exists) and sends the reset email.
-     * Returns true if an email was sent (user found), false otherwise.
-     */
     public boolean createTokenAndSend(String email) {
         Optional<User> userOpt = userService.findByEmail(email);
         if (userOpt.isEmpty()) {

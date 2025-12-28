@@ -36,7 +36,7 @@ public class InvoiceDownloadController {
             
             byte[] pdfData = invoicePdfService.generateInvoicePdf(invoice);
             
-            String fileName = "Rechnung_" + invoice.getInvoiceNumber() + ".pdf";
+            String fileName = "Invoice_" + invoice.getInvoiceNumber() + ".pdf";
             
             return ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_PDF)

@@ -1,7 +1,6 @@
 package com.hotel.booking.repository;
 
 import com.hotel.booking.entity.Invoice;
-import com.hotel.booking.entity.Invoice.PaymentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -22,7 +21,7 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     Optional<Invoice> findByInvoiceNumber(String invoiceNumber);
     
     // Find all invoices by status
-    List<Invoice> findByInvoiceStatus(PaymentStatus status);
+    List<Invoice> findByInvoiceStatus(Invoice.PaymentStatus invoiceStatus);
     
     // Find all invoices for a specific booking
     @Query("SELECT i FROM Invoice i WHERE i.booking.id = :bookingId")
@@ -32,7 +31,7 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     List<Invoice> findByIssuedAtBetween(LocalDateTime start, LocalDateTime end);
     
     // Find unpaid invoices
-    List<Invoice> findByInvoiceStatusAndPaidAtIsNull(PaymentStatus status);
+    List<Invoice> findByInvoiceStatusAndPaidAtIsNull(Invoice.PaymentStatus invoiceStatus);
     
     // Find all invoices for a specific room (via booking)
     @Query("SELECT i FROM Invoice i WHERE i.booking.room.id = :roomId")
