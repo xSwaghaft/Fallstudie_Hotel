@@ -1,6 +1,7 @@
 package com.hotel.booking.service;
 
 import com.hotel.booking.entity.Invoice;
+import com.hotel.booking.entity.Invoice.PaymentStatus;
 import com.hotel.booking.repository.InvoiceRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,5 +41,9 @@ public class InvoiceService {
 
     public void deleteById(Long id) {
         invoiceRepository.deleteById(id);
+    }
+
+    public int getNumberOfPendingInvoices() {
+        return invoiceRepository.findByInvoiceStatus(PaymentStatus.PENDING).size();
     }
 }
