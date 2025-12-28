@@ -17,7 +17,20 @@ import com.vaadin.flow.router.*;
 
 import java.time.LocalDate;
 
-//Matthias Lohr
+/**
+ * View for displaying reports and analytics KPIs.
+ * <p>
+ * This Vaadin view provides a dashboard-style overview of key performance
+ * indicators (KPIs) such as revenue, bookings, average stay duration and trends.
+ * Users can select a reporting period and compare the current period with the
+ * previous month.
+ * </p>
+ * <p>
+ * Access to this view is restricted to logged-in users with the MANAGER role.
+ * </p>
+ *
+ * @author Matthias Lohr
+ */
 @Route(value = "reports", layout = MainLayout.class)
 @PageTitle("Reports & Analytics")
 @CssImport("./themes/hotel/styles.css")
@@ -51,6 +64,9 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
         kpiArea.add(createKpiArea());
     }
 
+    /**
+     * Creates the header section of the view, including title and subtitle.
+     */
     private Component createHeader() {
         H1 title = new H1("Reports & Analytics");
         title.addClassName("reports-header-title");
@@ -64,6 +80,14 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
         return header;
     }
 
+      /**
+     * Creates the filter section allowing the user to define
+     * the reporting period for the KPIs.
+     * <p>
+     * The selected date range is used to compare the current period
+     * against the previous month.
+     * </p>
+     */
     private Component createFilters() {
         Div card = new Div();
         card.addClassName("card");
@@ -94,14 +118,20 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
         return card;
     }
 
-    //Matthias Lohr
+    /**
+     * Builds the KPI area containing multiple KPI cards arranged in rows.
+     * <p>
+     * Each card visualizes a specific KPI together with its trend
+     * compared to the previous period.
+     * </p>
+     */
     private Component createKpiArea() {
         VerticalLayout wrapper = new VerticalLayout();
         wrapper.setSpacing(true);
         wrapper.setPadding(false);
         wrapper.setWidthFull();
 
-        // erste Reihe
+        // first row
         HorizontalLayout row1 = new HorizontalLayout();
         row1.setWidthFull();
         row1.setSpacing(true);
@@ -131,7 +161,7 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
         row1.add(card1, card2, card3);
         row1.expand(card1, card2, card3);
 
-        // Zweite Reihe
+        // second row
         HorizontalLayout row2 = new HorizontalLayout();
         row2.setWidthFull();
         row2.setSpacing(true);
@@ -165,11 +195,22 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
         return wrapper;
     }
 
+    /**
+     * Refreshes the KPI area by rebuilding all KPI cards
+     * based on the currently selected date range.
+     */
     private void refreshKpiArea() {
         kpiArea.removeAll();
         kpiArea.add(createKpiArea());
     }
 
+     /**
+     * Navigation guard to restrict access to authorized users.
+     * <p>
+     * Users who are not logged in or do not have the MANAGER role
+     * are redirected to the login view.
+     * </p>
+     */
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         if (!sessionService.isLoggedIn() || !sessionService.hasRole(UserRole.MANAGER)) {

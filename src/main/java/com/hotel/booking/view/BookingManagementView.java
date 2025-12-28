@@ -3,11 +3,11 @@ package com.hotel.booking.view;
 import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.BookingStatus;
 import com.hotel.booking.entity.Invoice;
-import com.hotel.booking.entity.Invoice;
 import com.hotel.booking.entity.Payment;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.entity.BookingCancellation;
+import com.hotel.booking.entity.BookingExtra;
 import com.hotel.booking.entity.User;
 import com.hotel.booking.service.BookingCancellationService;
 import com.hotel.booking.service.BookingFormService;
@@ -33,12 +33,15 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.router.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
-//Matthias Lohr
 @Route(value = "bookings", layout = MainLayout.class)
 @PageTitle("Booking Management")
 @CssImport("./themes/hotel/styles.css")
@@ -106,8 +109,7 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         return header;
     }
 
-    //Möglicherweise nach Bearbeitung Grid aktualisieren
-    //Matthias Lohr
+    //Ruslan
     private void openAddBookingDialog(Booking existingBooking) {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle(existingBooking != null ? "Edit Booking" : "New Booking");
@@ -134,11 +136,11 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         Button saveButton = new Button("Save", e -> {
             try {
                 // Bei bestehenden Buchungen vorherige Werte als Snapshot merken
-                final java.util.concurrent.atomic.AtomicReference<java.time.LocalDate> prevCheckInRef = new java.util.concurrent.atomic.AtomicReference<>();
-                final java.util.concurrent.atomic.AtomicReference<java.time.LocalDate> prevCheckOutRef = new java.util.concurrent.atomic.AtomicReference<>();
-                final java.util.concurrent.atomic.AtomicReference<Integer> prevAmountRef = new java.util.concurrent.atomic.AtomicReference<>();
-                final java.util.concurrent.atomic.AtomicReference<java.math.BigDecimal> prevTotalRef = new java.util.concurrent.atomic.AtomicReference<>();
-                final java.util.concurrent.atomic.AtomicReference<java.util.Set<com.hotel.booking.entity.BookingExtra>> prevExtrasRef = new java.util.concurrent.atomic.AtomicReference<>();
+                final AtomicReference<LocalDate> prevCheckInRef = new AtomicReference<>();
+                final AtomicReference<LocalDate> prevCheckOutRef = new AtomicReference<>();
+                final AtomicReference<Integer> prevAmountRef = new AtomicReference<>();
+                final AtomicReference<BigDecimal> prevTotalRef = new AtomicReference<>();
+                final AtomicReference<Set<BookingExtra>> prevExtrasRef = new AtomicReference<>();
                 if (existingBooking != null) {
                     prevCheckInRef.set(existingBooking.getCheckInDate());
                     prevCheckOutRef.set(existingBooking.getCheckOutDate());
@@ -159,18 +161,18 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
                 VerticalLayout content = new VerticalLayout();
                 if (existingBooking != null) {
                     content.add(new Paragraph("-- Before --"));
-                    java.time.LocalDate prevCheckIn = prevCheckInRef.get();
-                    java.time.LocalDate prevCheckOut = prevCheckOutRef.get();
+                    LocalDate prevCheckIn = prevCheckInRef.get();
+                    LocalDate prevCheckOut = prevCheckOutRef.get();
                     Integer prevAmount = prevAmountRef.get();
-                    java.math.BigDecimal prevTotal = prevTotalRef.get();
-                    java.util.Set<com.hotel.booking.entity.BookingExtra> prevExtras = prevExtrasRef.get();
+                    BigDecimal prevTotal = prevTotalRef.get();
+                    Set<BookingExtra> prevExtras = prevExtrasRef.get();
                     content.add(new Paragraph("Check-in: " + (prevCheckIn != null ? prevCheckIn.format(GERMAN_DATE_FORMAT) : "N/A")));
                     content.add(new Paragraph("Check-out: " + (prevCheckOut != null ? prevCheckOut.format(GERMAN_DATE_FORMAT) : "N/A")));
                     content.add(new Paragraph("Guests: " + (prevAmount != null ? prevAmount : "N/A")));
                     content.add(new Paragraph("Total Price: " + (prevTotal != null ? prevTotal.toString() : "N/A")));
                     String prevExtrasStr = "none";
                     if (prevExtras != null && !prevExtras.isEmpty()) {
-                        prevExtrasStr = prevExtras.stream().map(x -> x.getName()).collect(java.util.stream.Collectors.joining(", "));
+                        prevExtrasStr = prevExtras.stream().map(x -> x.getName()).collect(Collectors.joining(", "));
                     }
                     content.add(new Paragraph("Extras: " + prevExtrasStr));
                 }
@@ -182,7 +184,7 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
                 content.add(new Paragraph("Total Price: " + (updated.getTotalPrice() != null ? updated.getTotalPrice().toString() : "N/A")));
                 String newExtrasStr = "none";
                 if (updated.getExtras() != null && !updated.getExtras().isEmpty()) {
-                    newExtrasStr = updated.getExtras().stream().map(x -> x.getName()).collect(java.util.stream.Collectors.joining(", "));
+                    newExtrasStr = updated.getExtras().stream().map(x -> x.getName()).collect(Collectors.joining(", "));
                 }
                 content.add(new Paragraph("Extras: " + newExtrasStr));
 
