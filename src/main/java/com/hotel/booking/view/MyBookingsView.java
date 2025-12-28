@@ -1,56 +1,48 @@
 package com.hotel.booking.view;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.stream.Collectors;
 
 import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.BookingStatus;
-import com.hotel.booking.entity.Payment;
 import com.hotel.booking.entity.Invoice;
+import com.hotel.booking.entity.Payment;
 import com.hotel.booking.entity.User;
 import com.hotel.booking.entity.UserRole;
+import com.hotel.booking.entity.BookingExtra;
+import com.hotel.booking.entity.BookingCancellation;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.BookingService;
 import com.hotel.booking.service.PaymentService;
-import com.hotel.booking.view.components.BookingDetailsDialog;
-import com.hotel.booking.view.components.PaymentDialog;
-import com.vaadin.flow.component.button.Button;
 import com.hotel.booking.service.BookingFormService;
 import com.hotel.booking.service.BookingModificationService;
+import com.hotel.booking.service.BookingCancellationService;
+import com.hotel.booking.service.InvoiceService;
+import com.hotel.booking.view.components.PaymentDialog;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
-import com.vaadin.flow.data.binder.ValidationException;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.data.binder.ValidationException;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
+import com.vaadin.flow.router.PageTitle;
+import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouterLink;
-import com.vaadin.flow.component.UI;
-import com.vaadin.flow.router.*;
-import com.hotel.booking.entity.BookingExtra;
-import com.hotel.booking.entity.BookingCancellation;
-import com.hotel.booking.entity.Invoice;
-import com.hotel.booking.service.BookingCancellationService;
-import com.hotel.booking.service.InvoiceService;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 // @Route: registriert die View unter /my-bookings im MainLayout.
 // @CssImport: bindet globale und Guest-spezifische Styles ein.
