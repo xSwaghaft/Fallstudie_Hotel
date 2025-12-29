@@ -6,7 +6,16 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-//Matthias Lohr
+
+/**
+ * Repository interface for managing {@link BookingExtra} entities.
+ * <p>
+ * Provides standard CRUD operations and database access methods
+ * for booking extras using Spring Data JPA.
+ * </p>
+ *
+ * @author Matthias Lohr
+ */
 @Repository
 public interface BookingExtraRepository extends JpaRepository<BookingExtra, Long> {
 

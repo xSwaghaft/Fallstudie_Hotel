@@ -102,7 +102,7 @@ VALUES
 (2,'INV-20251102-002',129.90,'2025-11-02 09:10:00','CARD','PENDING',2),
 (3,'INV-20251103-003',479.70,'2025-11-21 16:25:00','TRANSFER','PAID',3),
 (4,'INV-20251104-004',249.00,'2025-11-14 10:15:00','CASH','PAID',4),
-(5,'INV-20251105-005',319.80,'2025-11-10 14:35:00','CARD','REFUNDED',5),
+(5,'INV-20251105-005',319.80,'2025-11-10 14:35:00','TRANSFER','REFUNDED',5),
 (6,'INV-20241010-006',649.50,'2024-10-10 10:00:00','CARD','PAID',7),
 (7,'INV-20240915-007',249.00,'2024-09-15 09:00:00','CARD','PAID',8);
 
@@ -150,28 +150,28 @@ INSERT IGNORE INTO payments (id, booking_id, amount, method, status, transaction
 
 -- ---------- Booking cancellations (at least 5 entries) ----------
 INSERT IGNORE INTO booking_cancellation (id, booking_id, cancelled_at, reason, refunded_amount, handled_by) VALUES
-(1,2,'2025-11-03 09:15:00','Krankheit des Gastes',129.90,2),
-(2,5,'2025-11-10 14:30:00','Reisepläne geändert',319.80,1),
-(3,6,'2025-11-12 08:00:00','Kurzfristig abgesagt',0.00,NULL),
-(4,4,'2025-11-13 10:00:00','Persönlicher Grund',0.00,3),
-(5,1,'2025-11-14 12:00:00','Doppelbuchung',0.00,2);
+(1,2,'2025-11-03 09:15:00','Guest illness',129.90,2),
+(2,5,'2025-11-10 14:30:00','Travel plans changed',319.80,1),
+(3,6,'2025-11-12 08:00:00','Short notice cancellation',0.00,NULL),
+(4,4,'2025-11-13 10:00:00','Personal reasons',0.00,3),
+(5,1,'2025-11-14 12:00:00','Double booking',0.00,2);
 
 -- ---------- Booking modifications (at least 5 entries) ----------
 INSERT IGNORE INTO booking_modification (id, booking_id, modified_at, field_changed, old_value, new_value, reason, handled_by) VALUES
-(1,1,'2025-11-05 10:00:00','check_out_date','2025-11-21','2025-11-22','Gast verlängert Aufenthalt',2),
-(2,3,'2025-11-20 12:00:00','room_id','2','5','Upgrade auf Deluxe',3),
-(3,4,'2025-11-10 08:30:00','amount','1','2','Zusatzgast hinzugefügt',2),
-(4,6,'2025-11-25 09:00:00','check_in_date','2025-12-06','2025-12-05','Korrektur Datum',1),
-(5,1,'2025-11-06 09:00:00','note','alt','neu','Interne Notiz',4);
+(1,1,'2025-11-05 10:00:00','check_out_date','2025-11-21','2025-11-22','Guest extended stay',2),
+(2,3,'2025-11-20 12:00:00','room_id','2','5','Upgrade to Deluxe',3),
+(3,4,'2025-11-10 08:30:00','amount','1','2','Additional guest added',2),
+(4,6,'2025-11-25 09:00:00','check_in_date','2025-12-06','2025-12-05','Date correction',1),
+(5,1,'2025-11-06 09:00:00','note','alt','neu','Internal note',4);
 
 -- ---------- Feedback (at least 5 entries) ----------
 INSERT IGNORE INTO feedback (id, booking_id, guest_id, rating, comment) VALUES
-(1,1,1,5,'Sehr sauberes Zimmer und freundliches Personal.'),
-(2,3,5,4,'Guter Aufenthalt, Frühstück könnte besser sein.'),
-(3,4,5,5,'Perfekte Suite, tolle Aussicht.'),
-(4,2,2,2,'Stornierung ergab Probleme mit Rückerstattung.'),
-(5,6,1,4,'Nettes Personal, Zimmer sauber.'),
-(6,7,5,5,'Fantastischer Aufenthalt! Das Deluxe Zimmer war wunderschön und der Service war ausgezeichnet.');
+(1,1,1,5,'Very clean room and friendly staff.'),
+(2,3,5,4,'Good stay, breakfast could be better.'),
+(3,4,5,5,'Perfect suite, great view.'),
+(4,2,2,2,'Cancellation resulted in refund problems.'),
+(5,6,1,4,'Nice staff, clean room.'),
+(6,7,5,5,'Fantastic stay! The Deluxe room was beautiful and the service was excellent.');
 
 -- ---------- Room Images (for room categories) ----------
 INSERT IGNORE INTO room_images (image_path, alt_text, title, is_primary, category_id) VALUES
@@ -212,7 +212,7 @@ INSERT IGNORE INTO room_bookings (room_id, booking_id) VALUES
 
 -- Payments (initially PENDING for some, keep as PENDING to reflect not-yet-paid)
 INSERT IGNORE INTO payments (id, booking_id, amount, method, status, transaction_ref, paid_at) VALUES
-(300,100,0.00,'CARD','PENDING',NULL,NULL),
-(301,101,0.00,'CARD','PENDING',NULL,NULL),
-(302,102,0.00,'CARD','PENDING',NULL,NULL),
-(303,103,0.00,'CARD','PENDING',NULL,NULL);
+(9,100,0.00,'CARD','PENDING','TXN-1008',NULL),
+(10,101,0.00,'CARD','PENDING','TXN-1009',NULL),
+(11,102,0.00,'CARD','PENDING','TXN-1010',NULL),
+(12,103,0.00,'CARD','PENDING','TXN-1011',NULL);

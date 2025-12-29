@@ -1,19 +1,26 @@
 package com.hotel.booking.view;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 
 import com.hotel.booking.entity.Booking;
+import com.hotel.booking.entity.Payment;
+import com.hotel.booking.entity.Invoice;
 import com.hotel.booking.entity.RoomCategory;
 import com.hotel.booking.entity.User;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.BookingFormService;
 import com.hotel.booking.service.BookingService;
+import com.hotel.booking.service.PaymentService;
+import com.hotel.booking.service.InvoiceService;
 import com.hotel.booking.service.RoomCategoryService;
 import com.hotel.booking.view.components.RoomGrid;
+import com.hotel.booking.view.components.PaymentDialog;
 
 import com.vaadin.flow.component.HasSize;
 import com.vaadin.flow.component.button.Button;
@@ -36,7 +43,9 @@ import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.RolesAllowed;
 
 /**
- * Guest Portal View - Main view for guests to search and book rooms.
+ * Main view for guests to search and book rooms.
+ * 
+ * @author Viktor Götting
  */
 @Route(value = "guest-portal", layout = MainLayout.class)
 @PageTitle("Guest Portal")
@@ -50,6 +59,8 @@ public class GuestPortalView extends VerticalLayout {
     private final BookingService bookingService;
     private final RoomCategoryService roomCategoryService;
     private final BookingFormService bookingFormService;
+    private final PaymentService paymentService;
+    private final InvoiceService invoiceService;
     
     // UI Components
     private final RoomGrid roomGrid;
@@ -61,12 +72,16 @@ public class GuestPortalView extends VerticalLayout {
     public GuestPortalView(SessionService sessionService,
                            BookingService bookingService,
                            RoomCategoryService roomCategoryService,
-                           BookingFormService bookingFormService) {
+                           BookingFormService bookingFormService,
+                           PaymentService paymentService,
+                           InvoiceService invoiceService) {
 
         this.sessionService = sessionService;
         this.bookingService = bookingService;
         this.roomCategoryService = roomCategoryService;
         this.bookingFormService = bookingFormService;
+        this.paymentService = paymentService;
+        this.invoiceService = invoiceService;
         this.roomGrid = new RoomGrid();
 
         // Configure layout
@@ -84,7 +99,7 @@ public class GuestPortalView extends VerticalLayout {
     }
 
     /**
-     * Creates the search form card with date pickers, guest count, and room type selector.
+     * Creates the search form card.
      */
     private Div createSearchCard() {
         Div card = new Div();
@@ -135,7 +150,7 @@ public class GuestPortalView extends VerticalLayout {
     }
 
     /**
-     * Executes the search for available room categories and displays them in the grid.
+     * Executes the search for available room categories.
      */
     private void executeSearch() {
         LocalDate in = checkIn.getValue();
@@ -174,7 +189,7 @@ public class GuestPortalView extends VerticalLayout {
     }
 
     /**
-     * Opens a booking dialog for the selected category with pre-filled form values.
+     * Opens a booking dialog for the selected category.
      */
     private void openCategoryBookingDialog(RoomCategory category, LocalDate checkIn, LocalDate checkOut, Integer occupancy) {
         Dialog dialog = new Dialog();
@@ -209,9 +224,23 @@ public class GuestPortalView extends VerticalLayout {
             try {
                 bookingForm.writeBean();
                 Booking booking = bookingForm.getBooking();
+                System.out.println("DEBUG: Booking created: " + booking);
+                
                 bookingService.save(booking);
+                
+                // Calculate total price AFTER booking is saved
+                bookingService.calculateBookingPrice(booking);
+                System.out.println("DEBUG: Calculated Total Price: " + booking.getTotalPrice());
+                
                 Notification.show("Booking successful!");
                 dialog.close();
+                
+                // Open payment dialog after successful booking
+                if (booking != null && booking.getTotalPrice() != null && booking.getTotalPrice().compareTo(BigDecimal.ZERO) > 0) {
+                    openPaymentDialog(booking);
+                } else {
+                    Notification.show("Error: Could not process payment. Missing booking data.", 5000, Notification.Position.TOP_CENTER);
+                }
             } catch (ValidationException ex) {
                 Notification.show("Please check your inputs.");
             }
@@ -226,7 +255,7 @@ public class GuestPortalView extends VerticalLayout {
     }
 
     /**
-     * Configures form fields for responsive design (flexGrow and full width).
+     * Configures form fields for responsive design.
      */
     private void configureResponsiveFields(HorizontalLayout layout, HasSize... fields) {
         for (HasSize field : fields) {
@@ -234,4 +263,109 @@ public class GuestPortalView extends VerticalLayout {
             field.setWidthFull();
         }
     }
+
+    /**
+     * Opens payment dialog for the booking.
+     */
+    private void openPaymentDialog(Booking booking) {
+        try {
+            System.out.println("DEBUG: Opening payment dialog for booking: " + booking.getId());
+            System.out.println("DEBUG: Total price: " + booking.getTotalPrice());
+            
+            if (booking.getTotalPrice() == null) {
+                Notification.show("Error: Total price is missing", 5000, Notification.Position.TOP_CENTER);
+                return;
+            }
+            
+            PaymentDialog paymentDialog = new PaymentDialog(booking.getTotalPrice());
+            paymentDialog.setOnPaymentSuccess(() -> {
+                System.out.println("DEBUG: Payment successful!");
+                
+                // Create and save Payment entity with PAID status
+                Payment payment = new Payment();
+                payment.setAmount(booking.getTotalPrice());
+                payment.setStatus(Invoice.PaymentStatus.PAID);
+                payment.setPaidAt(LocalDateTime.now());
+                
+                // Map UI payment method to PaymentMethod enum
+                String uiMethod = paymentDialog.getSelectedPaymentMethod();
+                Invoice.PaymentMethod paymentMethod = mapPaymentMethod(uiMethod);
+                payment.setMethod(paymentMethod);
+                
+                // Associate payment with booking
+                payment.setBooking(booking);
+                
+                // Save payment
+                paymentService.save(payment);
+                System.out.println("DEBUG: Payment saved: " + payment.getId());
+                
+                // Update Booking status to CONFIRMED
+                booking.setStatus(com.hotel.booking.entity.BookingStatus.CONFIRMED);
+                bookingService.save(booking);
+                System.out.println("DEBUG: Booking status updated to CONFIRMED");
+                
+                // Create Invoice
+                Invoice invoice = new Invoice();
+                invoice.setBooking(booking);
+                invoice.setAmount(booking.getTotalPrice());
+                invoice.setInvoiceStatus(Invoice.PaymentStatus.PAID);
+                invoice.setPaymentMethod(paymentMethod);
+                invoice.setIssuedAt(LocalDateTime.now());
+                invoice.setInvoiceNumber(generateInvoiceNumber());
+                invoiceService.save(invoice);
+                System.out.println("DEBUG: Invoice created: " + invoice.getId());
+                
+                Notification.show("Payment completed! Booking confirmed.", 3000, Notification.Position.TOP_CENTER);
+            });
+            
+            paymentDialog.setOnPaymentDeferred(() -> {
+                System.out.println("DEBUG: Payment deferred!");
+                
+                // Create and save Payment entity with PENDING status
+                Payment payment = new Payment();
+                payment.setAmount(booking.getTotalPrice());
+                payment.setStatus(Invoice.PaymentStatus.PENDING);
+                payment.setPaidAt(null); // Not paid yet
+                
+                // Map UI payment method to PaymentMethod enum
+                String uiMethod = paymentDialog.getSelectedPaymentMethod();
+                Invoice.PaymentMethod paymentMethod = mapPaymentMethod(uiMethod);
+                payment.setMethod(paymentMethod);
+                
+                // Associate payment with booking
+                payment.setBooking(booking);
+                
+                // Save payment with PENDING status
+                paymentService.save(payment);
+                System.out.println("DEBUG: Deferred payment saved with PENDING status: " + payment.getId());
+                
+                // Booking status stays PENDING until payment is made
+                System.out.println("DEBUG: Booking status remains PENDING (awaiting payment)");
+            });
+            
+            System.out.println("DEBUG: About to open payment dialog");
+            paymentDialog.open();
+            System.out.println("DEBUG: Payment dialog opened");
+            
+        } catch (Exception ex) {
+            System.err.println("DEBUG: Error opening payment dialog: " + ex.getMessage());
+            ex.printStackTrace();
+            Notification.show("Error opening payment dialog: " + ex.getMessage(), 5000, Notification.Position.TOP_CENTER);
+        }
+    }
+    
+    /**
+     * Maps UI payment method string to PaymentMethod enum.
+     */
+    private Invoice.PaymentMethod mapPaymentMethod(String uiMethod) {
+        if ("Bank Transfer".equals(uiMethod)) {
+            return Invoice.PaymentMethod.TRANSFER;
+        }
+        return Invoice.PaymentMethod.CARD;
+    }
+    
+    private String generateInvoiceNumber() {
+        return "INV-" + java.time.LocalDate.now().getYear() + "-" + System.currentTimeMillis();
+    }
+
 }

@@ -4,8 +4,6 @@ import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.BookingModification;
 import com.hotel.booking.entity.User;
 import com.hotel.booking.repository.BookingModificationRepository;
-import com.hotel.booking.repository.BookingRepository;
-import com.hotel.booking.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,16 +15,13 @@ public class BookingModificationService {
 
     // Repositories für Datenbankzugriffe werden über den Konstruktor injiziert
     private final BookingModificationRepository modificationRepository;
-    private final BookingRepository bookingRepository;
-    private final UserRepository userRepository;
+    private final EmailService emailService;
 
     public BookingModificationService(
             BookingModificationRepository modificationRepository,
-            BookingRepository bookingRepository,
-            UserRepository userRepository) {
+            EmailService emailService) {
         this.modificationRepository = modificationRepository;
-        this.bookingRepository = bookingRepository;
-        this.userRepository = userRepository;
+        this.emailService = emailService;
     }
 
     // Gibt alle Buchungsänderungen als Liste zurück
@@ -66,6 +61,7 @@ public class BookingModificationService {
 
         // Prüfe einzelne Felder und speichere Änderungen
         LocalDateTime now = LocalDateTime.now();
+        BookingModification firstModification = null; // Track first modification for email
 
         if (before.getCheckInDate() != null && !before.getCheckInDate().equals(after.getCheckInDate())) {
             BookingModification m = new BookingModification();
@@ -76,7 +72,8 @@ public class BookingModificationService {
             m.setNewValue(after.getCheckInDate() != null ? after.getCheckInDate().toString() : null);
             m.setHandledBy(handledBy);
             m.setReason(reason);
-            modificationRepository.save(m);
+            BookingModification saved = modificationRepository.save(m);
+            if (firstModification == null) firstModification = saved;
         }
 
         if (before.getCheckOutDate() != null && !before.getCheckOutDate().equals(after.getCheckOutDate())) {
@@ -88,7 +85,8 @@ public class BookingModificationService {
             m.setNewValue(after.getCheckOutDate() != null ? after.getCheckOutDate().toString() : null);
             m.setHandledBy(handledBy);
             m.setReason(reason);
-            modificationRepository.save(m);
+            BookingModification saved = modificationRepository.save(m);
+            if (firstModification == null) firstModification = saved;
         }
 
         if (before.getAmount() != null && !before.getAmount().equals(after.getAmount())) {
@@ -100,7 +98,8 @@ public class BookingModificationService {
             m.setNewValue(after.getAmount() != null ? String.valueOf(after.getAmount()) : null);
             m.setHandledBy(handledBy);
             m.setReason(reason);
-            modificationRepository.save(m);
+            BookingModification saved = modificationRepository.save(m);
+            if (firstModification == null) firstModification = saved;
         }
 
         if (before.getTotalPrice() != null && !before.getTotalPrice().equals(after.getTotalPrice())) {
@@ -112,7 +111,8 @@ public class BookingModificationService {
             m.setNewValue(after.getTotalPrice() != null ? after.getTotalPrice().toString() : null);
             m.setHandledBy(handledBy);
             m.setReason(reason);
-            modificationRepository.save(m);
+            BookingModification saved = modificationRepository.save(m);
+            if (firstModification == null) firstModification = saved;
         }
 
         // Extras comparison
@@ -146,7 +146,18 @@ public class BookingModificationService {
             m.setNewValue(String.join(", ", newNames));
             m.setHandledBy(handledBy);
             m.setReason(reason);
-            modificationRepository.save(m);
+            BookingModification saved = modificationRepository.save(m);
+            if (firstModification == null) firstModification = saved;
+        }
+        
+        // Send email if at least one modification was created
+        if (firstModification != null && before.getGuest() != null && before.getGuest().getEmail() != null) {
+            try {
+                emailService.sendBookingModification(before, firstModification);
+            } catch (Exception e) {
+                // Log error but don't fail the modification save
+                System.err.println("Failed to send booking modification email: " + e.getMessage());
+            }
         }
     }
 
@@ -168,6 +179,7 @@ public class BookingModificationService {
         if (bookingEntity == null || after == null) return;
 
         LocalDateTime now = LocalDateTime.now();
+        BookingModification firstModification = null; // Track first modification for email
 
         if (previousCheckIn != null && !previousCheckIn.equals(after.getCheckInDate())) {
             BookingModification m = new BookingModification();
@@ -178,7 +190,8 @@ public class BookingModificationService {
             m.setNewValue(after.getCheckInDate() != null ? after.getCheckInDate().toString() : null);
             m.setHandledBy(handledBy);
             m.setReason(reason);
-            modificationRepository.save(m);
+            BookingModification saved = modificationRepository.save(m);
+            if (firstModification == null) firstModification = saved;
         }
 
         if (previousCheckOut != null && !previousCheckOut.equals(after.getCheckOutDate())) {
@@ -190,7 +203,8 @@ public class BookingModificationService {
             m.setNewValue(after.getCheckOutDate() != null ? after.getCheckOutDate().toString() : null);
             m.setHandledBy(handledBy);
             m.setReason(reason);
-            modificationRepository.save(m);
+            BookingModification saved = modificationRepository.save(m);
+            if (firstModification == null) firstModification = saved;
         }
 
         if (previousAmount != null && !previousAmount.equals(after.getAmount())) {
@@ -202,7 +216,8 @@ public class BookingModificationService {
             m.setNewValue(after.getAmount() != null ? String.valueOf(after.getAmount()) : null);
             m.setHandledBy(handledBy);
             m.setReason(reason);
-            modificationRepository.save(m);
+            BookingModification saved = modificationRepository.save(m);
+            if (firstModification == null) firstModification = saved;
         }
 
         if (previousTotalPrice != null && (after.getTotalPrice() == null || previousTotalPrice.compareTo(after.getTotalPrice()) != 0)) {
@@ -214,7 +229,8 @@ public class BookingModificationService {
             m.setNewValue(after.getTotalPrice() != null ? after.getTotalPrice().toString() : null);
             m.setHandledBy(handledBy);
             m.setReason(reason);
-            modificationRepository.save(m);
+            BookingModification saved = modificationRepository.save(m);
+            if (firstModification == null) firstModification = saved;
         }
 
         // Extras comparison: vergleiche nach Namen
@@ -242,7 +258,18 @@ public class BookingModificationService {
             m.setNewValue(String.join(", ", newNames));
             m.setHandledBy(handledBy);
             m.setReason(reason);
-            modificationRepository.save(m);
+            BookingModification saved = modificationRepository.save(m);
+            if (firstModification == null) firstModification = saved;
+        }
+        
+        // Send email if at least one modification was created
+        if (firstModification != null && bookingEntity.getGuest() != null && bookingEntity.getGuest().getEmail() != null) {
+            try {
+                emailService.sendBookingModification(bookingEntity, firstModification);
+            } catch (Exception e) {
+                // Log error but don't fail the modification save
+                System.err.println("Failed to send booking modification email: " + e.getMessage());
+            }
         }
     }
 }

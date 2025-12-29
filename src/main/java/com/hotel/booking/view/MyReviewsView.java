@@ -28,7 +28,6 @@ import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -39,6 +38,8 @@ import jakarta.annotation.security.RolesAllowed;
 
 /**
  * View for displaying and managing guest reviews.
+ * 
+ * @author Viktor Götting
  */
 @Route(value = "my-reviews", layout = MainLayout.class)
 @PageTitle("My Reviews")
@@ -53,7 +54,6 @@ public class MyReviewsView extends VerticalLayout {
 
     private List<Booking> bookings;
 
-    @Autowired
     public MyReviewsView(SessionService sessionService,
                          BookingService bookingService,
                          FeedbackService feedbackService) {
@@ -71,6 +71,9 @@ public class MyReviewsView extends VerticalLayout {
         refreshView();
     }
 
+    /**
+     * Refreshes the entire view.
+     */
     private void refreshView() {
         removeAll();
         add(new H1("My Reviews"));
@@ -79,6 +82,9 @@ public class MyReviewsView extends VerticalLayout {
         add(createBookingsWithoutReview());
     }
 
+    /**
+     * Creates a statistics row.
+     */
     private Component createStatsRow(List<Booking> bookings) {
         int total = bookings.size();
         int written = (int) bookings.stream().filter(b -> b.getFeedback() != null).count();
@@ -103,6 +109,9 @@ public class MyReviewsView extends VerticalLayout {
         return statsRow;
     }
 
+    /**
+     * Creates a list of all reviews.
+     */
     private Component createReviewsList() {
         Div container = new Div();
         container.addClassName("reviews-list-container");
@@ -123,6 +132,9 @@ public class MyReviewsView extends VerticalLayout {
         return container;
     }
 
+    /**
+     * Creates a card displaying a single review.
+     */
     private Div createReviewCard(Booking booking) {
         Div card = new Div();
         card.addClassName("review-card");
@@ -155,7 +167,9 @@ public class MyReviewsView extends VerticalLayout {
         return card;
     }
 
-    // Renders 5 stars: filled up to rating, empty for the rest
+    /**
+     * Renders rating stars.
+     */
     private Div createStars(Integer rating) {
         Div starsDiv = new Div();
         starsDiv.addClassName("review-stars-container");
@@ -174,6 +188,9 @@ public class MyReviewsView extends VerticalLayout {
         return starsDiv;
     }
 
+    /**
+     * Creates a section listing all bookings without reviews.
+     */
     private Component createBookingsWithoutReview() {
         List<Booking> bookingsWithoutReview = bookings.stream()
                 .filter(b -> b.getFeedback() == null)
@@ -202,6 +219,9 @@ public class MyReviewsView extends VerticalLayout {
         return card;
     }
 
+    /**
+     * Opens a dialog for adding or editing a review.
+     */
     private void openReviewDialog(Booking booking, Feedback existingFeedback) {
         Dialog dialog = new Dialog();
         
@@ -282,12 +302,18 @@ public class MyReviewsView extends VerticalLayout {
         dialog.open();
     }
 
+    /**
+     * Returns room info.
+     */
     private String getRoomInfo(Booking booking) {
-        String roomType = booking.getRoomCategory() != null ? booking.getRoomCategory().getName() : "Room";
-        String roomNumber = booking.getRoom() != null ? booking.getRoom().getRoomNumber() : null;
-        return roomNumber != null ? roomType + " #" + roomNumber : roomType;
+        String type = booking.getRoomCategory() != null ? booking.getRoomCategory().getName() : "Room";
+        String number = booking.getRoom() != null ? booking.getRoom().getRoomNumber() : null;
+        return number != null ? type + " #" + number : type;
     }
 
+    /**
+     * Loads all past completed bookings for the current guest.
+     */
     private List<Booking> loadBookings() {
         User user = sessionService.getCurrentUser();
         if (user == null) {

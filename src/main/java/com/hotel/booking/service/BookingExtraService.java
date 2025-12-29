@@ -2,19 +2,26 @@ package com.hotel.booking.service;
 
 import com.hotel.booking.entity.BookingExtra;
 import com.hotel.booking.repository.BookingExtraRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Service class for managing {@link BookingExtra} entities.
+ * <p>
+ * Acts as a business layer between the controller and the repository
+ * and provides basic operations for booking extras.
+ * </p>
+ *
+ * @author Matthias Lohr
+ */
 @Service
 public class BookingExtraService {
 
     private final BookingExtraRepository bookingExtraRepository;
 
-    @Autowired
     public BookingExtraService(BookingExtraRepository bookingExtraRepository) {
         this.bookingExtraRepository = bookingExtraRepository;
     }

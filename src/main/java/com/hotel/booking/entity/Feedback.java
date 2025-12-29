@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.hotel.booking.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -102,7 +101,7 @@ public class Feedback {
     }
     
     
-    // TODO: Activate when Booking entity
+    // Activate when Booking entity
     public Booking getBooking() {
          return booking;
      }

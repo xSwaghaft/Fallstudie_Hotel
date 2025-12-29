@@ -2,6 +2,7 @@ package com.hotel.booking.view.components;
 
 import com.hotel.booking.entity.RoomImage;
 import com.hotel.booking.service.RoomImageService;
+import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.upload.Upload;
@@ -86,17 +87,20 @@ public class RoomImageUploadSection extends VerticalLayout {
         info.getStyle().set("font-size", "var(--lumo-font-size-s)");
         info.getStyle().set("color", "var(--lumo-secondary-text-color)");
 
-        VerticalLayout card = CardFactory.createCustomCard(
-                "Upload Images",
-                "Upload images to manage and assign them to room categories",
-                null,
-                null,
-                null,
-                upload,
-                info
-        );
+        VerticalLayout card = new VerticalLayout();
+        card.addClassName("content-card");
         card.addClassName("image-upload-card");
+        card.setPadding(true);
+        card.setSpacing(true);
         card.setWidthFull();
+
+        H3 title = new H3("Upload Images");
+        title.addClassName("content-card-title");
+
+        Paragraph subtitle = new Paragraph("Upload images to manage and assign them to room categories");
+        subtitle.addClassName("content-card-subtitle");
+
+        card.add(title, subtitle, upload, info);
         return card;
     }
 

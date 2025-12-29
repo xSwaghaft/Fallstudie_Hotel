@@ -12,7 +12,6 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
-import jakarta.persistence.ForeignKey;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
@@ -50,10 +49,16 @@ public class Invoice {
     @Column
     private LocalDateTime paidAt;
     
+    /**
+     * Zahlungsmethode: CARD, CASH, INVOICE, TRANSFER
+     */
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    private PaymentMethod paymentMethod;
+    private Invoice.PaymentMethod paymentMethod = Invoice.PaymentMethod.CARD;
     
+    /**
+     * Rechnungsstatus: PENDING, PAID, FAILED, REFUNDED, PARTIAL
+     */
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 32)
@@ -174,20 +179,55 @@ public class Invoice {
                 ", bookingId=" + booking +
                 '}';
     }
-    
-    // Enums
+
+     /**
+     * Zahlungsmethode: CARD, CASH, INVOICE, TRANSFER
+     */
     public enum PaymentMethod {
-        CARD,
-        CASH,
-        ONLINE,
-        INVOICE,
-        TRANSFER
+        CARD("Card"),
+        CASH("Cash"),
+        INVOICE("Invoice"),
+        TRANSFER("Bank Transfer");
+
+        private final String displayName;
+
+        PaymentMethod(String displayName) {
+            this.displayName = displayName;
+        }
+
+        @Override
+        public String toString() {
+            return displayName;
+        }
+
+        public String getDisplayName() {
+            return displayName;
+        }
     }
-    
+
+    /**
+     * Rechnungsstatus: PENDING, PAID, FAILED, REFUNDED, PARTIAL
+     */
     public enum PaymentStatus {
-        PENDING,
-        PAID,
-        FAILED,
-        REFUNDED
+        PENDING("Pending"),
+        PAID("Paid"),
+        FAILED("Failed"),
+        REFUNDED("Refunded"),
+        PARTIAL("Partial");
+
+        private final String displayName;
+
+        PaymentStatus(String displayName) {
+            this.displayName = displayName;
+        }
+
+        @Override
+        public String toString() {
+            return displayName;
+        }
+
+        public String getDisplayName() {
+            return displayName;
+        }
     }
 }

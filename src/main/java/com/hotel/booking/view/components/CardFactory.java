@@ -11,18 +11,21 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 
 /**
- * Factory für die Erstellung von wiederverwendbaren Card-Komponenten.
- * Ermöglicht flexible und konsistente Card-Layouts in verschiedenen Views.
+ * Factory for creating reusable card components.
+ * Provides flexible and consistent card layouts for various views.
+ * 
+ * @author Matthias Lohr
  */
 public class CardFactory {
 
-    // ==================== STAT CARD (mit Farbe) ====================
-    
+    // ==================== STAT CARD (with color) ====================
+
     /**
-     * Erstellt eine Statistik-Card mit Label und Wert (ohne Farbe)
-     * @param label Beschriftung (z.B. "Total Rooms")
-     * @param value Anzahl/Wert
-     * @return Div-Komponente als Card
+     * Creates a statistics card with a label and value.
+     * @param label Label (e.g., "Total Rooms")
+     * @param value Value or count
+     * @param color Color of the card
+     * @return Div component representing the card
      */
     public static Div createStatCard(String label, String value) {
         Div card = new Div();
@@ -38,59 +41,49 @@ public class CardFactory {
         return card;
     }
 
-    /**
-     * Erstellt eine Statistik-Card mit Label, Wert und Farbe
-     * @param label Beschriftung (z.B. "Total Rooms")
-     * @param value Anzahl/Wert
-     * @param color Farbe (wird nicht mehr verwendet, nur für Rückwärtskompatibilität)
-     * @return Div-Komponente als Card
-     */
-    public static Div createStatCard(String label, String value, String color) {
-        return createStatCard(label, value);
-    }
-
-    // ==================== STAT CARD MIT ICON ====================
+    // ==================== STAT CARD WITH ICON ====================
 
     /**
-     * Erstellt eine Statistik-Card mit Label, Wert und Icon (für Views wie UserManagement)
-     * @param label Beschriftung
-     * @param value Anzahl/Wert
-     * @param iconType VaadinIcon-Typ
-     * @return Div-Komponente als Card
+     * Creates a statistics card with a label, value, and icon (for views like UserManagement).
+     * @param label Label of the card
+     * @param value Value or count
+     * @param iconType VaadinIcon type
+     * @return Div component representing the card
      */
     public static Div createStatCard(String label, String value, VaadinIcon iconType) {
         Div card = new Div();
         card.addClassName("kpi-card");
-        
+
         Span labelSpan = new Span(label);
         labelSpan.addClassName("kpi-card-title");
-        
+
         Icon icon = iconType.create();
         icon.addClassName("kpi-card-icon");
-        
+
         HorizontalLayout cardHeader = new HorizontalLayout(labelSpan, icon);
         cardHeader.setWidthFull();
         cardHeader.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
         cardHeader.setAlignItems(FlexComponent.Alignment.CENTER);
         cardHeader.getStyle().set("margin-bottom", "0.5rem");
-        
+
         H2 valueHeading = new H2(value);
         valueHeading.getStyle().set("margin", "0");
-        
+
         card.add(cardHeader, valueHeading);
         return card;
     }
 
-    // ==================== CONTENT CARD (mit Grid und Header) ====================
+    // ==================== CONTENT CARD (with Grid and header) ====================
 
     /**
-     * Erstellt eine Content-Card mit Titel, Untertitel, Action-Button und Grid
-     * @param title Haupttitel
-     * @param subtitle Untertitel/Beschreibung
-     * @param buttonText Text für Add-Button (null wenn nicht gewünscht)
-     * @param buttonClickListener Click-Listener für Button (null wenn nicht gewünscht)
-     * @param grid Grid-Komponente mit Daten
-     * @return VerticalLayout als Card
+     * Creates a content card with title, subtitle, action button, and grid.
+     * @param title Main title
+     * @param subtitle Subtitle/description
+     * @param buttonText Text for the add button (null if not needed)
+     * @param buttonClickListener Click listener for the button (null if not needed)
+     * @param buttonColor Color of the button
+     * @param grid Grid component with data
+     * @return VerticalLayout representing the content card
      */
     public static VerticalLayout createContentCard(
             String title,
@@ -104,7 +97,7 @@ public class CardFactory {
         card.setPadding(true);
         card.setSpacing(true);
 
-        // Header mit Titel und Button
+        // Header with title and button
         H3 titleH3 = new H3(title);
         titleH3.addClassName("content-card-title");
 
@@ -119,7 +112,7 @@ public class CardFactory {
         Div titleBox = new Div(titleH3, subtitleP);
         headerRow.add(titleBox);
 
-        // Button hinzufügen wenn vorhanden
+        // Add button if provided
         if (buttonText != null && buttonClickListener != null) {
             Button addBtn = new Button(buttonText, VaadinIcon.PLUS.create());
             addBtn.addClassName("primary-button");
@@ -128,7 +121,7 @@ public class CardFactory {
             headerRow.add(addBtn);
         }
 
-        // Grid konfigurieren
+        // Configure grid
         grid.setWidthFull();
         grid.setHeightFull();
 
@@ -137,82 +130,25 @@ public class CardFactory {
         return card;
     }
 
-    // ==================== SIMPLE CONTENT CARD (ohne Button) ====================
+    // ==================== SIMPLE CONTENT CARD (without button) ====================
 
     /**
-     * Erstellt eine einfache Content-Card mit Titel, Untertitel und Grid (ohne Button)
-     * @param title Haupttitel
-     * @param subtitle Untertitel/Beschreibung
-     * @param grid Grid-Komponente mit Daten
-     * @return VerticalLayout als Card
+     * Creates a simple content card with title, subtitle, and grid (without a button).
+     * @param title Main title
+     * @param subtitle Subtitle/description
+     * @param grid Grid component with data
+     * @return VerticalLayout representing the content card
      */
     public static VerticalLayout createContentCard(String title, String subtitle, Grid<?> grid) {
         return createContentCard(title, subtitle, null, null, grid);
     }
 
-    // ==================== CUSTOM CONTENT CARD ====================
+    // ==================== STATS ROW (flexible) ====================
 
     /**
-     * Erstellt eine Card mit benutzerdefinierten Komponenten
-     * @param title Haupttitel
-     * @param subtitle Untertitel
-     * @param buttonText Text für Add-Button (null wenn nicht gewünscht)
-     * @param buttonClickListener Click-Listener (null wenn nicht gewünscht)
-     * @param buttonColor Farbe des Buttons
-     * @param content Beliebige Komponenten/Content
-     * @return VerticalLayout als Card
-     */
-    public static VerticalLayout createCustomCard(
-            String title,
-            String subtitle,
-            String buttonText,
-            Runnable buttonClickListener,
-            String buttonColor,
-            Component... content) {
-
-        VerticalLayout card = new VerticalLayout();
-        card.addClassName("content-card");
-        card.setPadding(true);
-        card.setSpacing(true);
-
-        // Header
-        H3 titleH3 = new H3(title);
-        titleH3.addClassName("content-card-title");
-
-        Paragraph subtitleP = new Paragraph(subtitle);
-        subtitleP.addClassName("content-card-subtitle");
-
-        HorizontalLayout headerRow = new HorizontalLayout();
-        headerRow.setWidthFull();
-        headerRow.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-        headerRow.setAlignItems(FlexComponent.Alignment.CENTER);
-
-        Div titleBox = new Div(titleH3, subtitleP);
-        headerRow.add(titleBox);
-
-        if (buttonText != null && buttonClickListener != null) {
-            Button addBtn = new Button(buttonText, VaadinIcon.PLUS.create());
-            addBtn.addClassName("primary-button");
-            addBtn.addClassName("content-card-button");
-            addBtn.getStyle().set("background", buttonColor).set("color", "white");
-            addBtn.addClickListener(e -> buttonClickListener.run());
-            headerRow.add(addBtn);
-        }
-
-        card.add(headerRow);
-        for (Component c : content) {
-            card.add(c);
-        }
-
-        return card;
-    }
-
-    // ==================== STATS ROW (flexibel) ====================
-
-    /**
-     * Erstellt eine horizontale Reihe mit Stat-Cards
-     * @param cards Variable Anzahl von Stat-Cards
-     * @return HorizontalLayout mit Cards
+     * Creates a horizontal row with stat cards.
+     * @param cards Variable number of stat cards
+     * @return HorizontalLayout containing the cards
      */
     public static HorizontalLayout createStatsRow(Component... cards) {
         HorizontalLayout statsRow = new HorizontalLayout();
@@ -227,45 +163,38 @@ public class CardFactory {
         return statsRow;
     }
 
-    // ==================== MINIMAL CARD ====================
+    // ==================== KPI CARD (with trend display) ====================
 
     /**
-     * Erstellt eine minimalistische Card für einfache Inhalte
-     * @param content Komponenten die in der Card angezeigt werden
-     * @return Div als Card
+     * Creates a KPI card with title, value, icon, color, and trend display.
+     * @param title Title of the KPI
+     * @param value Value of the KPI
+     * @param iconType VaadinIcon type
+     * @param color Color of the icon
+     * @param trend Trend description (e.g., "+5% since last month")
+     * @param isPositive true if trend is positive, false otherwise
+     * @return Div component representing the KPI card
      */
-    public static Div createMinimalCard(Component... content) {
-        Div card = new Div();
-        card.addClassName("minimal-card");
-
-        for (Component c : content) {
-            card.add(c);
-        }
-
-        return card;
-    }
-
-    //Matthias Lohr
     public Div createKpiCard(String title, String value, VaadinIcon iconType, 
                                    String color, String trend, boolean isPositive) {
         Div card = new Div();
         card.addClassName("kpi-card");
-        
+
         // Header
         Span titleSpan = new Span(title);
         titleSpan.addClassName("kpi-card-title");
-        
+
         Icon icon = iconType.create();
         icon.getStyle().set("color", color);
-        
+
         HorizontalLayout cardHeader = new HorizontalLayout(titleSpan, icon);
         cardHeader.addClassName("kpi-card-header");
         cardHeader.setWidthFull();
-        
+
         // Value
         H2 valueHeading = new H2(value);
         valueHeading.addClassName("kpi-card-value");
-        
+
         // Trend
         Span trendSpan = new Span(trend);
         trendSpan.addClassName("kpi-card-trend");
@@ -274,8 +203,9 @@ public class CardFactory {
         } else {
             trendSpan.addClassName("neutral");
         }
-        
+
         card.add(cardHeader, valueHeading, trendSpan);
         return card;
     }
 }
+

@@ -16,10 +16,17 @@ import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 
+/**
+ * Dialog component displaying detailed booking information.
+ * @author Viktor Götting
+ */
 public class BookingDetailsDialog extends Dialog {
 
     private static final DateTimeFormatter GERMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
+    /**
+     * Creates a new booking details dialog with the given booking.
+     */
     public BookingDetailsDialog(Booking booking) {
         setHeaderTitle("Booking Details");
         setWidth("600px");
@@ -66,6 +73,9 @@ public class BookingDetailsDialog extends Dialog {
         return section;
     }
 
+    /**
+     * Creates a section displaying room type and room number.
+     */
     private Div createRoomSection(Booking booking) {
         Div section = createDetailSection("Room");
         String roomType = booking.getRoomCategory() != null ? booking.getRoomCategory().getName() : "Room";
@@ -74,6 +84,9 @@ public class BookingDetailsDialog extends Dialog {
         return section;
     }
 
+    /**
+     * Creates a section displaying check-in date, check-out date, and guest count.
+     */
     private Div createDatesSection(Booking booking) {
         Div section = createDetailSection("Period & Guests");
         section.add(new Paragraph("Check-in: " + formatDate(booking.getCheckInDate())),
@@ -82,6 +95,9 @@ public class BookingDetailsDialog extends Dialog {
         return section;
     }
 
+    /**
+     * Creates a section displaying price per night and total booking price.
+     */
     private Div createPriceSection(Booking booking) {
         Div section = createDetailSection("Price");
         if (booking.getRoomCategory() != null && booking.getRoomCategory().getPricePerNight() != null) {
@@ -91,6 +107,9 @@ public class BookingDetailsDialog extends Dialog {
         return section;
     }
 
+    /**
+     * Creates a section listing all booking extras with prices.
+     */
     private Div createExtrasSection(Booking booking) {
         Div section = createDetailSection("Extras");
         booking.getExtras().stream()
@@ -108,6 +127,9 @@ public class BookingDetailsDialog extends Dialog {
         return section;
     }
 
+    /**
+     * Creates a section displaying invoice details.
+     */
     private Div createInvoiceSection(Invoice invoice) {
         Div section = createDetailSection("Invoice");
         section.add(new Paragraph("Invoice number: " + invoice.getInvoiceNumber()),
@@ -121,6 +143,9 @@ public class BookingDetailsDialog extends Dialog {
         return section;
     }
 
+    /**
+     * Creates a section displaying cancellation policy.
+     */
     private Div createCancellationSection() {
         Div section = createDetailSection("Cancellation Policy");
         section.add(new Paragraph(
@@ -133,6 +158,9 @@ public class BookingDetailsDialog extends Dialog {
     // HELPER METHODS
     // =========================================================
 
+    /**
+     * Creates a styled status badge for the booking status.
+     */
     private Span createStatusBadge(Booking booking) {
         String statusText = String.valueOf(booking.getStatus());
         Span badge = new Span(statusText);
@@ -141,24 +169,39 @@ public class BookingDetailsDialog extends Dialog {
         return badge;
     }
 
+    /**
+     * Formats a BigDecimal value as a currency string.
+     */
     private String formatMoney(BigDecimal value) {
         if (value == null) return "-";
         return value.setScale(2, RoundingMode.HALF_UP).toPlainString() + " €";
     }
 
+    /**
+     * Formats a Double value as a currency string.
+     */
     private String formatMoney(Double value) {
         if (value == null) return "-";
         return formatMoney(BigDecimal.valueOf(value));
     }
 
+    /**
+     * Formats a LocalDate using German date format (dd.MM.yyyy).
+     */
     private String formatDate(LocalDate date) {
         return date != null ? date.format(GERMAN_DATE_FORMAT) : "-";
     }
 
+    /**
+     * Returns the string representation of a value, or a default value if null.
+     */
     private String getOrElse(Object value, String defaultValue) {
         return value != null ? String.valueOf(value) : defaultValue;
     }
 
+    /**
+     * Creates a Div element with a CSS class name.
+     */
     private Div createStyledDiv(String className) {
         Div div = new Div();
         div.addClassName(className);

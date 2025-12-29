@@ -37,14 +37,9 @@ public class SecurityConfig {
     }
 
     @Bean
-    SecurityFilterChain publicResourcesFilterChain(HttpSecurity http) throws Exception {
-        http.securityMatcher("/images/**", "/VAADIN/**", "/frontend/**")
-            .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
-        return http.build();
-    }
-
-    @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http.authorizeHttpRequests(auth -> auth.requestMatchers("/images/**").permitAll());
+
         http.with(VaadinSecurityConfigurer.vaadin(), configurer ->
                 configurer.loginView(LoginView.class));
 

@@ -63,11 +63,7 @@ public class FeedbackView extends VerticalLayout {
         grid = new Grid<>(Feedback.class, false);
         grid.addColumn(Feedback::getId).setHeader("ID").setSortable(true);
         grid.addColumn(Feedback::getRating).setHeader("Rating").setSortable(true);
-        grid.addColumn(feedback -> 
-            feedback.getComment() != null && feedback.getComment().length() > 50 ? 
-            feedback.getComment().substring(0, 50) + "..." : 
-            feedback.getComment()
-        ).setHeader("Comment").setSortable(true);
+        grid.addColumn(this::formatComment).setHeader("Comment").setSortable(true);
         grid.addColumn(Feedback::getCreatedAt).setHeader("Created At").setSortable(true);
 
         // Load initial data (all feedback)
@@ -92,26 +88,34 @@ public class FeedbackView extends VerticalLayout {
 
     //search method
     private void loadFeedback(String query) {
-        List<Feedback> items;
-        if (query == null || query.isBlank()) {
-            items = feedbackService.findAll();
-        } else {
-            // Search by rating or comment
-            items = feedbackService.findAll().stream()
-                    .filter(feedback -> {
-                        // Try to match rating first
-                        try {
-                            Integer rating = Integer.parseInt(query);
-                            return feedback.getRating() != null && feedback.getRating().equals(rating);
-                        } catch (NumberFormatException e) {
-                            // If not a number, search in comment
-                            return feedback.getComment() != null && 
-                                    feedback.getComment().toLowerCase().contains(query.toLowerCase());
-                        }
-                    })
-                    .collect(Collectors.toList());
-        }
+        List<Feedback> items = applySearchFilter(feedbackService.findAll(), query);
         grid.setItems(items);
+    }
+
+    private List<Feedback> applySearchFilter(List<Feedback> items, String query) {
+        if (query == null || query.isBlank()) {
+            return items;
+        }
+        return items.stream()
+                .filter(feedback -> matchesFeedback(feedback, query))
+                .collect(Collectors.toList());
+    }
+
+    private boolean matchesFeedback(Feedback feedback, String query) {
+        try {
+            Integer rating = Integer.parseInt(query);
+            return feedback.getRating() != null && feedback.getRating().equals(rating);
+        } catch (NumberFormatException e) {
+            return feedback.getComment() != null && 
+                    feedback.getComment().toLowerCase().contains(query.toLowerCase());
+        }
+    }
+
+    private String formatComment(Feedback feedback) {
+        if (feedback.getComment() != null && feedback.getComment().length() > 50) {
+            return feedback.getComment().substring(0, 50) + "...";
+        }
+        return feedback.getComment();
     }
 
     //dialog for adding new feedback with Binder

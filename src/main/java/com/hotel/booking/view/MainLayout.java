@@ -158,6 +158,7 @@ public class MainLayout extends AppLayout {
                 createNavLink("Search Rooms", GuestPortalView.class, VaadinIcon.BED),
                 createNavLink("My Bookings", MyBookingsView.class, VaadinIcon.CALENDAR),
                 createNavLink("My Payments", PaymentView.class, VaadinIcon.CREDIT_CARD),
+                createNavLink("My Invoices", InvoiceView.class, VaadinIcon.FILE_TEXT),
                 createNavLink("My Reviews", MyReviewsView.class, VaadinIcon.COMMENT)
             );
         } else if (role == UserRole.RECEPTIONIST) {

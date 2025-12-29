@@ -35,16 +35,18 @@ public class UserService {
     private final BookingCancellationRepository bookingCancellationRepository;
     private final BookingRepository bookingRepository;
     private final BcryptPasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     public UserService(UserRepository userRepository,
                        BookingModificationRepository bookingModificationRepository,
                        BookingCancellationRepository bookingCancellationRepository, BookingRepository bookingRepository,
-                       BcryptPasswordEncoder passwordEncoder) {
+                       BcryptPasswordEncoder passwordEncoder, EmailService emailService) {
         this.userRepository = userRepository;
         this.bookingModificationRepository = bookingModificationRepository;
         this.bookingCancellationRepository = bookingCancellationRepository;
         this.bookingRepository = bookingRepository;
         this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
     }
 
     /**
@@ -218,6 +220,16 @@ public class UserService {
         
         User savedUser = userRepository.save(user);
         log.info("User created: {}", savedUser.getUsername());
+        
+        // Viktor Götting Send welcome email
+        if (savedUser.getEmail() != null && !savedUser.getEmail().isBlank()) {
+            try {
+                emailService.sendWelcomeEmail(savedUser);
+            } catch (Exception e) {
+                // Log error but don't fail the user creation
+                log.warn("Failed to send welcome email to {}: {}", savedUser.getEmail(), e.getMessage());
+            }
+        }
         
         return savedUser;
     }
