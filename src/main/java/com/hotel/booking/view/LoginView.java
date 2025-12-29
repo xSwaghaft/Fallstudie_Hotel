@@ -18,13 +18,15 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 
-@Route("")
+@Route("login")
+@RouteAlias("")
 @AnonymousAllowed
 @PageTitle("Welcome to Hotelium!")
 @CssImport("./themes/hotel/styles.css")
@@ -41,7 +43,7 @@ import com.vaadin.flow.server.auth.AnonymousAllowed;
  * @author Artur Derr
  * @author Viktor Götting
  */
-public class LoginView extends Div implements BeforeEnterObserver {
+public class LoginView extends Div { 
 
     private final UserService userService;
     private final SessionService sessionService;
@@ -130,7 +132,8 @@ public class LoginView extends Div implements BeforeEnterObserver {
         try {
             var user = userService.authenticate(credentials.getUsername(), credentials.getPassword());
             if (user.isPresent()) {
-                sessionService.login(user.get());
+                // Establish Spring Security authentication (required for Vaadin @RolesAllowed view protection).
+                sessionService.login(credentials.getUsername(), credentials.getPassword());
                 navigateAfterLogin(user.get().getRole());
             } else {
                 Notification.show("Invalid username or password", 3000, Notification.Position.MIDDLE);
@@ -143,6 +146,12 @@ public class LoginView extends Div implements BeforeEnterObserver {
             } else {
                 throw ex;
             }
+        } catch (DisabledException ex) {
+            Notification.show("Account is inactive", 3000, Notification.Position.MIDDLE);
+            loginForm.clearPassword();
+        } catch (BadCredentialsException ex) {
+            Notification.show("Invalid username or password", 3000, Notification.Position.MIDDLE);
+            loginForm.clearPassword();
         }
     }
 
@@ -203,17 +212,5 @@ public class LoginView extends Div implements BeforeEnterObserver {
         layout.add(emailField, buttonLayout);
         dialog.add(layout);
         dialog.open();
-    }
-
-    /**
-     * Redirects already authenticated users away from the login screen.
-     *
-     * @param event navigation event
-     */
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        if (sessionService.isLoggedIn()) {
-            navigateAfterLogin(sessionService.getCurrentRole());
-        }
     }
 }

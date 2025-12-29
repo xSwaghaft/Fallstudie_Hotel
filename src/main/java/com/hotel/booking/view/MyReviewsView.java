@@ -26,8 +26,6 @@ import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +35,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
+import jakarta.annotation.security.RolesAllowed;
+
 /**
  * View for displaying and managing guest reviews.
  */
@@ -44,7 +44,8 @@ import java.util.stream.Collectors;
 @PageTitle("My Reviews")
 @CssImport("./themes/hotel/styles.css")
 @CssImport("./themes/hotel/views/my-reviews.css")
-public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver {
+@RolesAllowed(UserRole.GUEST_VALUE)
+public class MyReviewsView extends VerticalLayout {
 
     private final SessionService sessionService;
     private final BookingService bookingService;
@@ -293,12 +294,5 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
             return List.of();
         }
         return bookingService.findPastBookingsForGuest(user.getId());
-    }
-
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        if (!sessionService.isLoggedIn() || !sessionService.hasRole(UserRole.GUEST)) {
-            event.rerouteTo(LoginView.class);
-        }
     }
 }

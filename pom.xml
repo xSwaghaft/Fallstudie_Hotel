@@ -85,6 +85,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
+        <!-- Spring Security (required for Vaadin view protection via @RolesAllowed/@PermitAll) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
         <!-- Spring Security for password encoding and authentication -->
         <dependency>
             <groupId>org.springframework.security</groupId>

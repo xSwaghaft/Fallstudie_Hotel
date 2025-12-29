@@ -25,11 +25,14 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
+import jakarta.annotation.security.RolesAllowed;
+
 @Route(value = "dashboard", layout = MainLayout.class)
 @PageTitle("Dashboard")
 @CssImport("./themes/hotel/styles.css")
 @CssImport("./themes/hotel/views/dashboard.css")
-public class DashboardView extends VerticalLayout implements BeforeEnterObserver {
+@RolesAllowed({UserRole.RECEPTIONIST_VALUE, UserRole.MANAGER_VALUE})
+public class DashboardView extends VerticalLayout {
 
     private final SessionService sessionService;
     private final RoomService roomService;
@@ -244,12 +247,5 @@ public class DashboardView extends VerticalLayout implements BeforeEnterObserver
         badge.addClassName("status-badge");
         badge.addClassName("status-" + booking.getStatus().toString().toLowerCase());
         return badge;
-    }
-
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        if (!sessionService.isLoggedIn()) {
-            event.rerouteTo(LoginView.class);
-        }
     }
 }

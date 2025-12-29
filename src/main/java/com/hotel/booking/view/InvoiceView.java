@@ -2,7 +2,6 @@ package com.hotel.booking.view;
 
 import com.hotel.booking.entity.Invoice;
 import com.hotel.booking.entity.UserRole;
-import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.InvoiceService;
 import com.hotel.booking.service.InvoicePdfService;
 import com.vaadin.flow.component.Component;
@@ -24,7 +23,6 @@ import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
-import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
@@ -34,10 +32,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import jakarta.annotation.security.RolesAllowed;
 
 /**
  * Invoice View - Manage invoices (Receptionist and Manager only).
@@ -45,10 +43,12 @@ import org.slf4j.LoggerFactory;
 @Route(value = "invoices", layout = MainLayout.class)
 @PageTitle("Invoices")
 @CssImport("./themes/hotel/styles.css")
+@RolesAllowed({UserRole.RECEPTIONIST_VALUE, UserRole.MANAGER_VALUE})
 public class InvoiceView extends VerticalLayout {
 
     private static final Logger logger = LoggerFactory.getLogger(InvoiceView.class);
     private final InvoiceService invoiceService;
+    @SuppressWarnings("unused")
     private final InvoicePdfService invoicePdfService;
     private Grid<Invoice> grid;
     private static final DateTimeFormatter GERMAN_DATETIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");

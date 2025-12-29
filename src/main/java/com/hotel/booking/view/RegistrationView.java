@@ -1,7 +1,6 @@
 package com.hotel.booking.view;
 
 import com.hotel.booking.service.UserService;
-import com.hotel.booking.security.SessionService;
 import com.hotel.booking.view.components.RegistrationForm;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -16,8 +15,6 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
@@ -38,10 +35,9 @@ import com.vaadin.flow.server.auth.AnonymousAllowed;
 @CssImport("./themes/hotel/styles.css")
 @CssImport("./themes/hotel/views/login.css")
 @CssImport("./themes/hotel/views/registration.css")
-public class RegistrationView extends Div implements BeforeEnterObserver {
+public class RegistrationView extends Div {
 
     private final UserService userService;
-    private final SessionService sessionService;
 
     /**
      * Constructs a RegistrationView with necessary services.
@@ -50,11 +46,9 @@ public class RegistrationView extends Div implements BeforeEnterObserver {
      * </p>
      *
      * @param userService the service for creating new users
-     * @param sessionService the service for managing user sessions
      */
-    public RegistrationView(UserService userService, SessionService sessionService) {
+    public RegistrationView(UserService userService) {
         this.userService = userService;
-        this.sessionService = sessionService;
 
         addClassName("registration-view");
         setSizeFull();
@@ -181,21 +175,5 @@ public class RegistrationView extends Div implements BeforeEnterObserver {
         layout.add(closeBtn);
         dialog.add(layout);
         dialog.open();
-    }
-
-    /**
-     * Handles authorization before entering the registration view.
-     * <p>
-     * If the user is already logged in, redirects them to the dashboard.
-     * Otherwise, allows access to the registration page.
-     * </p>
-     *
-     * @param event the BeforeEnterEvent containing navigation information
-     */
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        if (sessionService != null && sessionService.getCurrentUser() != null) {
-            UI.getCurrent().navigate(DashboardView.class);
-        }
     }
 }

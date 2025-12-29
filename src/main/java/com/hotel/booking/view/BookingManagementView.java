@@ -34,12 +34,15 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.annotation.security.RolesAllowed;
+
 //Matthias Lohr
 @Route(value = "bookings", layout = MainLayout.class)
 @PageTitle("Booking Management")
 @CssImport("./themes/hotel/styles.css")
 @CssImport("./themes/hotel/views/booking-management.css")
-public class BookingManagementView extends VerticalLayout implements BeforeEnterObserver {
+@RolesAllowed({UserRole.RECEPTIONIST_VALUE, UserRole.MANAGER_VALUE})
+public class BookingManagementView extends VerticalLayout {
 
     private final SessionService sessionService;
     private final BookingService bookingService;
@@ -616,12 +619,5 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
             })
             .toList();
         grid.setItems(filtered);
-    }
-
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        if (!sessionService.isLoggedIn() || !sessionService.hasAnyRole(UserRole.RECEPTIONIST, UserRole.MANAGER)) {
-            event.rerouteTo(LoginView.class);
-        }
     }
 }

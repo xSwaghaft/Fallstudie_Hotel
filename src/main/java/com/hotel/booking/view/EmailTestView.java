@@ -1,5 +1,6 @@
 package com.hotel.booking.view;
 
+import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.service.EmailService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.notification.Notification;
@@ -9,8 +10,11 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
+import jakarta.annotation.security.RolesAllowed;
+
 @Route("email-test")
 @PageTitle("Email Test")
+@RolesAllowed(UserRole.MANAGER_VALUE)
 public class EmailTestView extends VerticalLayout {
 
     @SuppressWarnings("unused")

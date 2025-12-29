@@ -14,5 +14,10 @@ public enum UserRole {
     /** Receptionist role – hotel staff handling check-ins, bookings, and guest inquiries. */
     RECEPTIONIST,
     /** Manager role – administrative staff with full system access and management capabilities. */
-    MANAGER
+    MANAGER;
+
+    // String constants for use in annotations (which require compile-time constants)
+    public static final String GUEST_VALUE = "GUEST";
+    public static final String RECEPTIONIST_VALUE = "RECEPTIONIST";
+    public static final String MANAGER_VALUE = "MANAGER";
 }

@@ -36,13 +36,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import jakarta.annotation.security.RolesAllowed;
+
 // @Route: registriert die View unter /my-bookings im MainLayout.
 // @CssImport: bindet globale und Guest-spezifische Styles ein.
 @Route(value = "my-bookings", layout = MainLayout.class)
 @PageTitle("My Bookings")
 @CssImport("./themes/hotel/styles.css")
 @CssImport("./themes/hotel/guest.css")
-public class MyBookingsView extends VerticalLayout implements BeforeEnterObserver {
+@RolesAllowed(UserRole.GUEST_VALUE)
+public class MyBookingsView extends VerticalLayout {
 
     private final SessionService sessionService;
     private final BookingService bookingService;
@@ -653,13 +656,5 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
         dialog.add(new VerticalLayout(tabs, pages));
         dialog.getFooter().add(close);
         dialog.open();
-    }
-
-    // Zugriffsschutz: Nur eingeloggte Gäste dürfen die Seite sehen, sonst Login-Redirect.
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        if (!sessionService.isLoggedIn() || !sessionService.hasRole(UserRole.GUEST)) {
-            event.rerouteTo(LoginView.class);
-        }
     }
 }

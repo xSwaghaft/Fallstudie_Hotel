@@ -26,13 +26,16 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.annotation.security.RolesAllowed;
+
 
 @Route(value = "user-management", layout = MainLayout.class)
 @PageTitle("User Management")
 @CssImport("./themes/hotel/styles.css")
 @CssImport("./themes/hotel/views/card-factory.css")
 @CssImport("./themes/hotel/views/user-management.css")
-public class UserManagementView extends VerticalLayout implements BeforeEnterObserver {
+@RolesAllowed(UserRole.MANAGER_VALUE)
+public class UserManagementView extends VerticalLayout {
 
     private final SessionService sessionService;
     private final UserService userService;
@@ -424,12 +427,5 @@ public class UserManagementView extends VerticalLayout implements BeforeEnterObs
         dialog.add(message);
         dialog.getFooter().add(new HorizontalLayout(cancelBtn, confirmBtn));
         dialog.open();
-    }
-
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        if (!sessionService.isLoggedIn() || !sessionService.hasRole(UserRole.MANAGER)) {
-            event.rerouteTo(LoginView.class);
-        }
     }
 }

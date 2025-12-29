@@ -2,7 +2,6 @@ package com.hotel.booking.view;
 
 import com.hotel.booking.entity.RoomImage;
 import com.hotel.booking.entity.UserRole;
-import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.RoomCategoryService;
 import com.hotel.booking.service.RoomImageService;
 import com.hotel.booking.view.components.CardFactory;
@@ -18,11 +17,11 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import java.util.List;
+
+import jakarta.annotation.security.RolesAllowed;
 
 /**
  * Image Management View for managing room images and their category assignments.
@@ -45,9 +44,9 @@ import java.util.List;
 @PageTitle("Image Management")
 @CssImport("./themes/hotel/styles.css")
 @CssImport("./themes/hotel/views/image-management.css")
-public class ImageManagementView extends VerticalLayout implements BeforeEnterObserver {
+@RolesAllowed({UserRole.RECEPTIONIST_VALUE, UserRole.MANAGER_VALUE})
+public class ImageManagementView extends VerticalLayout {
 
-    private final SessionService sessionService;
     private final RoomCategoryService roomCategoryService;
     private final RoomImageService roomImageService;
 
@@ -66,10 +65,8 @@ public class ImageManagementView extends VerticalLayout implements BeforeEnterOb
      * @param roomCategoryService the service for managing room categories
      * @param roomImageService the service for managing room images
      */
-    public ImageManagementView(SessionService sessionService,
-                               RoomCategoryService roomCategoryService,
+    public ImageManagementView(RoomCategoryService roomCategoryService,
                                RoomImageService roomImageService) {
-        this.sessionService = sessionService;
         this.roomCategoryService = roomCategoryService;
         this.roomImageService = roomImageService;
 
@@ -282,42 +279,5 @@ public class ImageManagementView extends VerticalLayout implements BeforeEnterOb
         notification.setPosition(Notification.Position.BOTTOM_CENTER);
         notification.setDuration(3000);
         notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
-    }
-
-    /**
-     * Checks authorization before entering the view.
-     * 
-     * Verifies that the user is logged in and has the required role (RECEPTIONIST or MANAGER).
-     * Processes optional categoryId query parameter to set the target category for image assignment.
-     * Redirects to login view if authorization check fails.
-     * 
-     * @param event the before-enter event containing navigation context
-     */
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        if (!sessionService.isLoggedIn() || 
-            !sessionService.hasAnyRole(UserRole.RECEPTIONIST, UserRole.MANAGER)) {
-            event.rerouteTo(LoginView.class);
-            return;
-        }
-
-        String categoryIdParam = event.getLocation().getQueryParameters().getParameters()
-                .getOrDefault("categoryId", List.of())
-                .stream()
-                .findFirst()
-                .orElse(null);
-
-        if (categoryIdParam != null && !categoryIdParam.isBlank()) {
-            try {
-                Long categoryId = Long.parseLong(categoryIdParam);
-                assignToCategory = roomCategoryService.getRoomCategoryById(categoryId).orElse(null);
-            } catch (NumberFormatException ignored) {
-                assignToCategory = null;
-            }
-        } else {
-            assignToCategory = null;
-        }
-
-        refreshImageData();
     }
 }

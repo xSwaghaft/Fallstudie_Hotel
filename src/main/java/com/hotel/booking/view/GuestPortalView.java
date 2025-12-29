@@ -30,10 +30,10 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.data.binder.ValidationException;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+
+import jakarta.annotation.security.RolesAllowed;
 
 /**
  * Guest Portal View - Main view for guests to search and book rooms.
@@ -42,7 +42,8 @@ import com.vaadin.flow.router.Route;
 @PageTitle("Guest Portal")
 @CssImport("./themes/hotel/styles.css")
 @CssImport("./themes/hotel/views/guest-portal.css")
-public class GuestPortalView extends VerticalLayout implements BeforeEnterObserver {
+@RolesAllowed(UserRole.GUEST_VALUE)
+public class GuestPortalView extends VerticalLayout {
 
     // Services
     private final SessionService sessionService;
@@ -231,13 +232,6 @@ public class GuestPortalView extends VerticalLayout implements BeforeEnterObserv
         for (HasSize field : fields) {
             layout.setFlexGrow(1, field);
             field.setWidthFull();
-        }
-    }
-
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        if (!sessionService.isLoggedIn() || !sessionService.hasRole(UserRole.GUEST)) {
-            event.rerouteTo(LoginView.class);
         }
     }
 }

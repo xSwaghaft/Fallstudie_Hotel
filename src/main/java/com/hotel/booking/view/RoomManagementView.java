@@ -4,7 +4,6 @@ import com.hotel.booking.entity.BookingExtra;
 import com.hotel.booking.entity.Room;
 import com.hotel.booking.entity.RoomCategory;
 import com.hotel.booking.entity.UserRole;
-import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.BookingExtraService;
 import com.hotel.booking.service.RoomCategoryService;
 import com.hotel.booking.service.RoomManagementDeleteActionType;
@@ -21,6 +20,8 @@ import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.*;
 
+import jakarta.annotation.security.RolesAllowed;
+
 /**
  * Room Management View - Main user interface for managing rooms, room categories, and extras.
  * Only accessible to RECEPTIONIST or MANAGER roles.
@@ -34,10 +35,9 @@ import com.vaadin.flow.router.*;
 @CssImport("./themes/hotel/styles.css")
 @CssImport("./themes/hotel/views/card-factory.css")
 @CssImport("./themes/hotel/views/room-management.css")
-public class RoomManagementView extends VerticalLayout implements BeforeEnterObserver {
+@RolesAllowed({UserRole.RECEPTIONIST_VALUE, UserRole.MANAGER_VALUE})
+public class RoomManagementView extends VerticalLayout {
 
-    /** Service for managing user sessions and authentication */
-    private final SessionService sessionService;
     /** Service for room CRUD operations */
     private final RoomService roomService;
     /** Service for managing room categories */
@@ -66,11 +66,10 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
      * @param roomCategoryService service for room category operations
      * @param extraService service for booking extras operations
      */
-    public RoomManagementView(SessionService sessionService, 
+    public RoomManagementView( 
                                RoomService roomService,
                                RoomCategoryService roomCategoryService,
                                 BookingExtraService extraService) {
-        this.sessionService = sessionService;
         this.roomService = roomService;
         this.roomCategoryService = roomCategoryService;
         this.extraService = extraService;
@@ -376,30 +375,4 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
         dialogManager.showErrorDialog(title, message);
     }
 
-    /**
-     * Checks user authorization before entering the view.
-     * Redirects non-authorized users to the login page using {@link LoginView}.
-     * Part of the {@link BeforeEnterObserver} lifecycle.
-     *
-     * @param event the navigation event
-     */
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        if (!isUserAuthorized()) event.rerouteTo(LoginView.class);
-    }
-
-    /**
-     * Checks if the current user has the required authorization level (RECEPTIONIST or MANAGER).
-     * Verifies that the user is logged in and has one of the required roles.
-     *
-     * @return true if the user is authorized, false otherwise
-     */
-    private boolean isUserAuthorized() {
-        try {
-            return sessionService != null && sessionService.isLoggedIn() && 
-                sessionService.hasAnyRole(UserRole.RECEPTIONIST, UserRole.MANAGER);
-        } catch (Exception e) {
-            return false;
-        }
-    }
 }

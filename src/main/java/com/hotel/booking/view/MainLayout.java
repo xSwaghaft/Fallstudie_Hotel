@@ -20,6 +20,7 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.HighlightConditions;
 import com.vaadin.flow.router.RouterLink;
+import jakarta.annotation.security.PermitAll;
 
 @CssImport("./themes/hotel/styles.css")
 /**
@@ -32,6 +33,7 @@ import com.vaadin.flow.router.RouterLink;
  *
  * @author Artur Derr
  */
+@PermitAll
 public class MainLayout extends AppLayout {
 
     private final SessionService sessionService;
@@ -164,7 +166,8 @@ public class MainLayout extends AppLayout {
                 createNavLink("Bookings", BookingManagementView.class, VaadinIcon.CALENDAR),
                 createNavLink("Payments", PaymentView.class, VaadinIcon.CREDIT_CARD),
                 createNavLink("Invoices", InvoiceView.class, VaadinIcon.FILE_TEXT),
-                createNavLink("Room Management", RoomManagementView.class, VaadinIcon.BED)
+                createNavLink("Room Management", RoomManagementView.class, VaadinIcon.BED),
+                createNavLink("Image Management", ImageManagementView.class, VaadinIcon.PICTURE)
             );
         } else if (role == UserRole.MANAGER) {
             navLinks.add(
