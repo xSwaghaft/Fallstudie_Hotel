@@ -6,294 +6,340 @@ import com.hotel.booking.entity.RoomCategory;
 import com.hotel.booking.entity.RoomStatus;
 import com.hotel.booking.repository.BookingRepository;
 import com.hotel.booking.repository.RoomRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
 
-/* Service-Klasse für Room-Entität.
- * Enthält Business-Logik und CRUD-Operationen für Zimmer.*/
+/**
+ * Service class for managing Room entities.
+ * <p>
+ * Provides CRUD operations and business logic for rooms including:
+ * </p>
+ * <ul>
+ *   <li>Creating, reading, updating, and deleting rooms</li>
+ *   <li>Room activation/deactivation (soft delete)</li>
+ *   <li>Room status management</li>
+ *   <li>Retrieval of room statistics</li>
+ *   <li>Filtering rooms by status and category</li>
+ * </ul>
+ *
+ * @author Artur Derr
+ */
 @Service
 @Transactional
 public class RoomService {
 
+    private static final Logger logger = LoggerFactory.getLogger(RoomService.class);
+
+    // Error messages
+    private static final String ROOM_NOT_FOUND_MESSAGE = "Room with ID %d not found";
+    private static final String BOOKING_REFERENCE_MESSAGE = "Cannot delete Room \"%s\": %d bookings reference this Room";
+    private static final String CATEGORY_REQUIRED_MESSAGE = "Category is required";
+    private static final String ROOM_NUMBER_REQUIRED_MESSAGE = "Room number is required";
+    private static final String CATEGORY_PRICE_REQUIRED_MESSAGE = "Category price must be set";
+    private static final String STATUS_REQUIRED_MESSAGE = "Status is required";
+
     private final RoomRepository roomRepository;
     private final BookingRepository bookingRepository;
+    private final RoomCategoryService roomCategoryService;
 
-    @Autowired
-    public RoomService(RoomRepository roomRepository, BookingRepository bookingRepository) {
+    /**
+     * Constructs a new RoomService with required dependencies.
+     *
+     * @param roomRepository the repository for Room entities
+     * @param bookingRepository the repository for Booking entities
+     * @param roomCategoryService the service for managing room categories
+     */
+    public RoomService(RoomRepository roomRepository, BookingRepository bookingRepository, RoomCategoryService roomCategoryService) {
         this.roomRepository = roomRepository;
         this.bookingRepository = bookingRepository;
+        this.roomCategoryService = roomCategoryService;
     }
 
-    // ==================== CRUD-Operationen ====================
-
-    /* Gibt alle Rooms zurück */
+    /**
+     * Retrieves all rooms from the database.
+     *
+     * @return a list of all Room entities
+     */
     public List<Room> getAllRooms() {
         return roomRepository.findAll();
     }
 
-    /* Findet einen Room anhand der ID */
+    /**
+     * Retrieves a room by its ID.
+     *
+     * @param id the ID of the room to retrieve
+     * @return an Optional containing the Room if found, empty otherwise
+     */
     public Optional<Room> getRoomById(Long id) {
         return roomRepository.findById(id);
     }
 
-    /* Speichert einen Room (Create oder Update) */
+    /**
+     * Saves a room (create or update operation).
+     *
+     * @param room the Room entity to save
+     * @return the saved Room
+     */
     public Room saveRoom(Room room) {
         return roomRepository.save(room);
     }
 
-    /* Löscht einen Room oder setzt ihn auf Inactive */
+    /**
+     * Deletes a room by ID (soft delete with booking validation).
+     * <p>
+     * If the room is active, it will be set to inactive instead of permanent deletion.
+     * Permanent deletion only occurs if there are no related bookings.
+     * </p>
+     *
+     * @param id the ID of the room to delete
+     * @throws IllegalStateException if the room cannot be deleted due to related bookings
+     */
     public void deleteRoom(Long id) {
-        Optional<Room> roomOpt = roomRepository.findById(id);
-        if (roomOpt.isPresent()) {
-            Room room = roomOpt.get();
-            
-            // Wenn Status nicht Inactive ist, setze ihn auf Inactive
-            if (room.getActive() != null && room.getActive()) {
-                room.setActive(false);
-                room.setStatus(RoomStatus.INACTIVE);
-                roomRepository.save(room);
-                return;
-            }
-            
-            // Prüfe auf Bookings, die diesen Room referenzieren
-            List<Booking> relatedBookings = bookingRepository.findByRoom_Id(id);
-            if (relatedBookings != null && !relatedBookings.isEmpty()) {
-                throw new IllegalStateException(
-                    "Cannot delete Room \"" + room.getRoomNumber() + "\": " +
-                    relatedBookings.size() + " bookings reference this Room");
-            }
-            
-            // Lösche den Room
-            roomRepository.deleteById(id);
+        Room room = findRoomById(id);
+
+        // If the room is active, deactivate it instead of permanent deletion
+        if (isRoomActive(room)) {
+            deactivateRoom(room);
+            return;
         }
+
+        // Check for bookings that reference this Room
+        List<Booking> relatedBookings = getRelatedBookings(id);
+        if (!relatedBookings.isEmpty()) {
+            String errorMsg = String.format(BOOKING_REFERENCE_MESSAGE, room.getRoomNumber(), relatedBookings.size());
+            logger.warn(errorMsg);
+            throw new IllegalStateException(errorMsg);
+        }
+
+        // Perform permanent deletion
+        roomRepository.deleteById(id);
+        logger.info("Room with ID {} permanently deleted", id);
     }
 
-    /* Prüft ob ein Room gelöscht werden kann und gibt die Aktion zurück */
-    public RoomDeleteAction getDeletionAction(Long roomId) {
-        Optional<Room> roomOpt = roomRepository.findById(roomId);
-        
-        if (roomOpt.isPresent()) {
-            Room room = roomOpt.get();
-            
-            // Wenn aktiv, dann kann auf Inactive gesetzt werden
-            if (room.getActive() != null && room.getActive()) {
-                return new RoomDeleteAction(RoomDeleteActionType.SET_INACTIVE, 
-                    null, "Deactivate Room", "Set to INACTIVE",
-                    "Set Room {roomNumber} to INACTIVE? It will no longer be available for bookings.",
-                    "Room set to INACTIVE!");
-            }
-            
-            // Prüfe auf Bookings mit diesem Room
-            List<Booking> relatedBookings = bookingRepository.findByRoom_Id(roomId);
-            if (relatedBookings != null && !relatedBookings.isEmpty()) {
-                String errorMsg = "Cannot delete Room \"" + room.getRoomNumber() + "\": " +
-                    relatedBookings.size() + " bookings reference this Room";
-                return new RoomDeleteAction(RoomDeleteActionType.BLOCKED_BY_BOOKINGS, 
-                    errorMsg, "Cannot Delete Room", null, null, null);
-            }
-            
-            // Wenn Inactive und keine Bookings -> echtes Löschen möglich
-            return new RoomDeleteAction(RoomDeleteActionType.PERMANENT_DELETE, 
-                null, "Delete Room Permanently", "Delete Permanently",
-                "This room is currently INACTIVE. Delete it permanently? This cannot be undone!",
-                "Room deleted permanently!");
+    /**
+     * Determines the appropriate deletion action type for a room.
+     * <p>
+     * Returns information about whether the room can be deactivated, permanently deleted,
+     * or if deletion is blocked due to related bookings.
+     * </p>
+     *
+     * @param roomId the ID of the room to check
+     * @return the RoomManagementDeleteActionType for this room
+     * @throws IllegalArgumentException if the room with the specified ID is not found
+     */
+    public RoomManagementDeleteActionType getDeletionActionType(Long roomId) {
+        Room room = findRoomById(roomId);
+
+        // If active, it can be set to inactive
+        if (isRoomActive(room)) {
+            return RoomManagementDeleteActionType.SET_INACTIVE;
         }
-        
-        throw new IllegalArgumentException("Room mit ID " + roomId + " nicht gefunden");
+
+        // Check for bookings that reference this Room
+        if (hasRelatedBookings(roomId)) {
+            return RoomManagementDeleteActionType.BLOCKED_BY_BOOKINGS;
+        }
+
+        // If Inactive and no Bookings -> actual deletion possible
+        return RoomManagementDeleteActionType.PERMANENT_DELETE;
     }
 
-    // ==================== Query-Methoden ====================
-
-    /* Findet Rooms nach Status */
-    public List<Room> findByStatus(RoomStatus status) {
-        return roomRepository.findByStatus(status);
+    /**
+     * Checks if a room has related bookings.
+     *
+     * @param roomId the ID of the room
+     * @return a list of related bookings, or empty list if none exist
+     */
+    public List<Booking> getRelatedBookings(Long roomId) {
+        return bookingRepository.findByRoom_Id(roomId);
     }
 
-    /* Findet Rooms nach Kategorie */
-    public List<Room> findByCategory(RoomCategory category) {
-        return roomRepository.findByCategory(category);
+    // ==================== Private Helper Methods ====================
+
+    /**
+     * Finds a room by ID or throws an exception if not found.
+     *
+     * @param id the ID of the room to find
+     * @return the Room entity
+     * @throws IllegalArgumentException if the room is not found
+     */
+    private Room findRoomById(Long id) {
+        return roomRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException(String.format(ROOM_NOT_FOUND_MESSAGE, id)));
     }
 
-    /* Findet alle verfügbaren Rooms */
-    public List<Room> getAvailableRooms() {
-        return roomRepository.findByStatus(RoomStatus.AVAILABLE);
+    /**
+     * Checks if a room is active.
+     *
+     * @param room the Room to check
+     * @return {@code true} if the room is active, {@code false} otherwise
+     */
+    private boolean isRoomActive(Room room) {
+        return room.getActive() != null && room.getActive();
     }
 
-    // ==================== Inner Classes ====================
-
-    public enum RoomDeleteActionType {
-        SET_INACTIVE,
-        PERMANENT_DELETE,
-        BLOCKED_BY_BOOKINGS
+    /**
+     * Checks if a room has any related bookings.
+     *
+     * @param roomId the ID of the room
+     * @return {@code true} if there are related bookings, {@code false} otherwise
+     */
+    private boolean hasRelatedBookings(Long roomId) {
+        return !bookingRepository.findByRoom_Id(roomId).isEmpty();
     }
 
-    public static class RoomDeleteAction {
-        private final RoomDeleteActionType type;
-        private final String errorMessage;
-        private final String dialogTitle;
-        private final String buttonLabel;
-        private final String messageTemplate;
-        private final String successMessage;
-
-        public RoomDeleteAction(RoomDeleteActionType type, String errorMessage, 
-                                String dialogTitle, String buttonLabel, 
-                                String messageTemplate, String successMessage) {
-            this.type = type;
-            this.errorMessage = errorMessage;
-            this.dialogTitle = dialogTitle;
-            this.buttonLabel = buttonLabel;
-            this.messageTemplate = messageTemplate;
-            this.successMessage = successMessage;
-        }
-
-        public RoomDeleteActionType getType() {
-            return type;
-        }
-
-        public String getErrorMessage() {
-            return errorMessage;
-        }
-
-        public String getDialogTitle() {
-            return dialogTitle;
-        }
-
-        public String getButtonLabel() {
-            return buttonLabel;
-        }
-
-        public String getMessageTemplate() {
-            return messageTemplate;
-        }
-
-        public String getSuccessMessage() {
-            return successMessage;
-        }
-
-        public boolean isBlocked() {
-            return type == RoomDeleteActionType.BLOCKED_BY_BOOKINGS;
-        }
-    }
-
-    // ==================== Business-Logik ====================
-
-    /* Gibt Statistiken über alle Rooms zurück
-     * Diese Methode wird von der View aufgerufen */
-    public RoomStatistics getStatistics() {
-        List<Room> allRooms = roomRepository.findAll();
-        
-        long totalRooms = allRooms.size();
-        
-        long availableRooms = allRooms.stream()
-            .filter(room -> RoomStatus.AVAILABLE.equals(room.getStatus()))
-            .count();
-        
-        long occupiedRooms = allRooms.stream()
-            .filter(room -> RoomStatus.OCCUPIED.equals(room.getStatus()))
-            .count();
-        
-        long cleaningRooms = allRooms.stream()
-            .filter(room -> RoomStatus.CLEANING.equals(room.getStatus()))
-            .count();
-        
-        return new RoomStatistics(totalRooms, availableRooms, occupiedRooms, cleaningRooms);
-    }
-
-    /* Ändert den Status eines Rooms */
+    /**
+     * Changes the status of a room.
+     *
+     * @param roomId the ID of the room whose status is to be changed
+     * @param status the new status for the room
+     * @return the updated Room entity
+     * @throws IllegalArgumentException if the room with the specified ID is not found
+     */
     public Room changeStatus(Long roomId, RoomStatus status) {
-        Optional<Room> roomOpt = roomRepository.findById(roomId);
-        if (roomOpt.isPresent()) {
-            Room room = roomOpt.get();
-            room.setStatus(status);
-            return roomRepository.save(room);
-        }
-        throw new IllegalArgumentException("Room with ID " + roomId + " not found");
+        Room room = findRoomById(roomId);
+        room.setStatus(status);
+        logger.info("Room with ID {} status changed to {}", roomId, status);
+        return roomRepository.save(room);
     }
 
-    /* Validiert einen Room vor dem Speichern; Wahrscheinlich unnötig durch binder und Entity validation */
+    /**
+     * Validates a room before saving.
+     * <p>
+     * Checks that the room has a category, room number, and status.
+     * Note: Additional validation is handled by binder and entity annotations.
+     * </p>
+     *
+     * @param room the Room to validate
+     * @throws IllegalArgumentException if validation fails
+     */
     public void validateRoom(Room room) {
-        if (room.getCategory() == null) {
-            throw new IllegalArgumentException("Category is required");
-        }
-        
-        if (room.getRoomNumber() == null || room.getRoomNumber().trim().isEmpty()) {
-            throw new IllegalArgumentException("Room number is required");
-        }
-        
-        if (room.getCategory() != null && room.getCategory().getPricePerNight() == null) {
-            throw new IllegalArgumentException("Category price must be set");
-        }
-        
-        if (room.getStatus() == null) {
-            throw new IllegalArgumentException("Status is required");
+        validateCategory(room.getCategory());
+        validateRoomNumber(room.getRoomNumber());
+        validateStatus(room.getStatus());
+    }
+
+    /**
+     * Validates that a room's category is set and has a price.
+     *
+     * @param category the category to validate
+     * @throws IllegalArgumentException if category is null or has no price
+     */
+    private void validateCategory(RoomCategory category) {
+        if (category == null || category.getPricePerNight() == null) {
+            throw new IllegalArgumentException(category == null ? CATEGORY_REQUIRED_MESSAGE : CATEGORY_PRICE_REQUIRED_MESSAGE);
         }
     }
 
-    /* Zählt die Anzahl aller Rooms */
-    public long count() {
-        return roomRepository.count();
+    /**
+     * Validates that a room number is set and not empty.
+     *
+     * @param roomNumber the room number to validate
+     * @throws IllegalArgumentException if room number is null or empty
+     */
+    private void validateRoomNumber(String roomNumber) {
+        if (roomNumber == null || roomNumber.trim().isEmpty()) {
+            throw new IllegalArgumentException(ROOM_NUMBER_REQUIRED_MESSAGE);
+        }
     }
 
-    /* Prüft ob ein Room mit der ID existiert */
-    public boolean existsById(Long id) {
-        return roomRepository.existsById(id);
+    /**
+     * Validates that a room's status is set.
+     *
+     * @param status the status to validate
+     * @throws IllegalArgumentException if status is null
+     */
+    private void validateStatus(RoomStatus status) {
+        if (status == null) {
+            throw new IllegalArgumentException(STATUS_REQUIRED_MESSAGE);
+        }
     }
 
-    /* Zählt die Anzahl der Rooms in einer bestimmten Kategorie */
+    /**
+     * Counts the number of rooms in a specific category.
+     *
+     * @param category the room category to count rooms for
+     * @return the number of rooms in the specified category
+     */
     public long countRoomsByCategory(RoomCategory category) {
         return roomRepository.countByCategory(category);
     }
 
-    // ==================== Inner Class: Statistics DTO ====================
+    /**
+     * Deactivates a room and sets its status to INACTIVE.
+     *
+     * @param room the Room to deactivate
+     */
+    private void deactivateRoom(Room room) {
+        room.setActive(false);
+        room.setStatus(RoomStatus.INACTIVE);
+        roomRepository.save(room);
+        logger.info("Room with ID {} deactivated", room.getId());
+    }
 
-    /* DTO für Room-Statistiken
-     * Wird von der View verwendet, um Statistiken anzuzeigen */
+    /**
+     * Calculates comprehensive room management statistics.
+     *
+     * @return RoomStatistics object containing all relevant metrics
+     */
+    public RoomStatistics calculateStatistics() {
+        long totalRooms = roomRepository.count();
+        long availableRooms = roomRepository.countByStatus(RoomStatus.AVAILABLE);
+        long occupiedRooms = roomRepository.countByStatus(RoomStatus.OCCUPIED);
+        long cleaningRooms = roomRepository.countByStatus(RoomStatus.CLEANING);
+        long renovatingRooms = roomRepository.countByStatus(RoomStatus.RENOVATING);
+        long outOfServiceRooms = roomRepository.countByStatus(RoomStatus.OUT_OF_SERVICE);
+        long inactiveRooms = roomRepository.countByStatus(RoomStatus.INACTIVE);
+        
+        long[] categoryStats = roomCategoryService.getStatistics();
+        long totalCategories = categoryStats[0];
+
+        return new RoomStatistics(totalRooms, availableRooms, occupiedRooms, cleaningRooms, renovatingRooms, outOfServiceRooms, inactiveRooms, totalCategories);
+    }
+
+    /**
+     * Data class holding comprehensive room management statistics.
+     * <p>
+     * Contains aggregated metrics for room availability, status distribution, and category counts.
+     * Instances are created by the {@link RoomService#calculateStatistics()} method.
+     * </p>
+     */
     public static class RoomStatistics {
-        private final long totalRooms;
-        private final long availableRooms;
-        private final long occupiedRooms;
-        private final long cleaningRooms;
+        public final long totalRooms;
+        public final long availableRooms;
+        public final long occupiedRooms;
+        public final long cleaningRooms;
+        public final long renovatingRooms;
+        public final long outOfServiceRooms;
+        public final long inactiveRooms;
+        public final long totalCategories;
 
-        public RoomStatistics(long totalRooms, long availableRooms, long occupiedRooms, long cleaningRooms) {
+        /**
+         * Constructs a new RoomStatistics instance with all metric values.
+         *
+         * @param totalRooms the total number of rooms
+         * @param availableRooms the number of available rooms
+         * @param occupiedRooms the number of occupied rooms
+         * @param cleaningRooms the number of rooms being cleaned
+         * @param renovatingRooms the number of rooms being renovated
+         * @param outOfServiceRooms the number of out-of-service rooms
+         * @param inactiveRooms the number of inactive rooms
+         * @param totalCategories the total number of room categories
+         */
+        public RoomStatistics(long totalRooms, long availableRooms, long occupiedRooms, long cleaningRooms, long renovatingRooms, long outOfServiceRooms, long inactiveRooms, long totalCategories) {
             this.totalRooms = totalRooms;
             this.availableRooms = availableRooms;
             this.occupiedRooms = occupiedRooms;
             this.cleaningRooms = cleaningRooms;
-        }
-
-        public long getTotalRooms() {
-            return totalRooms;
-        }
-
-        public long getAvailableRooms() {
-            return availableRooms;
-        }
-
-        public long getOccupiedRooms() {
-            return occupiedRooms;
-        }
-
-        public long getCleaningRooms() {
-            return cleaningRooms;
-        }
-
-        public double getOccupancyRate() {
-            return totalRooms > 0 ? (double) occupiedRooms / totalRooms * 100 : 0;
-        }
-
-        @Override
-        public String toString() {
-            return "RoomStatistics{" +
-                    "totalRooms=" + totalRooms +
-                    ", availableRooms=" + availableRooms +
-                    ", occupiedRooms=" + occupiedRooms +
-                    ", cleaningRooms=" + cleaningRooms +
-                    ", occupancyRate=" + String.format("%.2f%%", getOccupancyRate()) +
-                    '}';
+            this.renovatingRooms = renovatingRooms;
+            this.outOfServiceRooms = outOfServiceRooms;
+            this.inactiveRooms = inactiveRooms;
+            this.totalCategories = totalCategories;
         }
     }
 }

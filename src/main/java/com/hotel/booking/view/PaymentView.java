@@ -22,6 +22,8 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
+import jakarta.annotation.security.RolesAllowed;
+
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
@@ -34,6 +36,7 @@ import java.util.stream.Collectors;
 @Route(value = "payment", layout = MainLayout.class)
 @PageTitle("Payments")
 @CssImport("./themes/hotel/styles.css")
+@RolesAllowed({UserRole.RECEPTIONIST_VALUE, UserRole.MANAGER_VALUE, UserRole.GUEST_VALUE})
 public class PaymentView extends VerticalLayout {
 
     private final SessionService sessionService;

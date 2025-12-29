@@ -199,30 +199,6 @@ p {
   color: #dc2626;
 }
 
-/* Sidebar Logout Button (roter Hintergrund) */
-.sidebar-logout-btn {
-  background: #ef4444;
-  border: none;
-  border-radius: var(--radius-md);
-  padding: var(--spacing-md);
-  cursor: pointer;
-  transition: all var(--transition-base);
-  color: white;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-sm);
-}
-
-.sidebar-logout-btn:hover {
-  background: #dc2626;
-}
-
-.sidebar-logout-btn vaadin-icon {
-  color: white;
-}
-
 .theme-icon {
   width: 20px;
   height: 20px;
@@ -354,6 +330,48 @@ p {
   margin: 0 0 var(--spacing-md) 0;
 }
 
+/* Card Accent Colors */
+.card-rooms {
+  --card-accent-color: var(--color-success);
+}
+
+.card-categories,
+.card-extras {
+  --card-accent-color: #8b5cf6;
+}
+
+.card-stats {
+  --card-accent-color: var(--color-info);
+}
+
+.card-stats-available {
+  --card-accent-color: var(--color-success);
+}
+
+.card-stats-occupied {
+  --card-accent-color: var(--color-error);
+}
+
+.card-stats-cleaning {
+  --card-accent-color: var(--color-warning);
+}
+
+.card-stats-renovating {
+  --card-accent-color: #db2777;
+}
+
+.card-stats-out-of-service {
+  --card-accent-color: #7c3aed;
+}
+
+.card-stats-inactive {
+  --card-accent-color: #6b7280;
+}
+
+.card-stats-categories {
+  --card-accent-color: #8b5cf6;
+}
+
 /* Status Badges */
 .status-badge {
   display: inline-block;
@@ -439,6 +457,9 @@ p {
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
 }
 
 .category-status-active {

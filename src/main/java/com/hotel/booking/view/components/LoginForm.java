@@ -13,8 +13,19 @@ import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.data.validator.StringLengthValidator;
 
 /**
- * LoginForm Component - Reusable form for login credentials with validation.
- * Follows Vaadin best practices with Binder for form binding.
+ * Reusable login form component with validation and customizable callbacks.
+ * <p>
+ * This Vaadin form component provides:
+ * </p>
+ * <ul>
+ *   <li>Username and password input fields with validation</li>
+ *   <li>Form binding using Vaadin Binder for data validation</li>
+ *   <li>Customizable click handlers for login, forgot password, and sign-up</li>
+ *   <li>Enter key support for submitting the form</li>
+ *   <li>Built-in password field clearing and focus management</li>
+ * </ul>
+ *
+ * @author Artur Derr
  */
 public class LoginForm extends Div {
 
@@ -31,6 +42,13 @@ public class LoginForm extends Div {
     private Runnable onForgotClick;
     private Runnable onSignupClick;
 
+    /**
+     * Constructs a new LoginForm with initialized fields and layout.
+     * <p>
+     * Initializes all form fields, configures data binding and validation,
+     * and arranges the layout of the form components.
+     * </p>
+     */
     public LoginForm() {
         setWidthFull();
         initializeFields();
@@ -38,6 +56,12 @@ public class LoginForm extends Div {
         layoutForm();
     }
 
+    /**
+     * Initializes and configures all form input fields and buttons.
+     * <p>
+     * Sets up placeholders, styles, validators, and event listeners for each field.
+     * </p>
+     */
     private void initializeFields() {
         usernameField.setPlaceholder("Enter your username");
         usernameField.setWidthFull();
@@ -66,11 +90,15 @@ public class LoginForm extends Div {
             if (onSignupClick != null) onSignupClick.run();
         });
 
-        // Allow Enter key to trigger login
-        passwordField.addKeyDownListener(Key.ENTER, e -> loginBtn.click());
-        usernameField.addKeyDownListener(Key.ENTER, e -> loginBtn.click());
     }
 
+    /**
+     * Configures the Vaadin Binder for form validation and data binding.
+     * <p>
+     * Sets up validation rules for username and password fields, including
+     * required field validation and string length constraints.
+     * </p>
+     */
     private void configureBinder() {
         binder.forField(usernameField)
             .asRequired("Username is required")
@@ -85,6 +113,12 @@ public class LoginForm extends Div {
         binder.setBean(credentials);
     }
 
+    /**
+     * Arranges the form components in the layout.
+     * <p>
+     * Creates a FormLayout for the main input fields and a HorizontalLayout for the link buttons.
+     * </p>
+     */
     private void layoutForm() {
         FormLayout form = new FormLayout();
         form.add(usernameField, passwordField, loginBtn);
@@ -96,6 +130,14 @@ public class LoginForm extends Div {
         add(form, linkLayout);
     }
 
+    /**
+     * Handles the login button click event.
+     * <p>
+     * Validates the form using the configured binder, writes the bean if valid,
+     * and executes the registered login callback.
+     * Shows a notification if validation fails.
+     * </p>
+     */
     private void handleLogin() {
         try {
             binder.writeBean(credentials);
@@ -107,22 +149,49 @@ public class LoginForm extends Div {
         }
     }
 
+    /**
+     * Retrieves the login credentials from the form.
+     *
+     * @return the LoginCredentials object containing username and password
+     */
     public LoginCredentials getCredentials() {
         return credentials;
     }
 
+    /**
+     * Sets the callback to be executed when the login button is clicked.
+     *
+     * @param callback the Runnable to execute on login button click
+     */
     public void setOnLoginClick(Runnable callback) {
         this.onLoginClick = callback;
     }
 
+    /**
+     * Sets the callback to be executed when the forgot password link is clicked.
+     *
+     * @param callback the Runnable to execute on forgot password link click
+     * @author Viktor Götting
+     */
     public void setOnForgotClick(Runnable callback) {
         this.onForgotClick = callback;
     }
 
+    /**
+     * Sets the callback to be executed when the sign-up link is clicked.
+     *
+     * @param callback the Runnable to execute on sign-up link click
+     */
     public void setOnSignupClick(Runnable callback) {
         this.onSignupClick = callback;
     }
 
+    /**
+     * Clears the password field and sets focus to it.
+     * <p>
+     * Useful after a failed login attempt to allow the user to retry.
+     * </p>
+     */
     public void clearPassword() {
         passwordField.clear();
         passwordField.focus();

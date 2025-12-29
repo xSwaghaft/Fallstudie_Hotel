@@ -9,32 +9,77 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
-/* Artur Derr
- * Repository für User-Entitäten.
- * Bietet Datenbankzugriff und zusätzliche Query-Methoden für Benutzer. */
+/**
+ * Spring Data JPA repository for {@link User} entity access.
+ *
+ * <p>Provides standard CRUD operations and custom query methods for retrieving users
+ * from the database. These methods are typically used for authentication, user searches,
+ * and role-based lookups.
+ *
+ * @author Artur Derr
+ * @see User
+ * @see UserRole
+ */
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
-    // Findet einen User anhand des Usernames
-    // Wird für Authentifizierung verwendet (zusammen mit PasswordEncoder im Service)
+    /**
+     * Finds a user by their unique username.
+     *
+     * <p>Used for authentication to retrieve a user's credentials for password verification.
+     *
+     * @param username the login username
+     * @return an {@code Optional} containing the user if found, empty otherwise
+     */
     Optional<User> findByUsername(String username);
 
-    // Findet einen User anhand der E-Mail-Adresse
-    // Wird für Authentifizierung und Registrierung verwendet
+    /**
+     * Finds a user by their email address.
+     *
+     * <p>Used for authentication, registration, and password reset operations.
+     *
+     * @param email the user's email address
+     * @return an {@code Optional} containing the user if found, empty otherwise
+     */
     Optional<User> findByEmail(String email);
 
-    // Findet alle User mit einer bestimmten Rolle
+    /**
+     * Finds all users with a specific role.
+     *
+     * @param role the {@link UserRole} to filter by
+     * @return a list of users with the given role
+     */
     List<User> findByRole(UserRole role);
 
-    // Findet User anhand des Nachnamens (case-insensitive)
+    /**
+     * Finds users by last name (case-insensitive partial match).
+     *
+     * @param lastName the last name substring to search for
+     * @return a list of users whose last name contains the given string
+     */
     List<User> findByLastNameContainingIgnoreCase(String lastName);
 
-    // Findet User anhand des Vornamens (case-insensitive)
+    /**
+     * Finds users by first name (case-insensitive partial match).
+     *
+     * @param firstName the first name substring to search for
+     * @return a list of users whose first name contains the given string
+     */
     List<User> findByFirstNameContainingIgnoreCase(String firstName);
 
-    // Prüft, ob ein User mit dem Username existiert
+    /**
+     * Checks whether a user with the given username exists.
+     *
+     * @param username the username to check
+     * @return {@code true} if a user with this username exists, {@code false} otherwise
+     */
     boolean existsByUsername(String username);
 
-    // Prüft, ob ein User mit der E-Mail existiert
+    /**
+     * Checks whether a user with the given email exists.
+     *
+     * @param email the email address to check
+     * @return {@code true} if a user with this email exists, {@code false} otherwise
+     */
     boolean existsByEmail(String email);
 }

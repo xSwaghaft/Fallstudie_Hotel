@@ -1,7 +1,6 @@
 package com.hotel.booking.view;
 
 import com.hotel.booking.entity.UserRole;
-import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.BookingService;
 import com.hotel.booking.service.ReportService;
 import com.hotel.booking.view.components.CardFactory;
@@ -16,6 +15,8 @@ import com.vaadin.flow.component.orderedlayout.*;
 import com.vaadin.flow.router.*;
 
 import java.time.LocalDate;
+
+import jakarta.annotation.security.RolesAllowed;
 
 /**
  * View for displaying reports and analytics KPIs.
@@ -35,9 +36,9 @@ import java.time.LocalDate;
 @PageTitle("Reports & Analytics")
 @CssImport("./themes/hotel/styles.css")
 @CssImport("./themes/hotel/views/reports.css")
-public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
+@RolesAllowed(UserRole.MANAGER_VALUE)
+public class ReportsView extends VerticalLayout {
 
-    private final SessionService sessionService;
     private final BookingService bookingService;
     private final ReportService reportService;
 
@@ -48,10 +49,9 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
 
     private final VerticalLayout kpiArea = new VerticalLayout();
 
-    public ReportsView(SessionService sessionService, 
+    public ReportsView(
                         BookingService bookingService, 
                         ReportService reportService) {
-        this.sessionService = sessionService;
 
         this.bookingService = bookingService;
         this.reportService = reportService;
@@ -202,19 +202,5 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
     private void refreshKpiArea() {
         kpiArea.removeAll();
         kpiArea.add(createKpiArea());
-    }
-
-     /**
-     * Navigation guard to restrict access to authorized users.
-     * <p>
-     * Users who are not logged in or do not have the MANAGER role
-     * are redirected to the login view.
-     * </p>
-     */
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        if (!sessionService.isLoggedIn() || !sessionService.hasRole(UserRole.MANAGER)) {
-            event.rerouteTo(LoginView.class);
-        }
     }
 }

@@ -236,4 +236,39 @@ public class RoomCategory {
     public void setAmenities(Set<Amenities> amenities) {
         this.amenities = amenities;
     }
+
+    /**
+     * Compares this RoomCategory with another object based on the category ID.
+     * <p>
+     * Two RoomCategory instances are considered equal if they have the same category ID.
+     * This implementation is required for proper behavior in Vaadin Select dropdowns and
+     * collection comparisons.
+     * </p>
+     *
+     * @param o the object to compare with
+     * @return true if the objects are equal (same category ID), false otherwise
+     * @author Artur Derr
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        RoomCategory that = (RoomCategory) o;
+        return category_id != null && category_id.equals(that.category_id);
+    }
+
+    /**
+     * Returns the hash code of this RoomCategory based on the category ID.
+     * <p>
+     * This implementation ensures consistency with the equals method and is required
+     * for proper behavior in hash-based collections (HashSet, HashMap, etc.).
+     * </p>
+     *
+     * @return the hash code based on the category ID, or 0 if category ID is null
+     * @author Artur Derr
+     */
+    @Override
+    public int hashCode() {
+        return category_id != null ? category_id.hashCode() : 0;
+    }
 }

@@ -4,8 +4,6 @@ import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.BookingModification;
 import com.hotel.booking.entity.User;
 import com.hotel.booking.repository.BookingModificationRepository;
-import com.hotel.booking.repository.BookingRepository;
-import com.hotel.booking.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,18 +15,12 @@ public class BookingModificationService {
 
     // Repositories für Datenbankzugriffe werden über den Konstruktor injiziert
     private final BookingModificationRepository modificationRepository;
-    private final BookingRepository bookingRepository;
-    private final UserRepository userRepository;
     private final EmailService emailService;
 
     public BookingModificationService(
             BookingModificationRepository modificationRepository,
-            BookingRepository bookingRepository,
-            UserRepository userRepository,
             EmailService emailService) {
         this.modificationRepository = modificationRepository;
-        this.bookingRepository = bookingRepository;
-        this.userRepository = userRepository;
         this.emailService = emailService;
     }
 

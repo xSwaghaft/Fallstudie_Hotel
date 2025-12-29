@@ -37,11 +37,12 @@ import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.data.binder.ValidationException;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouterLink;
+
+import jakarta.annotation.security.RolesAllowed;
+
 import org.springframework.beans.factory.annotation.Autowired;
 
 // @Route: registriert die View unter /my-bookings im MainLayout.
@@ -50,7 +51,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 @PageTitle("My Bookings")
 @CssImport("./themes/hotel/styles.css")
 @CssImport("./themes/hotel/guest.css")
-public class MyBookingsView extends VerticalLayout implements BeforeEnterObserver {
+@RolesAllowed(UserRole.GUEST_VALUE)
+public class MyBookingsView extends VerticalLayout {
 
     // Tab labels
     private static final String TAB_UPCOMING = "Bevorstehend";
@@ -592,14 +594,6 @@ public class MyBookingsView extends VerticalLayout implements BeforeEnterObserve
         dialog.add(new VerticalLayout(tabs, pages));
         dialog.getFooter().add(close);
         dialog.open();
-    }
-
-    // Zugriffsschutz: Nur eingeloggte Gäste dürfen die Seite sehen, sonst Login-Redirect.
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        if (!sessionService.isLoggedIn() || !sessionService.hasRole(UserRole.GUEST)) {
-            event.rerouteTo(LoginView.class);
-        }
     }
 
     // =========================================================

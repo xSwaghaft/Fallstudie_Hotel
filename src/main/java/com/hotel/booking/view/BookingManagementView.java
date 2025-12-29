@@ -3,7 +3,6 @@ package com.hotel.booking.view;
 import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.BookingStatus;
 import com.hotel.booking.entity.Invoice;
-import com.hotel.booking.entity.Payment;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.entity.BookingCancellation;
@@ -42,19 +41,21 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
+import jakarta.annotation.security.RolesAllowed;
+
+//Matthias Lohr
 @Route(value = "bookings", layout = MainLayout.class)
 @PageTitle("Booking Management")
 @CssImport("./themes/hotel/styles.css")
 @CssImport("./themes/hotel/views/booking-management.css")
-public class BookingManagementView extends VerticalLayout implements BeforeEnterObserver {
+@RolesAllowed({UserRole.RECEPTIONIST_VALUE, UserRole.MANAGER_VALUE})
+public class BookingManagementView extends VerticalLayout {
 
     private final SessionService sessionService;
     private final BookingService bookingService;
     private final BookingFormService formService;
     private final com.hotel.booking.service.BookingModificationService modificationService;
     private final BookingCancellationService bookingCancellationService;
-    private final PaymentService paymentService;
-    private final InvoiceService invoiceService;
 
     private static final DateTimeFormatter GERMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
@@ -73,8 +74,6 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
         this.formService = formService;
         this.modificationService = modificationService;
         this.bookingCancellationService = bookingCancellationService;
-        this.paymentService = paymentService;
-        this.invoiceService = invoiceService;
 
         setSpacing(true);
         setPadding(true);
@@ -600,12 +599,5 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
             })
             .toList();
         grid.setItems(filtered);
-    }
-
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        if (!sessionService.isLoggedIn() || !sessionService.hasAnyRole(UserRole.RECEPTIONIST, UserRole.MANAGER)) {
-            event.rerouteTo(LoginView.class);
-        }
     }
 }

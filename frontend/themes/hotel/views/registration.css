@@ -52,23 +52,83 @@
 
 /* Form Fields */
 .registration-card vaadin-text-field,
-.registration-card vaadin-password-field {
+.registration-card vaadin-password-field,
+.registration-card vaadin-email-field {
+  --vaadin-form-field-default-width: 100%;
+  --vaadin-input-field-background: var(--color-bg-light);
   margin: 0 !important;
   padding: 0 !important;
-  --vaadin-input-field-padding: 0 !important;
-  --vaadin-form-field-default-width: 100% !important;
 }
 
 .registration-card vaadin-text-field::part(label),
-.registration-card vaadin-password-field::part(label) {
-  margin-bottom: 0.5rem !important;
+.registration-card vaadin-password-field::part(label),
+.registration-card vaadin-email-field::part(label) {
+  margin-bottom: 0;
+  margin-top: var(--spacing-sm);
+}
+
+/* Registration FormLayout spacing (no inline styles) */
+.registration-card .registration-form {
+  /* Reduce vertical spacing to bring rows closer together */
+  --vaadin-form-layout-row-spacing: 0.25rem;
+  --vaadin-form-layout-column-spacing: var(--spacing-sm);
+}
+
+/* Horizontal rows inside the registration form */
+.registration-card vaadin-horizontal-layout.registration-form-row {
+  gap: var(--spacing-sm);
+  margin-bottom: 0.25rem;
+}
+
+/* DatePicker alignment with text fields */
+.date-picker-alignment {
+  --vaadin-input-field-background: var(--color-bg-light);
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box;
+  width: 33.33% !important;
+  max-width: 33.33% !important;
+  flex: 0 0 33.33% !important;
+}
+
+.registration-card vaadin-date-picker.date-picker-alignment {
+  width: 33.33% !important;
+  max-width: 33.33% !important;
+  flex: 0 0 33.33% !important;
+  box-sizing: border-box;
+  margin: 0 !important;
   padding: 0 !important;
 }
 
-.registration-card vaadin-text-field::part(input-field),
-.registration-card vaadin-password-field::part(input-field) {
-  padding-top: 2px !important;
-  padding-bottom: 2px !important;
+.registration-card vaadin-date-picker.date-picker-alignment::part(input-field) {
+  width: 89% !important;
+}
+
+.registration-card vaadin-date-picker.date-picker-alignment::part(toggle-button) {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.registration-card vaadin-date-picker.date-picker-alignment::part(label) {
+  margin-bottom: 0;
+  margin-top: var(--spacing-sm);
+}
+
+/* Password criteria */
+.registration-card .password-criteria {
+  margin: 0;
+}
+
+.registration-card .password-criteria-item {
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  margin: 0;
+  padding: 0;
+}
+
+.registration-card .password-criteria-item.is-fulfilled {
+  color: var(--color-success);
 }
 
 /* Success Dialog Styles */

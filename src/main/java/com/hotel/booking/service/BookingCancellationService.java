@@ -5,10 +5,7 @@ import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.BookingCancellation;
 import com.hotel.booking.entity.Invoice;
 import com.hotel.booking.entity.Payment;
-import com.hotel.booking.entity.User;
 import com.hotel.booking.repository.BookingCancellationRepository;
-import com.hotel.booking.repository.BookingRepository;
-import com.hotel.booking.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,28 +17,19 @@ import java.util.Optional;
 public class BookingCancellationService {
 
     private final BookingCancellationRepository cancellationRepository;
-    private final BookingRepository bookingRepository;
-    private final UserRepository userRepository;
     private final BookingService bookingService;
     private final PaymentService paymentService;
-    private final InvoiceService invoiceService;
     private final EmailService emailService;
 
     // Konstruktor-Injektion der benötigten Repositories
     public BookingCancellationService(
             BookingCancellationRepository cancellationRepository,
-            BookingRepository bookingRepository,
-            UserRepository userRepository,
             BookingService bookingService,
             PaymentService paymentService,
-            InvoiceService invoiceService,
             EmailService emailService) {
         this.cancellationRepository = cancellationRepository;
-        this.bookingRepository = bookingRepository;
-        this.userRepository = userRepository;
         this.bookingService = bookingService;
         this.paymentService = paymentService;
-        this.invoiceService = invoiceService;
         this.emailService = emailService;
     }
 

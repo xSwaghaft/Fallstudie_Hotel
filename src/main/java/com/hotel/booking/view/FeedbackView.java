@@ -2,7 +2,6 @@ package com.hotel.booking.view;
 
 import com.hotel.booking.entity.Feedback;
 import com.hotel.booking.entity.UserRole;
-import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.FeedbackService;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
@@ -22,16 +21,17 @@ import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.router.*;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import jakarta.annotation.security.RolesAllowed;
 
 // Uses FeedbackFDO for form binding
 @Route(value = "feedback", layout = MainLayout.class)
 @CssImport("./themes/hotel/styles.css")
-public class FeedbackView extends VerticalLayout implements BeforeEnterObserver {
+@RolesAllowed({UserRole.RECEPTIONIST_VALUE, UserRole.MANAGER_VALUE})
+public class FeedbackView extends VerticalLayout {
 
-    private final SessionService sessionService;
     private final FeedbackService feedbackService;
     private Grid<Feedback> grid;
 
@@ -47,8 +47,7 @@ public class FeedbackView extends VerticalLayout implements BeforeEnterObserver 
         public void setComment(String comment) { this.comment = comment; }
     }
 
-    public FeedbackView(SessionService sessionService, FeedbackService feedbackService) {
-        this.sessionService = sessionService;
+    public FeedbackView(FeedbackService feedbackService) {
         this.feedbackService = feedbackService;
 
         //simple layout 
@@ -183,12 +182,5 @@ public class FeedbackView extends VerticalLayout implements BeforeEnterObserver 
         HorizontalLayout buttonLayout = new HorizontalLayout(saveButton, cancelButton);
         dialog.add(formLayout, buttonLayout);
         dialog.open();
-    }
-
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        if (!sessionService.isLoggedIn() || !sessionService.hasAnyRole(UserRole.RECEPTIONIST, UserRole.MANAGER)) {
-            event.rerouteTo(LoginView.class);
-        }
     }
 }

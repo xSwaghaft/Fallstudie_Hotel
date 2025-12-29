@@ -50,10 +50,10 @@ public class Feedback {
     @JoinColumn(name = "booking_id")
     private Booking booking;
     
-    // Activate when Guest entity
+    // Beziehung zum Guest (User, der die Bewertung erstellt)
     @ManyToOne
     @JoinColumn(name = "guest_id")
-    private Guest guest;
+    private User guest;
     
     // Default constructor
     public Feedback() {
@@ -101,7 +101,7 @@ public class Feedback {
     }
     
     
-    // TODO: Activate when Booking entity
+    // Activate when Booking entity
     public Booking getBooking() {
          return booking;
      }
@@ -110,12 +110,11 @@ public class Feedback {
          this.booking = booking;
      }
     
-    // TODO: Activate when Guest entity
-     public Guest getGuest() {
+     public User getGuest() {
          return guest;
      }
     
-     public void setGuest(Guest guest) {
+     public void setGuest(User guest) {
          this.guest = guest;
      }
     

@@ -27,7 +27,7 @@ public class CardFactory {
      * @param color Color of the card
      * @return Div component representing the card
      */
-    public static Div createStatCard(String label, String value, String color) {
+    public static Div createStatCard(String label, String value) {
         Div card = new Div();
         card.addClassName("stat-card");
 
@@ -90,7 +90,6 @@ public class CardFactory {
             String subtitle,
             String buttonText,
             Runnable buttonClickListener,
-            String buttonColor,
             Grid<?> grid) {
 
         VerticalLayout card = new VerticalLayout();
@@ -118,7 +117,6 @@ public class CardFactory {
             Button addBtn = new Button(buttonText, VaadinIcon.PLUS.create());
             addBtn.addClassName("primary-button");
             addBtn.addClassName("content-card-button");
-            addBtn.getStyle().set("background", buttonColor).set("color", "white");
             addBtn.addClickListener(e -> buttonClickListener.run());
             headerRow.add(addBtn);
         }
@@ -142,7 +140,7 @@ public class CardFactory {
      * @return VerticalLayout representing the content card
      */
     public static VerticalLayout createContentCard(String title, String subtitle, Grid<?> grid) {
-        return createContentCard(title, subtitle, null, null, null, grid);
+        return createContentCard(title, subtitle, null, null, grid);
     }
 
     // ==================== STATS ROW (flexible) ====================

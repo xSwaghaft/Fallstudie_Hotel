@@ -20,12 +20,34 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.HighlightConditions;
 import com.vaadin.flow.router.RouterLink;
+import jakarta.annotation.security.PermitAll;
 
 @CssImport("./themes/hotel/styles.css")
+/**
+ * Main application layout component with navigation and header.
+ * <p>
+ * Provides a responsive app layout with drawer navigation, header with user info,
+ * and role-based menu items. The navigation items are dynamically shown based on
+ * the user's role (GUEST, RECEPTIONIST, or MANAGER).
+ * </p>
+ *
+ * @author Artur Derr
+ */
+@PermitAll
 public class MainLayout extends AppLayout {
 
     private final SessionService sessionService;
 
+    /**
+     * Constructs a MainLayout with header and navigation drawer.
+     * <p>
+     * Initializes the application layout with a primary drawer section and creates
+     * the header with welcome message and logout button, as well as the navigation drawer
+     * with role-based menu items.
+     * </p>
+     *
+     * @param sessionService the service for managing user session and authentication
+     */
     public MainLayout(SessionService sessionService) {
         this.sessionService = sessionService;
 
@@ -37,6 +59,13 @@ public class MainLayout extends AppLayout {
     /* =========================================================
        HEADER
        ========================================================= */
+    /**
+     * Creates and configures the application header.
+     * <p>
+     * The header displays a drawer toggle, welcome message with username,
+     * user avatar, and logout button.
+     * </p>
+     */
     private void createHeader() {
         DrawerToggle toggle = new DrawerToggle();
         toggle.addClassName("drawer-toggle");
@@ -86,6 +115,13 @@ public class MainLayout extends AppLayout {
     /* =========================================================
        DRAWER / SIDEBAR
        ========================================================= */
+    /**
+     * Creates and configures the navigation drawer.
+     * <p>
+     * The drawer displays the application logo, role-specific subtitle, and
+     * navigation links. The menu items are dynamically generated based on the user's role.
+     * </p>
+     */
     private void createDrawer() {
         VerticalLayout drawer = new VerticalLayout();
         drawer.addClassName("main-drawer");
@@ -131,7 +167,8 @@ public class MainLayout extends AppLayout {
                 createNavLink("Bookings", BookingManagementView.class, VaadinIcon.CALENDAR),
                 createNavLink("Payments", PaymentView.class, VaadinIcon.CREDIT_CARD),
                 createNavLink("Invoices", InvoiceView.class, VaadinIcon.FILE_TEXT),
-                createNavLink("Room Management", RoomManagementView.class, VaadinIcon.BED)
+                createNavLink("Room Management", RoomManagementView.class, VaadinIcon.BED),
+                createNavLink("Image Management", ImageManagementView.class, VaadinIcon.PICTURE)
             );
         } else if (role == UserRole.MANAGER) {
             navLinks.add(
@@ -146,26 +183,21 @@ public class MainLayout extends AppLayout {
             );
         }
 
-        // Footer with Logout Button
-        Div drawerFooter = new Div();
-        drawerFooter.addClassName("drawer-footer");
-        
-        // Sidebar Logout Button (roter Hintergrund)
-        Icon logoutIcon = VaadinIcon.SIGN_OUT.create();
-        Button sidebarLogout = new Button("Logout", logoutIcon);
-        sidebarLogout.addClassName("sidebar-logout-btn");
-        sidebarLogout.setWidthFull();
-        sidebarLogout.addClickListener(e -> showLogoutDialog());
-        
-        drawerFooter.add(sidebarLogout);
-
-        drawer.add(drawerHeader, navLinks, drawerFooter);
+        drawer.add(drawerHeader, navLinks);
         addToDrawer(drawer);
     }
 
     /* =========================================================
        HELPER METHODS
        ========================================================= */
+    /**
+     * Creates a navigation link for the drawer menu.
+     *
+     * @param text the display text for the navigation link
+     * @param target the Vaadin View class to navigate to
+     * @param iconType the VaadinIcon to display next to the link text
+     * @return a RouterLink configured for navigation
+     */
     private RouterLink createNavLink(String text, Class<? extends com.vaadin.flow.component.Component> target, VaadinIcon iconType) {
         Icon icon = iconType.create();
         icon.addClassName("nav-icon");
@@ -179,6 +211,13 @@ public class MainLayout extends AppLayout {
         return link;
     }
 
+    /**
+     * Displays a confirmation dialog for user logout.
+     * <p>
+     * Shows a modal dialog asking the user to confirm their logout action.
+     * Upon confirmation, the user is logged out and redirected to the home page.
+     * </p>
+     */
     private void showLogoutDialog() {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle("Confirm Logout");

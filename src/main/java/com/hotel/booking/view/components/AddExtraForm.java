@@ -55,7 +55,7 @@ public class AddExtraForm extends FormLayout {
             .bind(BookingExtra::getPrice, BookingExtra::setPrice);
 
         binder.forField(perPersonCheckbox)
-            .bind(BookingExtra::isPerPerson, BookingExtra::setPerPerson);
+            .bind(BookingExtra::isPerPerson, (extra, value) -> extra.setPerPerson(Boolean.TRUE.equals(value)));
 
         setExtra(bookingExtra);
     }

@@ -1,10 +1,6 @@
 package com.hotel.booking.view;
 
-import com.hotel.booking.entity.User;
-import com.hotel.booking.entity.AdressEmbeddable;
-import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.service.UserService;
-import com.hotel.booking.security.SessionService;
 import com.hotel.booking.view.components.RegistrationForm;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -19,29 +15,40 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 
 /**
- * RegistrationView - Registration form following Vaadin and Spring Security best practices.
- * Uses RegistrationForm component for form layout and validation.
+ * User registration view for creating new accounts.
+ * <p>
+ * This view provides a registration form for new users to create accounts in the system.
+ * Uses RegistrationForm for form layout and validation.
+ * The view is publicly accessible and redirects already-logged-in users to the dashboard.
+ * </p>
+ *
+ * @author Artur Derr
  */
 @Route("register")
 @AnonymousAllowed
 @PageTitle("Registration for Hotelium")
 @CssImport("./themes/hotel/styles.css")
+@CssImport("./themes/hotel/views/login.css")
 @CssImport("./themes/hotel/views/registration.css")
-public class RegistrationView extends Div implements BeforeEnterObserver {
+public class RegistrationView extends Div {
 
     private final UserService userService;
-    private final SessionService sessionService;
 
-    public RegistrationView(UserService userService, SessionService sessionService) {
+    /**
+     * Constructs a RegistrationView with necessary services.
+     * <p>
+     * Initializes the registration page layout with left and right sections.
+     * </p>
+     *
+     * @param userService the service for creating new users
+     */
+    public RegistrationView(UserService userService) {
         this.userService = userService;
-        this.sessionService = sessionService;
 
         addClassName("registration-view");
         setSizeFull();
@@ -50,6 +57,14 @@ public class RegistrationView extends Div implements BeforeEnterObserver {
         add(createRightSection());
     }
 
+    /**
+     * Creates the left section of the registration page.
+     * <p>
+     * Displays a branded overlay with application name and tagline.
+     * </p>
+     *
+     * @return a Div containing the left section layout
+     */
     private Div createLeftSection() {
         Div left = new Div();
         left.addClassName("login-left");
@@ -63,6 +78,14 @@ public class RegistrationView extends Div implements BeforeEnterObserver {
         return left;
     }
 
+    /**
+     * Creates the right section of the registration page.
+     * <p>
+     * Displays the registration form card with title, info text, and AddUserForm.
+     * </p>
+     *
+     * @return a VerticalLayout containing the right section layout
+     */
     private VerticalLayout createRightSection() {
         VerticalLayout right = new VerticalLayout();
         right.addClassName("login-right");
@@ -78,8 +101,8 @@ public class RegistrationView extends Div implements BeforeEnterObserver {
         Paragraph info = new Paragraph("Register to get started with our platform");
         info.addClassName("registration-subtitle");
 
-        // Use RegistrationForm Component
-        RegistrationForm registrationForm = new RegistrationForm();
+        // Use RegistrationForm for registration
+        RegistrationForm registrationForm = new RegistrationForm(userService);
         
         registrationForm.setOnRegisterClick(() -> handleRegistration(registrationForm));
         registrationForm.setOnCancelClick(() -> UI.getCurrent().navigate(LoginView.class));
@@ -90,30 +113,19 @@ public class RegistrationView extends Div implements BeforeEnterObserver {
         return right;
     }
 
+    /**
+     * Handles the user registration process.
+     * <p>
+     * Registers a new user from the registration form and displays a success dialog
+     * or error notification depending on the result.
+     * </p>
+     *
+     * @param registrationForm the RegistrationForm containing the user registration data
+     */
     private void handleRegistration(RegistrationForm registrationForm) {
-        RegistrationForm.RegistrationFormData formData = registrationForm.getFormData();
-        
-        // Binder validiert bereits die Daten - hier können wir direkt verarbeiten
+        // AddUserForm validates and writes the bean before calling this callback.
         try {
-            AdressEmbeddable address = new AdressEmbeddable();
-            address.setStreet(formData.getStreet());
-            address.setHouseNumber(formData.getHouseNumber());
-            address.setPostalCode(formData.getPostalCode());
-            address.setCity(formData.getCity());
-            address.setCountry(formData.getCountry());
-
-            User newUser = new User(
-                    formData.getUsername(),
-                    formData.getFirstName(),
-                    formData.getLastName(),
-                    address,
-                    formData.getEmail(),
-                    formData.getPassword(),
-                    UserRole.GUEST,
-                    true
-            );
-
-            userService.registerUser(newUser);
+            userService.registerUser(registrationForm.getUser());
             showRegistrationSuccessDialog();
         } catch (IllegalArgumentException e) {
             Notification.show("Registration failed: " + e.getMessage(), 4000, Notification.Position.MIDDLE);
@@ -122,6 +134,13 @@ public class RegistrationView extends Div implements BeforeEnterObserver {
         }
     }
 
+    /**
+     * Displays a success dialog after successful registration.
+     * <p>
+     * Shows a modal dialog with a success icon and message, then redirects to the login page
+     * when the user clicks the close button.
+     * </p>
+     */
     private void showRegistrationSuccessDialog() {
         Dialog dialog = new Dialog();
         dialog.setModal(true);
@@ -133,7 +152,7 @@ public class RegistrationView extends Div implements BeforeEnterObserver {
         layout.setPadding(true);
         layout.setAlignItems(FlexComponent.Alignment.CENTER);
 
-        // Grüner Haken Icon
+        // Green checkmark icon
         Icon successIcon = VaadinIcon.CHECK_CIRCLE.create();
         successIcon.addClassName("success-dialog-icon");
 
@@ -156,12 +175,5 @@ public class RegistrationView extends Div implements BeforeEnterObserver {
         layout.add(closeBtn);
         dialog.add(layout);
         dialog.open();
-    }
-
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        if (sessionService != null && sessionService.getCurrentUser() != null) {
-            UI.getCurrent().navigate(DashboardView.class);
-        }
     }
 }

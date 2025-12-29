@@ -14,9 +14,14 @@ import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
 
 /**
- * RoomCategoryForm Component - Reusable form for creating and editing room categories.
- * Similar pattern to AddUserForm for dialog integration.
- * Handles category name, description, pricing, and occupancy settings.
+ * Reusable form component for creating and editing room categories.
+ * <p>
+ * This form provides fields for entering room category information including name,
+ * description, pricing, maximum occupancy, and amenities. Follows a similar pattern
+ * to AddUserForm for dialog integration.
+ * </p>
+ *
+ * @author Artur Derr
  */
 public class RoomCategoryForm extends FormLayout {
 
@@ -30,6 +35,11 @@ public class RoomCategoryForm extends FormLayout {
     private final MultiSelectComboBox<Amenities> amenitiesSelect = new MultiSelectComboBox<>();
     private final Checkbox activeCheck = new Checkbox("Active");
 
+    /**
+     * Constructs a RoomCategoryForm for creating or editing a room category.
+     *
+     * @param existingCategory the RoomCategory entity to edit, or null for creating a new category
+     */
     public RoomCategoryForm(RoomCategory existingCategory) {
         initializeFields();
         setupBinder();
@@ -37,6 +47,12 @@ public class RoomCategoryForm extends FormLayout {
         setCategory(existingCategory);
     }
 
+    /**
+     * Initializes and configures all form input fields.
+     * <p>
+     * Sets up placeholders, validators, and constraints for each field.
+     * </p>
+     */
     private void initializeFields() {
         nameField.setPlaceholder("e.g., Standard Room, Deluxe Suite");
         nameField.setWidthFull();
@@ -65,6 +81,13 @@ public class RoomCategoryForm extends FormLayout {
         activeCheck.setValue(true);
     }
 
+    /**
+     * Configures the Vaadin Binder for form validation and data binding.
+     * <p>
+     * Sets up validation rules and type conversion for all form fields including
+     * price and max occupancy numeric conversions.
+     * </p>
+     */
     private void setupBinder() {
         binder.forField(nameField)
             .asRequired("Category name is required")
@@ -91,6 +114,12 @@ public class RoomCategoryForm extends FormLayout {
             .bind(RoomCategory::getAmenities, RoomCategory::setAmenities);
     }
 
+    /**
+     * Arranges the form components in a responsive layout.
+     * <p>
+     * Uses responsive steps to adapt to different screen sizes.
+     * </p>
+     */
     private void layoutForm() {
         setResponsiveSteps(
             new ResponsiveStep("0", 1),
@@ -102,6 +131,14 @@ public class RoomCategoryForm extends FormLayout {
         add(nameField, priceField, descArea, maxOccupancyField, amenitiesSelect, activeCheck);
     }
 
+    /**
+     * Sets the category to be edited in the form.
+     * <p>
+     * If the category is null, a new RoomCategory object is created for form entry.
+     * </p>
+     *
+     * @param existingCategory the RoomCategory entity to edit, or null for creating a new category
+     */
     private void setCategory(RoomCategory existingCategory) {
         if (existingCategory == null) {
             formCategory = new RoomCategory();
@@ -113,10 +150,20 @@ public class RoomCategoryForm extends FormLayout {
         binder.readBean(formCategory);
     }
 
+    /**
+     * Retrieves the category object being edited in the form.
+     *
+     * @return the RoomCategory entity
+     */
     public RoomCategory getCategory() {
         return formCategory;
     }
 
+    /**
+     * Writes the form data to the category bean after validation.
+     *
+     * @throws ValidationException if validation of form data fails
+     */
     public void writeBean() throws ValidationException {
         binder.writeBean(formCategory);
     }

@@ -38,10 +38,26 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     List<Room> findByCategory(RoomCategory category);
 
     /**
+     * Counts the number of rooms with the given status.
+     *
+     * @param status the room status
+     * @return the number of rooms with the specified status
+     */
+    long countByStatus(RoomStatus status);
+
+    /**
      * Counts the number of rooms belonging to the given category.
      *
      * @param category the room category
      * @return the number of rooms in the specified category
      */
     long countByCategory(RoomCategory category);
+
+    // Count rooms by category (alias for countByCategory)
+    default long countRoomsByCategory(RoomCategory category) {
+        return countByCategory(category);
+    }
+
+    // Find available rooms
+    List<Room> findByStatusAndActive(RoomStatus status, Boolean active);
 }

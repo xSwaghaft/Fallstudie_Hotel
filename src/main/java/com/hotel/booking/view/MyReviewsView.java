@@ -4,7 +4,6 @@ import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.Feedback;
 import com.hotel.booking.entity.User;
 import com.hotel.booking.entity.UserRole;
-import com.hotel.booking.repository.GuestRepository;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.BookingService;
 import com.hotel.booking.service.FeedbackService;
@@ -27,8 +26,6 @@ import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
@@ -36,6 +33,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
+
+import jakarta.annotation.security.RolesAllowed;
 
 /**
  * View for displaying and managing guest reviews.
@@ -46,23 +45,21 @@ import java.util.stream.Collectors;
 @PageTitle("My Reviews")
 @CssImport("./themes/hotel/styles.css")
 @CssImport("./themes/hotel/views/my-reviews.css")
-public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver {
+@RolesAllowed(UserRole.GUEST_VALUE)
+public class MyReviewsView extends VerticalLayout {
 
     private final SessionService sessionService;
     private final BookingService bookingService;
     private final FeedbackService feedbackService;
-    private final GuestRepository guestRepository;
 
     private List<Booking> bookings;
 
     public MyReviewsView(SessionService sessionService,
                          BookingService bookingService,
-                         FeedbackService feedbackService,
-                         GuestRepository guestRepository) {
+                         FeedbackService feedbackService) {
         this.sessionService = sessionService;
         this.bookingService = bookingService;
         this.feedbackService = feedbackService;
-        this.guestRepository = guestRepository;
 
         setSpacing(true);
         setPadding(true);
@@ -281,9 +278,9 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
                     feedback.setCreatedAt(LocalDateTime.now());
                 }
                 
-                // Set guest if not already set
+                // Set guest (User) if not already set
                 if (feedback.getGuest() == null && booking != null && booking.getGuest() != null) {
-                    guestRepository.findByUser(booking.getGuest()).ifPresent(feedback::setGuest);
+                    feedback.setGuest(booking.getGuest());
                 }
                 
                 feedbackService.save(feedback);
@@ -323,12 +320,5 @@ public class MyReviewsView extends VerticalLayout implements BeforeEnterObserver
             return List.of();
         }
         return bookingService.findPastBookingsForGuest(user.getId());
-    }
-
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        if (!sessionService.isLoggedIn() || !sessionService.hasRole(UserRole.GUEST)) {
-            event.rerouteTo(LoginView.class);
-        }
     }
 }

@@ -18,23 +18,44 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 
-@Route("")
+@Route("login")
+@RouteAlias("")
 @AnonymousAllowed
 @PageTitle("Welcome to Hotelium!")
 @CssImport("./themes/hotel/styles.css")
 @CssImport("./themes/hotel/views/login.css")
-public class LoginView extends Div implements BeforeEnterObserver {
+/**
+ * Login landing view.
+ * <p>
+ * This view is exposed on the root route ("/") and is accessible without authentication.
+ * It provides a split layout with branding on the left and a {@link LoginForm} on the right.
+ * Successful authentication is delegated to {@link UserService}; the session is established via
+ * {@link SessionService}. Depending on the authenticated {@link UserRole}, the user is redirected
+ * to either the guest portal or the staff dashboard.
+ *
+ * @author Artur Derr
+ * @author Viktor Götting
+ */
+public class LoginView extends Div { 
 
     private final UserService userService;
     private final SessionService sessionService;
     private final PasswordResetService passwordResetService;
 
+    /**
+     * Creates the login view and builds the UI structure.
+     *
+     * @param userService service used for authenticating users
+     * @param sessionService service used to store and retrieve the current session state
+     * @param passwordResetService service responsible for issuing password reset tokens and sending emails
+     */
     public LoginView(UserService userService, SessionService sessionService, PasswordResetService passwordResetService) {
         this.userService = userService;
         this.sessionService = sessionService;
@@ -54,7 +75,9 @@ public class LoginView extends Div implements BeforeEnterObserver {
     }
 
     /**
-     * Creates the left panel with background image and branding.
+        * Creates the left panel containing background/branding.
+        *
+        * @return the left panel container
      */
     private Div createLeftPanel() {
         Div left = new Div();
@@ -68,7 +91,9 @@ public class LoginView extends Div implements BeforeEnterObserver {
     }
 
     /**
-     * Creates the right panel with login form component.
+        * Creates the right panel containing the login card and form.
+        *
+        * @return the right-side layout
      */
     private VerticalLayout createRightPanel() {
         VerticalLayout right = new VerticalLayout();
@@ -96,23 +121,44 @@ public class LoginView extends Div implements BeforeEnterObserver {
     }
 
     /**
-     * Handles login attempt by validating and authenticating via UserService.
+        * Handles a login attempt by authenticating against {@link UserService}.
+        * On success, the user is stored in the session and redirected based on their role.
+        *
+        * @param loginForm the form providing the entered credentials and callback hooks
      */
     private void handleLogin(LoginForm loginForm) {
         LoginForm.LoginCredentials credentials = loginForm.getCredentials();
-        
-        var user = userService.authenticate(credentials.getUsername(), credentials.getPassword());
-        if (user.isPresent()) {
-            sessionService.login(user.get());
-            navigateAfterLogin(user.get().getRole());
-        } else {
+
+        try {
+            var user = userService.authenticate(credentials.getUsername(), credentials.getPassword());
+            if (user.isPresent()) {
+                // Establish Spring Security authentication (required for Vaadin @RolesAllowed view protection).
+                sessionService.login(credentials.getUsername(), credentials.getPassword());
+                navigateAfterLogin(user.get().getRole());
+            } else {
+                Notification.show("Invalid username or password", 3000, Notification.Position.MIDDLE);
+                loginForm.clearPassword();
+            }
+        } catch (IllegalStateException ex) {
+            if ("User account is inactive".equals(ex.getMessage())) {
+                Notification.show("Account is inactive", 3000, Notification.Position.MIDDLE);
+                loginForm.clearPassword();
+            } else {
+                throw ex;
+            }
+        } catch (DisabledException ex) {
+            Notification.show("Account is inactive", 3000, Notification.Position.MIDDLE);
+            loginForm.clearPassword();
+        } catch (BadCredentialsException ex) {
             Notification.show("Invalid username or password", 3000, Notification.Position.MIDDLE);
             loginForm.clearPassword();
         }
     }
 
     /**
-     * Navigates the user to the appropriate view based on their role.
+        * Navigates the authenticated user to the appropriate view based on their role.
+        *
+        * @param role the authenticated user's role
      */
     private void navigateAfterLogin(UserRole role) {
         if (role == UserRole.GUEST) {
@@ -123,7 +169,13 @@ public class LoginView extends Div implements BeforeEnterObserver {
     }
 
     /**
-     * Opens a dialog for password reset.
+        * Opens the "forgot password" dialog.
+        * <p>
+        * The dialog collects an email address and requests {@link PasswordResetService} to create a reset token
+        * and send a reset email. The UI message is intentionally identical whether the email exists or not
+        * to avoid user enumeration.
+     *
+     * @author Viktor Götting
      */
     private void openForgotPasswordDialog() {
         Dialog dialog = new Dialog();
@@ -160,15 +212,5 @@ public class LoginView extends Div implements BeforeEnterObserver {
         layout.add(emailField, buttonLayout);
         dialog.add(layout);
         dialog.open();
-    }
-
-    /**
-     * Checks if user is already logged in and redirects if necessary.
-     */
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        if (sessionService.isLoggedIn()) {
-            navigateAfterLogin(sessionService.getCurrentRole());
-        }
     }
 }
