@@ -167,6 +167,7 @@ public class MainLayout extends AppLayout {
                 createNavLink("Bookings", BookingManagementView.class, VaadinIcon.CALENDAR),
                 createNavLink("Payments", PaymentView.class, VaadinIcon.CREDIT_CARD),
                 createNavLink("Invoices", InvoiceView.class, VaadinIcon.FILE_TEXT),
+                createNavLink("Feedback", FeedbackView.class, VaadinIcon.COMMENT_ELLIPSIS),
                 createNavLink("Room Management", RoomManagementView.class, VaadinIcon.BED),
                 createNavLink("Image Management", ImageManagementView.class, VaadinIcon.PICTURE)
             );
@@ -176,6 +177,7 @@ public class MainLayout extends AppLayout {
                 createNavLink("Bookings", BookingManagementView.class, VaadinIcon.CALENDAR),
                 createNavLink("Payments", PaymentView.class, VaadinIcon.CREDIT_CARD),
                 createNavLink("Invoices", InvoiceView.class, VaadinIcon.FILE_TEXT),
+                createNavLink("Feedback", FeedbackView.class, VaadinIcon.COMMENT_ELLIPSIS),
                 createNavLink("Room Management", RoomManagementView.class, VaadinIcon.BED),
                 createNavLink("Image Management", ImageManagementView.class, VaadinIcon.PICTURE),
                 createNavLink("User Management", UserManagementView.class, VaadinIcon.USERS),

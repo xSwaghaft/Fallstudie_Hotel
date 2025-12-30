@@ -3,6 +3,7 @@ package com.hotel.booking.service;
 import com.hotel.booking.entity.Invoice;
 import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.User;
+import com.hotel.booking.repository.BookingCancellationRepository;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
@@ -21,6 +22,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
@@ -31,6 +34,12 @@ public class InvoicePdfService {
     private static final Logger logger = LoggerFactory.getLogger(InvoicePdfService.class);
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy").withLocale(Locale.GERMANY);
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm").withLocale(Locale.GERMANY);
+
+    private final BookingCancellationRepository bookingCancellationRepository;
+
+    public InvoicePdfService(BookingCancellationRepository bookingCancellationRepository) {
+        this.bookingCancellationRepository = bookingCancellationRepository;
+    }
 
     public byte[] generateInvoicePdf(Invoice invoice) {
         try {
@@ -215,16 +224,58 @@ public class InvoicePdfService {
             Cell payMethodVal = new Cell().add(new Paragraph(paymentMethodStr).setFontSize(9)).setBorder(null).setPadding(5);
             paymentTable.addCell(payMethod);
             paymentTable.addCell(payMethodVal);
-            
-            boolean isPaid = invoice.getInvoiceStatus() == Invoice.PaymentStatus.PAID;
-            DeviceRgb statusColor = isPaid ? new DeviceRgb(34, 139, 34) : new DeviceRgb(220, 20, 60); // Green or Red
-            
+
+            Invoice.PaymentStatus statusEnum = invoice.getInvoiceStatus() != null
+                    ? invoice.getInvoiceStatus()
+                    : Invoice.PaymentStatus.PENDING;
+
+            DeviceRgb statusColor;
+            switch (statusEnum) {
+                case PAID:
+                    statusColor = new DeviceRgb(34, 139, 34); // Green
+                    break;
+                case PENDING:
+                case PARTIAL:
+                    statusColor = new DeviceRgb(218, 165, 32); // Gold/Amber
+                    break;
+                case REFUNDED:
+                    statusColor = new DeviceRgb(30, 144, 255); // Blue
+                    break;
+                case FAILED:
+                default:
+                    statusColor = new DeviceRgb(220, 20, 60); // Red
+                    break;
+            }
+
             Cell status = new Cell().add(new Paragraph("Status:").setBold().setFontSize(9)).setBorder(null).setPadding(5);
-            Cell statusVal = new Cell().add(new Paragraph(isPaid ? "PAID" : "PENDING").setBold().setFontSize(9)).setBorder(null).setPadding(5).setFontColor(statusColor);
+            Cell statusVal = new Cell().add(new Paragraph(statusEnum.name()).setBold().setFontSize(9)).setBorder(null).setPadding(5).setFontColor(statusColor);
             paymentTable.addCell(status);
             paymentTable.addCell(statusVal);
+
+                // If refunded/partial, show the refunded amount as a negative value (credit)
+                if ((statusEnum == Invoice.PaymentStatus.REFUNDED || statusEnum == Invoice.PaymentStatus.PARTIAL)
+                    && booking != null
+                    && booking.getId() != null) {
+                bookingCancellationRepository.findTopByBookingIdOrderByCancelledAtDesc(booking.getId())
+                    .map(c -> c.getRefundedAmount())
+                    .filter(v -> v != null && v.compareTo(BigDecimal.ZERO) > 0)
+                    .ifPresent(refund -> {
+                        BigDecimal refundScaled = refund.setScale(2, RoundingMode.HALF_UP);
+                        Cell refundLabel = new Cell()
+                            .add(new Paragraph("Refund Amount:").setBold().setFontSize(9))
+                            .setBorder(null).setPadding(5);
+                        Cell refundVal = new Cell()
+                            .add(new Paragraph("-€" + String.format(Locale.GERMANY, "%.2f", refundScaled))
+                                .setBold().setFontSize(9))
+                            .setBorder(null).setPadding(5)
+                            .setFontColor(statusColor);
+                        paymentTable.addCell(refundLabel);
+                        paymentTable.addCell(refundVal);
+                    });
+                }
             
-            if (isPaid && invoice.getPaidAt() != null) {
+            boolean showPaidOn = statusEnum != Invoice.PaymentStatus.PENDING && invoice.getPaidAt() != null;
+            if (showPaidOn) {
                 Cell paidDate = new Cell().add(new Paragraph("Paid On:").setBold().setFontSize(9)).setBorder(null).setPadding(5);
                 Cell paidDateVal = new Cell().add(new Paragraph(invoice.getPaidAt().format(DATE_TIME_FORMATTER)).setFontSize(9)).setBorder(null).setPadding(5);
                 paymentTable.addCell(paidDate);

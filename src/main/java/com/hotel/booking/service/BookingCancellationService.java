@@ -19,6 +19,7 @@ public class BookingCancellationService {
     private final BookingCancellationRepository cancellationRepository;
     private final BookingService bookingService;
     private final PaymentService paymentService;
+    private final InvoiceService invoiceService;
     private final EmailService emailService;
 
     // Konstruktor-Injektion der benötigten Repositories
@@ -26,10 +27,12 @@ public class BookingCancellationService {
             BookingCancellationRepository cancellationRepository,
             BookingService bookingService,
             PaymentService paymentService,
+            InvoiceService invoiceService,
             EmailService emailService) {
         this.cancellationRepository = cancellationRepository;
         this.bookingService = bookingService;
         this.paymentService = paymentService;
+        this.invoiceService = invoiceService;
         this.emailService = emailService;
     }
 
@@ -113,19 +116,55 @@ public class BookingCancellationService {
         System.out.println("DEBUG: Booking " + booking.getId() + " status changed to CANCELLED");
         
         // 2. BookingCancellation speichern
-        cancellationRepository.save(cancellation);
+        save(cancellation);
         System.out.println("DEBUG: BookingCancellation saved for booking " + booking.getId());
-        
-        // 3. Payment zu REFUNDED mit refundedAmount
+
+        final BigDecimal safeRefund = refundedAmount == null
+            ? BigDecimal.ZERO
+            : refundedAmount.max(BigDecimal.ZERO);
+
+        // 3. Payment Status anpassen (REFUNDED / PARTIAL / PAID)
         List<Payment> payments = paymentService.findByBookingId(booking.getId());
         for (Payment p : payments) {
             if (p.getStatus() == Invoice.PaymentStatus.PAID) {
-                p.setStatus(Invoice.PaymentStatus.REFUNDED);
-                p.setRefundedAmount(refundedAmount);
+                BigDecimal paidAmount = p.getAmount() != null ? p.getAmount() : BigDecimal.ZERO;
+                BigDecimal appliedRefund = safeRefund.min(paidAmount);
+
+                if (appliedRefund.compareTo(BigDecimal.ZERO) == 0) {
+                    // No refund (100% cancellation fee)
+                    p.setStatus(Invoice.PaymentStatus.PAID);
+                    p.setRefundedAmount(null);
+                } else if (appliedRefund.compareTo(paidAmount) >= 0) {
+                    p.setStatus(Invoice.PaymentStatus.REFUNDED);
+                    p.setRefundedAmount(appliedRefund);
+                } else {
+                    p.setStatus(Invoice.PaymentStatus.PARTIAL);
+                    p.setRefundedAmount(appliedRefund);
+                }
+
                 paymentService.save(p);
-                System.out.println("DEBUG: Payment " + p.getId() + " status changed to REFUNDED, refundAmount: " + refundedAmount);
+                System.out.println("DEBUG: Payment " + p.getId() + " status changed to " + p.getStatus() + ", refundAmount: " + p.getRefundedAmount());
                 break;
             }
+        }
+
+        // 4. Invoice Status anpassen (falls vorhanden)
+        if (booking.getId() != null) {
+            invoiceService.findByBookingId(booking.getId()).ifPresent(inv -> {
+                BigDecimal invoiceAmount = inv.getAmount() != null ? inv.getAmount() : BigDecimal.ZERO;
+                BigDecimal appliedRefund = safeRefund.min(invoiceAmount);
+
+                if (appliedRefund.compareTo(BigDecimal.ZERO) == 0) {
+                    inv.setInvoiceStatus(Invoice.PaymentStatus.PAID);
+                } else if (appliedRefund.compareTo(invoiceAmount) >= 0) {
+                    inv.setInvoiceStatus(Invoice.PaymentStatus.REFUNDED);
+                } else {
+                    inv.setInvoiceStatus(Invoice.PaymentStatus.PARTIAL);
+                }
+
+                invoiceService.save(inv);
+                System.out.println("DEBUG: Invoice " + inv.getId() + " status changed to " + inv.getInvoiceStatus());
+            });
         }
     }
 }

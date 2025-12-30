@@ -26,7 +26,6 @@ import jakarta.annotation.security.RolesAllowed;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -36,6 +35,7 @@ import java.util.stream.Collectors;
 @Route(value = "payment", layout = MainLayout.class)
 @PageTitle("Payments")
 @CssImport("./themes/hotel/styles.css")
+@CssImport("./themes/hotel/views/my-bookings.css")
 @RolesAllowed({UserRole.RECEPTIONIST_VALUE, UserRole.MANAGER_VALUE, UserRole.GUEST_VALUE})
 public class PaymentView extends VerticalLayout {
 
@@ -94,12 +94,12 @@ public class PaymentView extends VerticalLayout {
         subtitle.addClassName("payment-subtitle");
 
         TextField search = new TextField("Search");
-        search.setPlaceholder("Transaction Ref, Booking ID...");
+        search.setPlaceholder("Booking number, Booking ID...");
         search.setPrefixComponent(VaadinIcon.SEARCH.create());
 
         Select<String> status = new Select<>();
         status.setLabel("Status");
-        status.setItems("All Status", "Pending", "Completed", "Failed");
+        status.setItems("All Status", "PENDING", "PAID", "FAILED", "REFUNDED", "PARTIAL");
         status.setValue("All Status");
 
         Select<String> method = new Select<>();
@@ -141,18 +141,20 @@ public class PaymentView extends VerticalLayout {
 
         // Grid setup
         grid = new Grid<>(Payment.class, false);
-        
-        grid.addColumn(Payment::getId).setHeader("ID").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+
+        grid.addColumn(this::getBookingNumber).setHeader("Booking No.").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.addColumn(this::formatPaymentAmount).setHeader("Amount").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.addColumn(Payment::getMethod).setHeader("Method").setSortable(true).setAutoWidth(true).setFlexGrow(1);
-        grid.addColumn(Payment::getStatus).setHeader("Status").setSortable(true).setAutoWidth(true).setFlexGrow(1);
-        grid.addColumn(Payment::getTransactionRef).setHeader("Transaction-Ref").setSortable(true).setAutoWidth(true).setFlexGrow(1);
+        grid.addComponentColumn(payment -> createStatusBadge(payment.getStatus()))
+            .setHeader("Status").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.addColumn(payment -> payment.getPaidAt() != null 
                 ? payment.getPaidAt().format(GERMAN_DATETIME_FORMAT) 
                 : "")
                 .setHeader("Paid at").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.setMultiSort(true, MultiSortPriority.APPEND);
         grid.setWidthFull();
+        // Let the page scroll, not the grid
+        grid.setAllRowsVisible(true);
 
         // Load initial data
         loadPayments("");
@@ -161,8 +163,19 @@ public class PaymentView extends VerticalLayout {
         return card;
     }
 
+    private Span createStatusBadge(Object status) {
+        String statusText = status != null ? String.valueOf(status) : "";
+        Span badge = new Span(statusText);
+        badge.addClassName("booking-item-status");
+        if (!statusText.isBlank()) {
+            badge.addClassName(statusText.toLowerCase());
+        }
+        return badge;
+    }
+
     private void loadPayments(String query) {
-        loadPayments(query, "All Status", "All Methods", LocalDate.now());
+        // No default date filter: show payments immediately like InvoiceView
+        loadPayments(query, "All Status", "All Methods", null);
     }
 
     private void loadPayments(String query, String statusFilter, String methodFilter, LocalDate dateFilter) {
@@ -199,7 +212,7 @@ public class PaymentView extends VerticalLayout {
     private List<Payment> applyStatusFilter(List<Payment> items, String statusFilter) {
         if (statusFilter != null && !statusFilter.equals("All Status")) {
             return items.stream()
-                    .filter(p -> p.getStatus() != null && p.getStatus().toString().equals(statusFilter))
+                    .filter(p -> p.getStatus() != null && p.getStatus().name().equals(statusFilter))
                     .collect(Collectors.toList());
         }
         return items;
@@ -226,20 +239,65 @@ public class PaymentView extends VerticalLayout {
 
     private List<Payment> applySearchFilter(List<Payment> items, String query) {
         if (query != null && !query.isBlank()) {
-            var byTx = paymentService.findByTransactionRef(query);
-            if (byTx.isPresent()) {
-                Payment payment = byTx.get();
-                if (hasAccessToPayment(payment)) {
-                    return Collections.singletonList(payment);
+            String normalized = query.trim();
+
+            // 1) If the user enters a number, treat it as Booking ID and search across all payments.
+            Long bookingId = tryParseLong(normalized);
+            if (bookingId != null) {
+                List<Payment> byBookingId = paymentService.findByBookingId(bookingId).stream()
+                        .filter(this::hasAccessToPayment)
+                        .collect(Collectors.toList());
+                if (!byBookingId.isEmpty()) {
+                    return byBookingId;
                 }
-                return Collections.emptyList();
             }
+
+            // 2) Exact match by Booking Number (business reference), search across all payments.
+            List<Payment> byBookingNumber = paymentService.findAll().stream()
+                    .filter(p -> {
+                        String bookingNumber = getBookingNumber(p);
+                        return bookingNumber != null && bookingNumber.equalsIgnoreCase(normalized);
+                    })
+                    .filter(this::hasAccessToPayment)
+                    .collect(Collectors.toList());
+            if (!byBookingNumber.isEmpty()) {
+                return byBookingNumber;
+            }
+
+            // 3) Fallback: substring search within the currently filtered set.
+            String qLower = normalized.toLowerCase();
             return items.stream()
-                    .filter(p -> p.getTransactionRef() != null && 
-                               p.getTransactionRef().toLowerCase().contains(query.toLowerCase()))
+                    .filter(p -> {
+                        String bookingNumber = getBookingNumber(p);
+                        boolean matchesBookingNumber = bookingNumber != null && bookingNumber.toLowerCase().contains(qLower);
+                        boolean matchesBookingId = p.getBooking() != null && p.getBooking().getId() != null
+                                && p.getBooking().getId().toString().contains(normalized);
+                        // Keep Transaction-Ref as a technical fallback (optional field).
+                        boolean matchesTxRef = p.getTransactionRef() != null && p.getTransactionRef().toLowerCase().contains(qLower);
+                        return matchesBookingNumber || matchesBookingId || matchesTxRef;
+                    })
                     .collect(Collectors.toList());
         }
         return items;
+    }
+
+    private String getBookingNumber(Payment payment) {
+        if (payment == null || payment.getBooking() == null) {
+            return "";
+        }
+        String bookingNumber = payment.getBooking().getBookingNumber();
+        return bookingNumber != null ? bookingNumber : "";
+    }
+
+    private Long tryParseLong(String value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            return Long.parseLong(value.trim());
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 
     private boolean hasAccessToPayment(Payment payment) {

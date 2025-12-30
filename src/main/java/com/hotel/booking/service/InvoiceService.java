@@ -36,6 +36,14 @@ public class InvoiceService {
         return invoiceRepository.findByInvoiceNumber(invoiceNumber);
     }
 
+    @Transactional(readOnly = true)
+    public Optional<Invoice> findByBookingId(Long bookingId) {
+        if (bookingId == null) {
+            return Optional.empty();
+        }
+        return invoiceRepository.findByBookingId(bookingId);
+    }
+
     @Transactional
     public Invoice save(Invoice invoice) {
         // Check if this is a new invoice (no ID yet)

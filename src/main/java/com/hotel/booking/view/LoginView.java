@@ -189,6 +189,12 @@ public class LoginView extends Div {
         Button sendBtn = new Button("Send reset email");
         Button cancelBtn = new Button("Cancel");
 
+        // Match LoginView button styling (primary action + link-style secondary)
+        sendBtn.addClassName("gold-button");
+        // gold-button sets width: 100% globally; keep dialog buttons side-by-side
+        sendBtn.getStyle().set("width", "auto");
+        cancelBtn.addClassName("forgot-link");
+
         sendBtn.addClickListener(ev -> {
             String email = emailField.getValue();
             if (email == null || email.isBlank()) {

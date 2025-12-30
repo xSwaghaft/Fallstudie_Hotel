@@ -41,6 +41,7 @@ import jakarta.annotation.security.RolesAllowed;
 @Route(value = "invoices", layout = MainLayout.class)
 @PageTitle("Invoices")
 @CssImport("./themes/hotel/styles.css")
+@CssImport("./themes/hotel/views/my-bookings.css")
 @RolesAllowed({UserRole.RECEPTIONIST_VALUE, UserRole.MANAGER_VALUE, UserRole.GUEST_VALUE})
 public class InvoiceView extends VerticalLayout {
 
@@ -149,8 +150,7 @@ public class InvoiceView extends VerticalLayout {
 
         // Grid setup
         grid = new Grid<>(Invoice.class, false);
-        
-        grid.addColumn(Invoice::getId).setHeader("ID").setSortable(true).setAutoWidth(true).setFlexGrow(0);
+
         grid.addColumn(Invoice::getInvoiceNumber).setHeader("Invoice No.").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.addColumn(invoice -> {
             NumberFormat nf = NumberFormat.getInstance(Locale.GERMANY);
@@ -159,7 +159,8 @@ public class InvoiceView extends VerticalLayout {
             return nf.format(invoice.getAmount()) + " €";
         }).setHeader("Amount").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.addColumn(Invoice::getPaymentMethod).setHeader("Payment Method").setSortable(true).setAutoWidth(true).setFlexGrow(1);
-        grid.addColumn(Invoice::getInvoiceStatus).setHeader("Status").setSortable(true).setAutoWidth(true).setFlexGrow(1);
+        grid.addComponentColumn(invoice -> createStatusBadge(invoice.getInvoiceStatus()))
+            .setHeader("Status").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.addColumn(invoice -> invoice.getIssuedAt() != null 
                 ? invoice.getIssuedAt().format(GERMAN_DATETIME_FORMAT) 
                 : "")
@@ -175,12 +176,24 @@ public class InvoiceView extends VerticalLayout {
         }).setHeader("PDF").setAutoWidth(true).setFlexGrow(0);
         
         grid.setWidthFull();
+        // Let the page scroll, not the grid
+        grid.setAllRowsVisible(true);
 
         // Load initial data
         loadInvoices("");
 
         card.add(title, grid);
         return card;
+    }
+
+    private Span createStatusBadge(Object status) {
+        String statusText = status != null ? String.valueOf(status) : "";
+        Span badge = new Span(statusText);
+        badge.addClassName("booking-item-status");
+        if (!statusText.isBlank()) {
+            badge.addClassName(statusText.toLowerCase());
+        }
+        return badge;
     }
 
     // Simple search method

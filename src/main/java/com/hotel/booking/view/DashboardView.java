@@ -24,6 +24,7 @@ import com.vaadin.flow.router.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 import jakarta.annotation.security.RolesAllowed;
 
@@ -75,7 +76,7 @@ public class DashboardView extends VerticalLayout {
      * @return Header component
      */
     private Component createHeader(UserRole role) {
-        String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy"));
+        String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", Locale.ENGLISH));
 
         H1 title = new H1("Dashboard");
         Paragraph subtitle = new Paragraph("Overview of hotel operations - " + dateStr);
