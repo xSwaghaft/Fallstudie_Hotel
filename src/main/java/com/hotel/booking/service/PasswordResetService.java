@@ -112,10 +112,14 @@ public class PasswordResetService {
                 return true;
             } catch (Exception e) {
                 log.error("Failed to send fallback plain password reset email to {}: {}", email, e.getMessage());
+                // Clean up token if email sending fails
+                tokenRepository.delete(prt);
                 return false;
             }
         } catch (Exception e) {
             log.error("Failed to send password reset email to {}: {}", email, e.getMessage());
+            // Clean up token if email sending fails
+            tokenRepository.delete(prt);
             return false;
         }
     }
