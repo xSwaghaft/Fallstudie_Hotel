@@ -10,7 +10,6 @@ TRUNCATE TABLE booking_cancellation;
 TRUNCATE TABLE booking_modification;
 TRUNCATE TABLE payments;
 TRUNCATE TABLE booking_extra;
-TRUNCATE TABLE room_bookings;
 TRUNCATE TABLE bookings;
 TRUNCATE TABLE invoices;
 TRUNCATE TABLE rooms;
@@ -126,17 +125,6 @@ INSERT IGNORE INTO booking_extra (booking_id, extra_id) VALUES
 (5,2),
 (6,4);
 
--- ---------- room_bookings (ManyToMany Room <-> Booking) ----------
-INSERT IGNORE INTO room_bookings (room_id, booking_id) VALUES
-(1,1),
-(3,2),
-(5,3),
-(4,4),
-(3,5),
-(6,6),
-(3,7),
-(4,8);
-
 -- ---------- Payments (at least 6 entries) ----------
 INSERT IGNORE INTO payments (id, booking_id, amount, method, status, transaction_ref, paid_at) VALUES
 (1,1,159.80,'CARD','PAID','TXN-1001','2025-11-01 11:00:00'),
@@ -199,10 +187,6 @@ INSERT IGNORE INTO invoices (id, invoice_number, amount, issued_at, payment_meth
 (201,'INV-20251210-201',259.80,'2025-12-10 10:00:00','CARD','PENDING',101),
 (202,'INV-20251212-202',747.00,'2025-12-12 11:00:00','CARD','PENDING',102),
 (203,'INV-20251212-203',319.80,'2025-12-12 11:15:00','CARD','PENDING',103);
-
--- Map new bookings to rooms (future bookings)
-INSERT IGNORE INTO room_bookings (room_id, booking_id) VALUES
-(2,100),(3,101),(4,102),(5,103);
 
 -- Payments (initially PENDING for some, keep as PENDING to reflect not-yet-paid)
 INSERT IGNORE INTO payments (id, booking_id, amount, method, status, transaction_ref, paid_at) VALUES

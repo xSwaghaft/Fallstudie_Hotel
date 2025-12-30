@@ -1,9 +1,6 @@
 package com.hotel.booking.entity;
 
-import java.util.List;
-
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.Column;
@@ -15,8 +12,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
@@ -89,22 +84,6 @@ public class Room {
      */
     @Column(name = "information")
     private String information;
-
-
-   
-
-    /**
-     * List of bookings associated with this room.
-     * This side is ignored during JSON serialization.
-     */
-    @JsonIgnore
-    @ManyToMany
-    @JoinTable(
-         name = "room_bookings",
-         joinColumns = @JoinColumn(name = "room_id"),
-         inverseJoinColumns = @JoinColumn(name = "booking_id")
-     )
-    private List<Booking> booking;
 
 
     /**
