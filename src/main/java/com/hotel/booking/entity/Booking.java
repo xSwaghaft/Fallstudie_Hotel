@@ -36,18 +36,7 @@ import jakarta.persistence.Table;
  * total monetary price, as well as references to guest, room, payments,
  * extras, invoice, and feedback.
  * </p>
- *
- * <p>
- * <strong>Persistence Notes</strong>:
- * <ul>
- * <li>Relationships are annotated so that child objects (Payments/Extras)
- * are persisted by default and deleted on removal (orphanRemoval).</li>
- * <li>Enum values are stored as strings.</li>
- * </ul>
- * </p>
- *
  * @author Viktor Götting
- * @since 1.0
  */
 @Entity
 @Table(name = "bookings", indexes = {
@@ -108,9 +97,7 @@ public class Booking {
 
     /** Associated invoice. */
 
-    @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    @JoinColumn(name = "invoice_id",
-            foreignKey = @ForeignKey(name = "fk_booking_invoice"))
+    @OneToOne(mappedBy = "booking", fetch = FetchType.EAGER)
     private Invoice invoice;
 
     /** Payments that have been booked to this booking. */

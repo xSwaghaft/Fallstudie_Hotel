@@ -12,6 +12,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
@@ -64,10 +65,11 @@ public class Invoice {
     @Column(name = "status", nullable = false, length = 32)
     private PaymentStatus invoiceStatus;
     
-    // TODO: Activate when Booking entity
+    /** Associated booking. */
     @JsonIgnore
     @OneToOne
-    @JoinColumn(name = "booking_id", nullable = false)
+    @JoinColumn(name = "booking_id", nullable = false,
+            foreignKey = @ForeignKey(name = "fk_invoice_booking"))
     private Booking booking;
     
     
