@@ -55,9 +55,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class MyBookingsView extends VerticalLayout {
 
     // Tab labels
-    private static final String TAB_UPCOMING = "Bevorstehend";
-    private static final String TAB_PAST = "Vergangen";
-    private static final String TAB_CANCELLED = "Storniert";
+    private static final String TAB_UPCOMING = "Upcoming";
+    private static final String TAB_PAST = "Past";
+    private static final String TAB_CANCELLED = "Cancelled";
 
     private final SessionService sessionService;
     private final BookingService bookingService;
@@ -95,10 +95,10 @@ public class MyBookingsView extends VerticalLayout {
 
         allBookings = loadAllBookingsForCurrentUser();
 
-        add(new H1("Meine Buchungen"));
+        add(new H1("My Bookings"));
         
         if (allBookings.isEmpty()) {
-            add(new Paragraph("Keine Buchungen gefunden."));
+            add(new Paragraph("No bookings found."));
         } else {
             createTabsAndContent();
         }
@@ -141,7 +141,7 @@ public class MyBookingsView extends VerticalLayout {
         List<Booking> filteredBookings = filterBookingsByTabType(tabLabel);
         
         if (filteredBookings.isEmpty()) {
-            Paragraph emptyMessage = new Paragraph("Keine Buchungen in dieser Kategorie.");
+            Paragraph emptyMessage = new Paragraph("No bookings in this category.");
             emptyMessage.getStyle().set("padding", "var(--spacing-xl)");
             emptyMessage.getStyle().set("text-align", "center");
             emptyMessage.getStyle().set("color", "var(--color-text-secondary)");
@@ -215,16 +215,16 @@ public class MyBookingsView extends VerticalLayout {
         Div details = new Div();
         details.addClassName("booking-item-details");
         
-        details.add(createDetailItem("Zimmer", roomType + " - " + roomNumber));
+        details.add(createDetailItem("Room", roomType + " - " + roomNumber));
         details.add(createDetailItem("Check-in", booking.getCheckInDate().format(GERMAN_DATE_FORMAT)));
         details.add(createDetailItem("Check-out", booking.getCheckOutDate().format(GERMAN_DATE_FORMAT)));
-        details.add(createDetailItem("Gäste", booking.getAmount() != null ? String.valueOf(booking.getAmount()) : "-"));
+        details.add(createDetailItem("Guests", booking.getAmount() != null ? String.valueOf(booking.getAmount()) : "-"));
         // Wenn bereits storniert: Suche letzte BookingCancellation und zeige die berechnete Strafe an
         if (booking.getStatus() == BookingStatus.CANCELLED && booking.getId() != null) {
             try {
                 bookingCancellationService.findLatestByBookingId(booking.getId()).ifPresent(bc -> {
                     if (bc.getCancellationFee() != null) {
-                        details.add(createDetailItem("Strafe", String.format("%.2f €", bc.getCancellationFee())));
+                        details.add(createDetailItem("Fee", String.format("%.2f €", bc.getCancellationFee())));
                     }
                 });
             } catch (Exception ex) {
@@ -232,19 +232,19 @@ public class MyBookingsView extends VerticalLayout {
             }
         }
         
-        // Berechne Preis pro Nacht für Anzeige
+        // Calculate price per night for display
         String pricePerNightText = calculatePricePerNight(booking);
         if (pricePerNightText != null) {
-            details.add(createDetailItem("Preis pro Nacht", pricePerNightText));
+            details.add(createDetailItem("Price per Night", pricePerNightText));
         }
         
-        // Gesamtpreis
+        // Total price
         String totalPriceText = "-";
         if (booking.getTotalPrice() != null) {
             totalPriceText = String.format("%.2f €", booking.getTotalPrice());
         }
         
-        H3 price = new H3("Gesamtpreis: " + totalPriceText);
+        H3 price = new H3("Total Price: " + totalPriceText);
         price.addClassName("booking-item-price");
         
         // Klickbarer Bereich
@@ -369,7 +369,7 @@ public class MyBookingsView extends VerticalLayout {
      * Maps UI payment method string to PaymentMethod enum
      */
     private Invoice.PaymentMethod mapPaymentMethod(String uiMethod) {
-        if ("Banküberweisung".equals(uiMethod)) {
+        if ("Bank Transfer".equals(uiMethod) || "Banküberweisung".equals(uiMethod)) {
             return Invoice.PaymentMethod.TRANSFER;
         }
         return Invoice.PaymentMethod.CARD;
@@ -417,7 +417,7 @@ public class MyBookingsView extends VerticalLayout {
     // Öffnet ein Dialogfenster mit allen Details, Extras und Rechnung zur Buchung.
     private void openBookingDetailsDialog(Booking booking) {
         Dialog dialog = new Dialog();
-        dialog.setHeaderTitle("Buchungsdetails - " + booking.getBookingNumber());
+        dialog.setHeaderTitle("Booking Details - " + booking.getBookingNumber());
         dialog.setWidth("800px");
 
         Tabs tabs = new Tabs(new Tab("Details"), new Tab("Payments"), new Tab("History"), new Tab("Extras"));
@@ -434,23 +434,39 @@ public class MyBookingsView extends VerticalLayout {
         // Price details included in Details tab
         String pricePerNightText = calculatePricePerNight(booking);
         if (pricePerNightText != null) {
-            details.add(new Paragraph("Preis pro Nacht: " + pricePerNightText));
+            details.add(new Paragraph("Price per Night: " + pricePerNightText));
         }
         String totalPriceText = booking.getTotalPrice() != null ? String.format("%.2f €", booking.getTotalPrice()) : "-";
-        details.add(new Paragraph("Gesamtpreis: " + totalPriceText));
+        details.add(new Paragraph("Total Price: " + totalPriceText));
 
-        // Cancellation policy shown in Details as before
-        details.add(new Paragraph("Stornobedingungen:\n- Bis 30 Tage vorher: Kostenlos\n- 7-29 Tage vorher: 20% Gebühr\n- 1-6 Tage vorher: 50% Gebühr\n- Am Anreisetag: 100% Gebühr"));
+        // Cancellation policy shown in Details
+        Div cancellationPolicy = new Div();
+        cancellationPolicy.getStyle().set("margin-top", "var(--spacing-md)");
+        cancellationPolicy.getStyle().set("padding", "var(--spacing-md)");
+        cancellationPolicy.getStyle().set("background", "var(--color-bg-light)");
+        cancellationPolicy.getStyle().set("border-radius", "var(--radius-md)");
+        
+        Paragraph policyTitle = new Paragraph("Cancellation Policy");
+        policyTitle.getStyle().set("font-weight", "600");
+        policyTitle.getStyle().set("margin-bottom", "var(--spacing-sm)");
+        cancellationPolicy.add(policyTitle);
+        
+        cancellationPolicy.add(new Paragraph("• More than 30 days before check-in: Free cancellation"));
+        cancellationPolicy.add(new Paragraph("• 7-29 days before check-in: 20% cancellation fee"));
+        cancellationPolicy.add(new Paragraph("• 1-6 days before check-in: 50% cancellation fee"));
+        cancellationPolicy.add(new Paragraph("• On check-in day: 100% cancellation fee (no refund)"));
+        
+        details.add(cancellationPolicy);
 
         // Wenn die Buchung bereits storniert wurde, zeige die gespeicherte Stornogebühr und Grund an (falls vorhanden)
         if (booking.getStatus() == BookingStatus.CANCELLED && booking.getId() != null) {
             try {
                 bookingCancellationService.findLatestByBookingId(booking.getId()).ifPresent(bc -> {
                     if (bc.getCancellationFee() != null) {
-                        details.add(new Paragraph("Stornogebühr: " + String.format("%.2f €", bc.getCancellationFee())));
+                        details.add(new Paragraph("Cancellation Fee: " + String.format("%.2f €", bc.getCancellationFee())));
                     }
                     if (bc.getReason() != null && !bc.getReason().isBlank()) {
-                        details.add(new Paragraph("Storno-Grund: " + bc.getReason()));
+                        details.add(new Paragraph("Cancellation Reason: " + bc.getReason()));
                     }
                 });
             } catch (Exception ex) {
@@ -462,12 +478,12 @@ public class MyBookingsView extends VerticalLayout {
         Div payments = new Div();
         if (booking.getInvoice() != null) {
             Invoice invoice = booking.getInvoice();
-            payments.add(new Paragraph("Rechnungsnummer: " + invoice.getInvoiceNumber()));
-            payments.add(new Paragraph("Betrag: " + String.format("%.2f €", invoice.getAmount())));
+            payments.add(new Paragraph("Invoice Number: " + invoice.getInvoiceNumber()));
+            payments.add(new Paragraph("Amount: " + String.format("%.2f €", invoice.getAmount())));
             payments.add(new Paragraph("Status: " + invoice.getInvoiceStatus().toString()));
-            payments.add(new Paragraph("Zahlungsmethode: " + invoice.getPaymentMethod().toString()));
+            payments.add(new Paragraph("Payment Method: " + invoice.getPaymentMethod().toString()));
             if (invoice.getIssuedAt() != null) {
-                payments.add(new Paragraph("Ausgestellt: " + invoice.getIssuedAt().format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"))));
+                payments.add(new Paragraph("Issued: " + invoice.getIssuedAt().format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"))));
             }
         } else {
             payments.add(new Paragraph("Payment information not available"));
@@ -588,7 +604,7 @@ public class MyBookingsView extends VerticalLayout {
             extras.setVisible(tabs.getSelectedIndex() == 3);
         });
 
-        Button close = new Button("Schließen", e -> dialog.close());
+        Button close = new Button("Close", e -> dialog.close());
         close.addClassName("primary-button");
 
         dialog.add(new VerticalLayout(tabs, pages));
@@ -613,11 +629,11 @@ public class MyBookingsView extends VerticalLayout {
         buttonsLayout.setSpacing(true);
 
         if (TAB_UPCOMING.equals(tabLabel)) {
-            Button editBtn = new Button("Bearbeiten");
+            Button editBtn = new Button("Edit");
             editBtn.addClassName("primary-button");
             editBtn.addClickListener(e -> openEditBookingDialog(booking));
 
-            Button cancelBtn = new Button("Stornieren");
+            Button cancelBtn = new Button("Cancel");
             cancelBtn.addClassName("secondary-button");
             cancelBtn.addClickListener(e -> openCancellationDialog(booking));
             
@@ -629,7 +645,7 @@ public class MyBookingsView extends VerticalLayout {
                 buttonsLayout.add(editBtn, cancelBtn);
             }
         } else if (TAB_PAST.equals(tabLabel)) {
-            RouterLink reviewLink = new RouterLink("Review schreiben", MyReviewsView.class);
+            RouterLink reviewLink = new RouterLink("Write Review", MyReviewsView.class);
             reviewLink.addClassName("primary-button");
             buttonsLayout.add(reviewLink);
         }
@@ -641,7 +657,7 @@ public class MyBookingsView extends VerticalLayout {
         createNewBookingForm form = new createNewBookingForm(sessionService.getCurrentUser(), sessionService, booking, formService);
 
         Dialog dialog = new Dialog();
-        dialog.setHeaderTitle("Buchung bearbeiten");
+        dialog.setHeaderTitle("Edit Booking");
         dialog.setWidth("600px");
 
         final java.util.concurrent.atomic.AtomicReference<java.time.LocalDate> prevCheckInRef = new java.util.concurrent.atomic.AtomicReference<>(booking.getCheckInDate());
@@ -650,38 +666,38 @@ public class MyBookingsView extends VerticalLayout {
         final java.util.concurrent.atomic.AtomicReference<java.math.BigDecimal> prevTotalRef = new java.util.concurrent.atomic.AtomicReference<>(booking.getTotalPrice());
         final java.util.concurrent.atomic.AtomicReference<java.util.Set<com.hotel.booking.entity.BookingExtra>> prevExtrasRef = new java.util.concurrent.atomic.AtomicReference<>(booking.getExtras());
 
-        Button saveBtn = new Button("Speichern", ev -> {
+        Button saveBtn = new Button("Save", ev -> {
             try {
                 form.writeBean();
                 Booking updated = form.getBooking();
                 bookingService.calculateBookingPrice(updated);
 
                 Dialog preview = new Dialog();
-                preview.setHeaderTitle("Änderungen bestätigen");
+                preview.setHeaderTitle("Confirm Changes");
                 VerticalLayout content = new VerticalLayout();
-                content.add(new Paragraph("-- Vorher --"));
+                content.add(new Paragraph("-- Before --"));
                 content.add(new Paragraph("Check-in: " + (prevCheckInRef.get() != null ? prevCheckInRef.get().format(GERMAN_DATE_FORMAT) : "N/A")));
                 content.add(new Paragraph("Check-out: " + (prevCheckOutRef.get() != null ? prevCheckOutRef.get().format(GERMAN_DATE_FORMAT) : "N/A")));
-                content.add(new Paragraph("Gäste: " + (prevAmountRef.get() != null ? prevAmountRef.get() : "N/A")));
-                content.add(new Paragraph("Preis: " + (prevTotalRef.get() != null ? prevTotalRef.get().toString() : "N/A")));
+                content.add(new Paragraph("Guests: " + (prevAmountRef.get() != null ? prevAmountRef.get() : "N/A")));
+                content.add(new Paragraph("Price: " + (prevTotalRef.get() != null ? prevTotalRef.get().toString() : "N/A")));
                 String prevExtrasStr = "none";
                 if (prevExtrasRef.get() != null && !prevExtrasRef.get().isEmpty()) {
                     prevExtrasStr = prevExtrasRef.get().stream().map(x -> x.getName()).collect(java.util.stream.Collectors.joining(", "));
                 }
                 content.add(new Paragraph("Extras: " + prevExtrasStr));
 
-                content.add(new Paragraph("-- Nachher --"));
+                content.add(new Paragraph("-- After --"));
                 content.add(new Paragraph("Check-in: " + (updated.getCheckInDate() != null ? updated.getCheckInDate().format(GERMAN_DATE_FORMAT) : "N/A")));
                 content.add(new Paragraph("Check-out: " + (updated.getCheckOutDate() != null ? updated.getCheckOutDate().format(GERMAN_DATE_FORMAT) : "N/A")));
-                content.add(new Paragraph("Gäste: " + (updated.getAmount() != null ? updated.getAmount() : "N/A")));
-                content.add(new Paragraph("Preis: " + (updated.getTotalPrice() != null ? updated.getTotalPrice().toString() : "N/A")));
+                content.add(new Paragraph("Guests: " + (updated.getAmount() != null ? updated.getAmount() : "N/A")));
+                content.add(new Paragraph("Price: " + (updated.getTotalPrice() != null ? updated.getTotalPrice().toString() : "N/A")));
                 String newExtrasStr = "none";
                 if (updated.getExtras() != null && !updated.getExtras().isEmpty()) {
                     newExtrasStr = updated.getExtras().stream().map(x -> x.getName()).collect(java.util.stream.Collectors.joining(", "));
                 }
                 content.add(new Paragraph("Extras: " + newExtrasStr));
 
-                Button confirm = new Button("Bestätigen", confirmEv -> {
+                Button confirm = new Button("Confirm", confirmEv -> {
                     try {
                         modificationService.recordChangesFromSnapshot(booking,
                                 prevCheckInRef.get(), prevCheckOutRef.get(), prevAmountRef.get(), prevTotalRef.get(), prevExtrasRef.get(),
@@ -692,22 +708,22 @@ public class MyBookingsView extends VerticalLayout {
                         preview.close();
                         allBookings = loadAllBookingsForCurrentUser();
                         updateContent();
-                        Notification.show("Buchung erfolgreich aktualisiert.", 3000, Notification.Position.BOTTOM_START);
+                        Notification.show("Booking updated successfully.", 3000, Notification.Position.BOTTOM_START);
                     } catch (Exception ex) {
-                        Notification.show(ex.getMessage() != null ? ex.getMessage() : "Fehler beim Speichern", 5000, Notification.Position.MIDDLE);
+                        Notification.show(ex.getMessage() != null ? ex.getMessage() : "Error saving booking", 5000, Notification.Position.MIDDLE);
                     }
                 });
-                Button back = new Button("Zurück", backEv -> preview.close());
+                Button back = new Button("Back", backEv -> preview.close());
                 preview.add(content, new HorizontalLayout(confirm, back));
                 preview.open();
 
             } catch (ValidationException ex) {
-                Notification.show("Bitte korrigiere Validierungsfehler.", 3000, Notification.Position.MIDDLE);
+                Notification.show("Please fix validation errors.", 3000, Notification.Position.MIDDLE);
             }
         });
         saveBtn.addClassName("primary-button");
 
-        Button cancelBtn = new Button("Abbrechen", ev -> dialog.close());
+        Button cancelBtn = new Button("Cancel", ev -> dialog.close());
         dialog.add(form, new HorizontalLayout(saveBtn, cancelBtn));
         dialog.open();
     }
@@ -715,7 +731,7 @@ public class MyBookingsView extends VerticalLayout {
     private void openCancellationDialog(Booking booking) {
         try {
             if (booking.getInvoice() != null && booking.getInvoice().getInvoiceStatus() == Invoice.PaymentStatus.PAID) {
-                Notification.show("Diese Buchung wurde bereits bezahlt und kann nicht storniert werden.", 4000, Notification.Position.MIDDLE);
+                Notification.show("This booking has already been paid and cannot be cancelled.", 4000, Notification.Position.MIDDLE);
                 return;
             }
 
@@ -724,35 +740,35 @@ public class MyBookingsView extends VerticalLayout {
             long daysBefore = java.time.Duration.between(java.time.LocalDateTime.now(), booking.getCheckInDate().atStartOfDay()).toDays();
 
             Dialog confirm = new Dialog();
-            confirm.setHeaderTitle("Stornierung bestätigen");
+            confirm.setHeaderTitle("Confirm Cancellation");
             VerticalLayout cnt = new VerticalLayout();
 
             if (penalty.compareTo(java.math.BigDecimal.ZERO) > 0) {
                 String timeframe;
                 if (daysBefore >= 7) {
-                    timeframe = "mehr als 7 Tage";
+                    timeframe = "more than 7 days";
                 } else if (daysBefore >= 1) {
-                    timeframe = "1-6 Tage";
+                    timeframe = "1-6 days";
                 } else {
-                    timeframe = "am Anreisetag";
+                    timeframe = "on check-in day";
                 }
-                cnt.add(new Paragraph("Du stornierst " + timeframe + " vor Check-in."));
-                cnt.add(new Paragraph("Es fällt eine Gebühr an: " + String.format("%.2f €", penalty)));
-                cnt.add(new Paragraph("Rückerstattung: " + String.format("%.2f €", booking.getTotalPrice().subtract(penalty))));
-                cnt.add(new Paragraph("Möchtest du die Stornierung bestätigen?"));
+                cnt.add(new Paragraph("You are cancelling " + timeframe + " before check-in."));
+                cnt.add(new Paragraph("A fee will be charged: " + String.format("%.2f €", penalty)));
+                cnt.add(new Paragraph("Refund: " + String.format("%.2f €", booking.getTotalPrice().subtract(penalty))));
+                cnt.add(new Paragraph("Do you want to confirm the cancellation?"));
             } else {
-                cnt.add(new Paragraph("Du stornierst mehr als 30 Tage vor Check-in."));
-                cnt.add(new Paragraph("Kostenlos stornierbar. Vollständige Rückerstattung!"));
-                cnt.add(new Paragraph("Möchtest du die Buchung wirklich stornieren?"));
+                cnt.add(new Paragraph("You are cancelling more than 30 days before check-in."));
+                cnt.add(new Paragraph("Free cancellation. Full refund!"));
+                cnt.add(new Paragraph("Do you really want to cancel this booking?"));
             }
 
             final java.math.BigDecimal penaltyFinal = penalty;
-            Button confirmBtn = new Button("Ja, stornieren", ev -> {
+            Button confirmBtn = new Button("Yes, cancel", ev -> {
                 try {
                     BookingCancellation bc = new BookingCancellation();
                     bc.setBooking(booking);
                     bc.setCancelledAt(java.time.LocalDateTime.now());
-                    bc.setReason("Storniert vom Gast");
+                    bc.setReason("Cancelled by guest");
                     bc.setCancellationFee(penaltyFinal);
                     
                     // Calculate refunded amount (total - penalty)
@@ -771,19 +787,19 @@ public class MyBookingsView extends VerticalLayout {
                     updateContent();
                     
                     String msg = penaltyFinal.compareTo(java.math.BigDecimal.ZERO) > 0 
-                        ? "Buchung storniert. Rückerstattung: " + String.format("%.2f €", refundedAmount) + " | Strafe: " + String.format("%.2f €", penaltyFinal)
-                        : "Buchung wurde storniert. Gesamtbetrag wird rückerstellt.";
+                        ? "Booking cancelled. Refund: " + String.format("%.2f €", refundedAmount) + " | Fee: " + String.format("%.2f €", penaltyFinal)
+                        : "Booking cancelled. Full amount will be refunded.";
                     Notification.show(msg, 3000, Notification.Position.BOTTOM_START);
                     confirm.close();
                 } catch (Exception ex) {
-                    Notification.show(ex.getMessage() != null ? ex.getMessage() : "Fehler beim Stornieren", 5000, Notification.Position.MIDDLE);
+                    Notification.show(ex.getMessage() != null ? ex.getMessage() : "Error cancelling booking", 5000, Notification.Position.MIDDLE);
                 }
             });
-            Button backBtn = new Button("Abbrechen", ev -> confirm.close());
+            Button backBtn = new Button("Cancel", ev -> confirm.close());
                 confirm.add(cnt, new HorizontalLayout(confirmBtn, backBtn));
                 confirm.open();
             } catch (Exception ex) {
-                Notification.show(ex.getMessage() != null ? ex.getMessage() : "Fehler beim Stornieren", 5000, Notification.Position.MIDDLE);
+                Notification.show(ex.getMessage() != null ? ex.getMessage() : "Error cancelling booking", 5000, Notification.Position.MIDDLE);
             }
         }
     }
