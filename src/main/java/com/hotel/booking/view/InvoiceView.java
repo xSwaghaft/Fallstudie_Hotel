@@ -185,7 +185,7 @@ public class InvoiceView extends VerticalLayout {
 
     // Simple search method
     private void loadInvoices(String query) {
-        loadInvoices(query, "All Status", "All Methods", LocalDate.now());
+        loadInvoices(query, "All Status", "All Methods", null);
     }
 
     private void loadInvoices(String query, String statusFilter, String methodFilter, LocalDate dateFilter) {
@@ -229,7 +229,7 @@ public class InvoiceView extends VerticalLayout {
     private List<Invoice> applyStatusFilter(List<Invoice> items, String statusFilter) {
         if (statusFilter != null && !statusFilter.equals("All Status")) {
             return items.stream()
-                    .filter(i -> i.getInvoiceStatus() != null && i.getInvoiceStatus().toString().equals(statusFilter))
+                    .filter(i -> i.getInvoiceStatus() != null && i.getInvoiceStatus().name().equals(statusFilter))
                     .collect(Collectors.toList());
         }
         return items;
@@ -238,7 +238,7 @@ public class InvoiceView extends VerticalLayout {
     private List<Invoice> applyMethodFilter(List<Invoice> items, String methodFilter) {
         if (methodFilter != null && !methodFilter.equals("All Methods")) {
             return items.stream()
-                    .filter(i -> i.getPaymentMethod() != null && i.getPaymentMethod().toString().equals(methodFilter))
+                    .filter(i -> i.getPaymentMethod() != null && i.getPaymentMethod().name().equals(methodFilter))
                     .collect(Collectors.toList());
         }
         return items;
