@@ -98,13 +98,13 @@ VALUES
 INSERT IGNORE INTO invoices
 (id, invoice_number, amount, issued_at, payment_method, status, booking_id)
 VALUES
-(1,'INV-20251101-001',159.80,'2025-11-01 11:05:00','CARD','PAID',1),
-(2,'INV-20251102-002',129.90,'2025-11-02 09:10:00','CARD','PENDING',2),
-(3,'INV-20251103-003',479.70,'2025-11-21 16:25:00','TRANSFER','PAID',3),
-(4,'INV-20251104-004',249.00,'2025-11-14 10:15:00','CASH','PAID',4),
-(5,'INV-20251105-005',319.80,'2025-11-10 14:35:00','TRANSFER','REFUNDED',5),
-(6,'INV-20241010-006',649.50,'2024-10-10 10:00:00','CARD','PAID',7),
-(7,'INV-20240915-007',249.00,'2024-09-15 09:00:00','CARD','PAID',8);
+(1,'INV-2025-1849832321989',159.80,'2025-11-01 11:05:00','CARD','PAID',1),
+(2,'INV-2025-1154154154198',129.90,'2025-11-02 09:10:00','CARD','PENDING',2),
+(3,'INV-2025-1154574414554',479.70,'2025-11-21 16:25:00','TRANSFER','PAID',3),
+(4,'INV-2025-1516541415154',249.00,'2025-11-14 10:15:00','CASH','PAID',4),
+(5,'INV-2025-1415516223144',319.80,'2025-11-10 14:35:00','TRANSFER','REFUNDED',5),
+(6,'INV-2024-1041482989446',649.50,'2024-10-10 10:00:00','CARD','PAID',7),
+(7,'INV-2024-1767085397048',249.00,'2024-09-15 09:00:00','CARD','PAID',8);
 
 
 
@@ -162,7 +162,7 @@ INSERT IGNORE INTO booking_modification (id, booking_id, modified_at, field_chan
 (2,3,'2025-11-20 12:00:00','room_id','2','5','Upgrade to Deluxe',3),
 (3,4,'2025-11-10 08:30:00','amount','1','2','Additional guest added',2),
 (4,6,'2025-11-25 09:00:00','check_in_date','2025-12-06','2025-12-05','Date correction',1),
-(5,1,'2025-11-06 09:00:00','note','alt','neu','Internal note',4);
+(5,1,'2025-11-06 09:00:00','note','old','new','Internal note',4);
 
 -- ---------- Feedback (at least 5 entries) ----------
 INSERT IGNORE INTO feedback (id, booking_id, guest_id, rating, comment) VALUES

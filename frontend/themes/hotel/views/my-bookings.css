@@ -73,6 +73,26 @@
     color: var(--color-warning);
 }
 
+.booking-item-status.paid {
+    background-color: var(--color-success-bg);
+    color: var(--color-success);
+}
+
+.booking-item-status.failed {
+    background-color: var(--color-error-bg);
+    color: var(--color-error);
+}
+
+.booking-item-status.refunded {
+    background-color: var(--color-info-bg);
+    color: var(--color-info);
+}
+
+.booking-item-status.partial {
+    background-color: var(--color-warning-bg);
+    color: var(--color-warning);
+}
+
 .booking-item-status.cancelled {
     background-color: #fef2f2;
     color: var(--color-error);
