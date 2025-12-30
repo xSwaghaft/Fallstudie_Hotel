@@ -153,13 +153,14 @@ INSERT IGNORE INTO booking_modification (id, booking_id, modified_at, field_chan
 (5,1,'2025-11-06 09:00:00','note','old','new','Internal note',4);
 
 -- ---------- Feedback (at least 5 entries) ----------
-INSERT IGNORE INTO feedback (id, booking_id, guest_id, rating, comment) VALUES
-(1,1,1,5,'Very clean room and friendly staff.'),
-(2,3,5,4,'Good stay, breakfast could be better.'),
-(3,4,5,5,'Perfect suite, great view.'),
-(4,2,2,2,'Cancellation resulted in refund problems.'),
-(5,6,1,4,'Nice staff, clean room.'),
-(6,7,5,5,'Fantastic stay! The Deluxe room was beautiful and the service was excellent.');
+-- Note: guest_id is redundant (always equals booking.guest_id), so it's removed
+INSERT IGNORE INTO feedback (id, booking_id, rating, comment) VALUES
+(1,1,5,'Very clean room and friendly staff.'),
+(2,3,4,'Good stay, breakfast could be better.'),
+(3,4,5,'Perfect suite, great view.'),
+(4,2,2,'Cancellation resulted in refund problems.'),
+(5,6,4,'Nice staff, clean room.'),
+(6,7,5,'Fantastic stay! The Deluxe room was beautiful and the service was excellent.');
 
 -- ---------- Room Images (for room categories) ----------
 INSERT IGNORE INTO room_images (image_path, alt_text, title, is_primary, category_id) VALUES

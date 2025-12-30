@@ -278,10 +278,7 @@ public class MyReviewsView extends VerticalLayout {
                     feedback.setCreatedAt(LocalDateTime.now());
                 }
                 
-                // Set guest (User) if not already set
-                if (feedback.getGuest() == null && booking != null && booking.getGuest() != null) {
-                    feedback.setGuest(booking.getGuest());
-                }
+                // Guest is automatically derived from booking.guest, no need to set it
                 
                 feedbackService.save(feedback);
                 Notification.show(isNew ? "Review added!" : "Review updated!");
