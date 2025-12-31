@@ -481,8 +481,8 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
                     e -> {
                         booking.setStatus(BookingStatus.CHECKED_IN);
                         booking.getRoom().setStatus(RoomStatus.OCCUPIED);
+                        roomService.save(booking.getRoom());
                         bookingService.save(booking);
-                        roomService.saveRoom(booking.getRoom());
                         grid.getDataProvider().refreshItem(booking);
                         checkgrid.getDataProvider().refreshItem(booking);
                     });
@@ -499,8 +499,8 @@ public class BookingManagementView extends VerticalLayout implements BeforeEnter
                     e -> {
                         booking.setStatus(BookingStatus.COMPLETED);
                         booking.getRoom().setStatus(RoomStatus.AVAILABLE);
+                        roomService.save(booking.getRoom());
                         bookingService.save(booking);
-                        roomService.saveRoom(booking.getRoom());
                         grid.getDataProvider().refreshItem(booking);
                     });
             checkOutBtn.getElement().setAttribute("title", "Check Out");

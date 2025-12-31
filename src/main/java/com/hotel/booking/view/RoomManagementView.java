@@ -404,7 +404,7 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
         saveBtn.addClickListener(e -> {
             try {
                 form.writeBean();
-                roomService.saveRoom(form.getRoom());
+                roomService.save(form.getRoom());
                 refreshData();
                 dialog.close();
                 Notification.show("Room added successfully!", 3000, Notification.Position.BOTTOM_START)
@@ -436,7 +436,7 @@ public class RoomManagementView extends VerticalLayout implements BeforeEnterObs
         saveBtn.addClickListener(e -> {
             try {
                 form.writeBean();
-                roomService.saveRoom(form.getRoom());
+                roomService.save(form.getRoom());
                 refreshData();
                 dialog.close();
                 Notification.show("Room updated successfully!", 3000, Notification.Position.BOTTOM_START)

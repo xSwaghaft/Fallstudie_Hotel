@@ -41,7 +41,7 @@ public class RoomService {
     }
 
     /* Speichert einen Room (Create oder Update) */
-    public Room saveRoom(Room room) {
+    public Room save(Room room) {
         return roomRepository.save(room);
     }
 
