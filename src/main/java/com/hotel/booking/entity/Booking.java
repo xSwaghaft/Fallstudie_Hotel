@@ -87,13 +87,13 @@ public class Booking {
     /** Booked room. */
     @ManyToOne(optional = false, fetch = FetchType.EAGER)
     @JoinColumn(name = "room_id", nullable = false, foreignKey = @ForeignKey(name = "fk_booking_room"))
-    private Room room = new Room();
+    private Room room;
 
     /** Room category. */
     @ManyToOne(optional = false, fetch = FetchType.EAGER)
     @JoinColumn(name = "room_category_id", nullable = false,
                 foreignKey = @ForeignKey(name = "fk_booking_room_category"))
-    private RoomCategory roomCategory = new RoomCategory();
+    private RoomCategory roomCategory;
 
     /** Associated invoice. */
 

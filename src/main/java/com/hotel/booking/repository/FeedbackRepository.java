@@ -39,4 +39,8 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
     
     // Find feedback by booking
     Optional<Feedback> findByBooking(Booking booking);
+    
+    // Find all feedback for a specific room category
+    @Query("SELECT f FROM Feedback f WHERE f.booking.roomCategory.category_id = :categoryId")
+    List<Feedback> findByRoomCategoryId(@Param("categoryId") Long categoryId);
 }

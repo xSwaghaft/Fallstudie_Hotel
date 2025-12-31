@@ -1,211 +1,296 @@
 package com.hotel.booking.view.components;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Component;
 
 import com.hotel.booking.entity.Booking;
+import com.hotel.booking.entity.BookingExtra;
+import com.hotel.booking.entity.BookingModification;
+import com.hotel.booking.entity.BookingStatus;
 import com.hotel.booking.entity.Invoice;
+import com.hotel.booking.service.BookingCancellationService;
+import com.hotel.booking.service.BookingModificationService;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.tabs.Tab;
+import com.vaadin.flow.component.tabs.Tabs;
 
 /**
- * Dialog component displaying detailed booking information.
- * @author Viktor Götting
+ * Dialog component displaying detailed booking information with tabs for Details, Payments, History, and Extras.
+ * 
+ * @author Arman Özcanli
  */
-public class BookingDetailsDialog extends Dialog {
-
+@Component
+public class BookingDetailsDialog {
+    
     private static final DateTimeFormatter GERMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-
+    private static final DateTimeFormatter GERMAN_DATETIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+    
+    private final BookingModificationService modificationService;
+    private final BookingCancellationService bookingCancellationService;
+    
+    public BookingDetailsDialog(BookingModificationService modificationService,
+                                BookingCancellationService bookingCancellationService) {
+        this.modificationService = modificationService;
+        this.bookingCancellationService = bookingCancellationService;
+    }
+    
     /**
-     * Creates a new booking details dialog with the given booking.
+     * Opens a dialog with detailed booking information.
+     * 
+     * @param booking the booking to display
      */
-    public BookingDetailsDialog(Booking booking) {
-        setHeaderTitle("Booking Details");
-        setWidth("600px");
-        setMaxWidth("90%");
+    public void open(Booking booking) {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("Booking Details - " + booking.getBookingNumber());
+        dialog.setWidth("800px");
 
-        VerticalLayout content = new VerticalLayout();
-        content.setSpacing(true);
-        content.setPadding(true);
+        Tabs tabs = new Tabs(new Tab("Details"), new Tab("Payments"), new Tab("History"), new Tab("Extras"));
 
-        Div headerSection = createDetailSection("Header");
-        headerSection.add(new H2(getOrElse(booking.getBookingNumber(), "-")), createStatusBadge(booking));
-        content.add(headerSection);
+        // Details tab content
+        Div details = createDetailsTab(booking);
 
-        content.add(createRoomSection(booking));
-        content.add(createDatesSection(booking));
-        content.add(createPriceSection(booking));
+        // Payments tab
+        Div payments = createPaymentsTab(booking);
 
-        if (booking.getExtras() != null && !booking.getExtras().isEmpty()) {
-            content.add(createExtrasSection(booking));
+        // History tab
+        Div history = createHistoryTab(booking);
+
+        // Extras tab
+        Div extras = createExtrasTab(booking);
+
+        Div pages = new Div(details, payments, history, extras);
+        pages.addClassName("booking-details-container");
+        payments.setVisible(false);
+        history.setVisible(false);
+        extras.setVisible(false);
+
+        tabs.addSelectedChangeListener(ev -> {
+            details.setVisible(tabs.getSelectedIndex() == 0);
+            payments.setVisible(tabs.getSelectedIndex() == 1);
+            history.setVisible(tabs.getSelectedIndex() == 2);
+            extras.setVisible(tabs.getSelectedIndex() == 3);
+        });
+
+        Button close = new Button("Close", e -> dialog.close());
+        close.addClassName("primary-button");
+
+        dialog.add(new VerticalLayout(tabs, pages));
+        dialog.getFooter().add(close);
+        dialog.open();
+    }
+    
+    /**
+     * Creates the Details tab content.
+     */
+    private Div createDetailsTab(Booking booking) {
+        Div details = new Div();
+        details.add(new Paragraph("Guest Name: " + (booking.getGuest() != null ? booking.getGuest().getFullName() : "N/A")));
+        details.add(new Paragraph("Booking Number: " + booking.getBookingNumber()));
+        details.add(new Paragraph("Check-in: " + booking.getCheckInDate().format(GERMAN_DATE_FORMAT)));
+        details.add(new Paragraph("Check-out: " + booking.getCheckOutDate().format(GERMAN_DATE_FORMAT)));
+        details.add(new Paragraph("Guests: " + booking.getAmount()));
+        details.add(new Paragraph("Status: " + booking.getStatus()));
+
+        // Price details
+        String pricePerNightText = calculatePricePerNight(booking);
+        if (pricePerNightText != null) {
+            details.add(new Paragraph("Price per Night: " + pricePerNightText));
         }
+        String totalPriceText = booking.getTotalPrice() != null ? String.format("%.2f €", booking.getTotalPrice()) : "-";
+        details.add(new Paragraph("Total Price: " + totalPriceText));
 
-        if (booking.getInvoice() != null) {
-            content.add(createInvoiceSection(booking.getInvoice()));
-        }
+        // Cancellation policy
+        Div cancellationPolicy = new Div();
+        cancellationPolicy.addClassName("booking-detail-section");
+        cancellationPolicy.addClassName("booking-cancellation-policy");
+        
+        Paragraph policyTitle = new Paragraph("Cancellation Policy");
+        policyTitle.addClassName("booking-detail-title");
+        cancellationPolicy.add(policyTitle);
+        
+        cancellationPolicy.add(new Paragraph("• More than 30 days before check-in: Free cancellation"));
+        cancellationPolicy.add(new Paragraph("• 7-29 days before check-in: 20% cancellation fee"));
+        cancellationPolicy.add(new Paragraph("• 1-6 days before check-in: 50% cancellation fee"));
+        cancellationPolicy.add(new Paragraph("• On check-in day: 100% cancellation fee (no refund)"));
+        
+        details.add(cancellationPolicy);
 
-        content.add(createCancellationSection());
-
-        Button closeButton = new Button("Close", e -> close());
-        closeButton.addClassName("primary-button");
-
-        add(content);
-        getFooter().add(closeButton);
-    }
-
-    // =========================================================
-    // SECTION CREATORS
-    // =========================================================
-
-    private Div createDetailSection(String title) {
-        Div section = createStyledDiv("booking-detail-section");
-        if (!title.equals("Header")) {
-            section.add(new H4(title));
-        }
-        return section;
-    }
-
-    /**
-     * Creates a section displaying room type and room number.
-     */
-    private Div createRoomSection(Booking booking) {
-        Div section = createDetailSection("Room");
-        String roomType = booking.getRoomCategory() != null ? booking.getRoomCategory().getName() : "Room";
-        String roomNumber = booking.getRoom() != null ? booking.getRoom().getRoomNumber() : "-";
-        section.add(new Paragraph(roomType + " #" + roomNumber));
-        return section;
-    }
-
-    /**
-     * Creates a section displaying check-in date, check-out date, and guest count.
-     */
-    private Div createDatesSection(Booking booking) {
-        Div section = createDetailSection("Period & Guests");
-        section.add(new Paragraph("Check-in: " + formatDate(booking.getCheckInDate())),
-                   new Paragraph("Check-out: " + formatDate(booking.getCheckOutDate())),
-                   new Paragraph("Guests: " + getOrElse(booking.getAmount(), "-")));
-        return section;
-    }
-
-    /**
-     * Creates a section displaying price per night and total booking price.
-     */
-    private Div createPriceSection(Booking booking) {
-        Div section = createDetailSection("Price");
-        if (booking.getRoomCategory() != null && booking.getRoomCategory().getPricePerNight() != null) {
-            section.add(new Paragraph("Price per night: " + formatMoney(booking.getRoomCategory().getPricePerNight())));
-        }
-        section.add(new Paragraph("Total price: " + formatMoney(booking.getTotalPrice())));
-        return section;
-    }
-
-    /**
-     * Creates a section listing all booking extras with prices.
-     */
-    private Div createExtrasSection(Booking booking) {
-        Div section = createDetailSection("Extras");
-        booking.getExtras().stream()
-                .filter(extra -> extra != null)
-                .forEach(extra -> {
-                    Div extraItem = createStyledDiv("booking-extra-item");
-                    extraItem.add(new Paragraph(extra.getName() + " - " + formatMoney(extra.getPrice())));
-                    if (extra.getDescription() != null && !extra.getDescription().isEmpty()) {
-                        Paragraph desc = new Paragraph(extra.getDescription());
-                        desc.addClassName("booking-extra-description");
-                        extraItem.add(desc);
+        // Show cancellation info if already cancelled
+        if (booking.getStatus() == BookingStatus.CANCELLED && booking.getId() != null) {
+            try {
+                bookingCancellationService.findLatestByBookingId(booking.getId()).ifPresent(bc -> {
+                    if (bc.getCancellationFee() != null) {
+                        details.add(new Paragraph("Cancellation Fee: " + String.format("%.2f €", bc.getCancellationFee())));
                     }
-                    section.add(extraItem);
+                    if (bc.getReason() != null && !bc.getReason().isBlank()) {
+                        details.add(new Paragraph("Cancellation Reason: " + bc.getReason()));
+                    }
                 });
-        return section;
-    }
-
-    /**
-     * Creates a section displaying invoice details.
-     */
-    private Div createInvoiceSection(Invoice invoice) {
-        Div section = createDetailSection("Invoice");
-        section.add(new Paragraph("Invoice number: " + invoice.getInvoiceNumber()),
-                   new Paragraph("Amount: " + formatMoney(invoice.getAmount())),
-                   new Paragraph("Status: " + invoice.getInvoiceStatus()),
-                   new Paragraph("Payment method: " + invoice.getPaymentMethod()));
-        if (invoice.getIssuedAt() != null) {
-            section.add(new Paragraph("Issued: " + invoice.getIssuedAt().format(
-                    DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"))));
+            } catch (Exception ex) {
+                // ignore read errors to keep dialog usable
+            }
         }
-        return section;
+        
+        return details;
     }
-
+    
     /**
-     * Creates a section displaying cancellation policy.
+     * Creates the Payments tab content.
      */
-    private Div createCancellationSection() {
-        Div section = createDetailSection("Cancellation Policy");
-        section.add(new Paragraph(
-                "Cancellations up to 48 hours before check-in are free of charge. " +
-                        "Later cancellations will be charged 50% of the total price."));
-        return section;
+    private Div createPaymentsTab(Booking booking) {
+        Div payments = new Div();
+        if (booking.getInvoice() != null) {
+            Invoice invoice = booking.getInvoice();
+            payments.add(new Paragraph("Invoice Number: " + invoice.getInvoiceNumber()));
+            payments.add(new Paragraph("Amount: " + String.format("%.2f €", invoice.getAmount())));
+            payments.add(new Paragraph("Status: " + invoice.getInvoiceStatus().toString()));
+            payments.add(new Paragraph("Payment Method: " + invoice.getPaymentMethod().toString()));
+            if (invoice.getIssuedAt() != null) {
+                payments.add(new Paragraph("Issued: " + invoice.getIssuedAt().format(
+                        DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"))));
+            }
+        } else {
+            payments.add(new Paragraph("Payment information not available"));
+        }
+        return payments;
     }
-
-    // =========================================================
-    // HELPER METHODS
-    // =========================================================
-
+    
     /**
-     * Creates a styled status badge for the booking status.
+     * Creates the History tab content.
      */
-    private Span createStatusBadge(Booking booking) {
-        String statusText = String.valueOf(booking.getStatus());
-        Span badge = new Span(statusText);
-        badge.addClassName("booking-item-status");
-        badge.addClassName(statusText.toLowerCase());
-        return badge;
+    private Div createHistoryTab(Booking booking) {
+        Div history = new Div();
+        if (booking.getId() != null) {
+            List<BookingModification> mods = modificationService.findByBookingId(booking.getId());
+            if (mods.isEmpty()) {
+                history.add(new Paragraph("No modification history available."));
+            } else {
+                Map<java.time.LocalDateTime, List<BookingModification>> grouped =
+                        mods.stream().collect(Collectors.groupingBy(
+                                BookingModification::getModifiedAt,
+                                java.util.LinkedHashMap::new,
+                                Collectors.toList()));
+
+                for (Map.Entry<java.time.LocalDateTime, List<BookingModification>> entry : grouped.entrySet()) {
+                    java.time.LocalDateTime ts = entry.getKey();
+                    List<BookingModification> group = entry.getValue();
+
+                    VerticalLayout groupBox = new VerticalLayout();
+                    groupBox.addClassName("booking-history-group");
+
+                    String who = "system";
+                    for (BookingModification m : group) {
+                        if (m.getHandledBy() != null) {
+                            who = (m.getHandledBy().getFullName() != null && !m.getHandledBy().getFullName().isBlank())
+                                    ? m.getHandledBy().getFullName()
+                                    : m.getHandledBy().getEmail();
+                            break;
+                        }
+                    }
+                    groupBox.add(new Paragraph(ts.format(GERMAN_DATETIME_FORMAT) + " — " + who));
+
+                    for (BookingModification m : group) {
+                        HorizontalLayout row = new HorizontalLayout();
+                        row.setWidthFull();
+                        Paragraph field = new Paragraph(m.getFieldChanged() + ": ");
+                        field.addClassName("booking-history-field");
+                        Paragraph values = new Paragraph(
+                                (m.getOldValue() != null ? m.getOldValue() : "<null>") + " → " +
+                                (m.getNewValue() != null ? m.getNewValue() : "<null>"));
+                        values.addClassName("booking-history-value");
+                        row.add(field, values);
+                        groupBox.add(row);
+                        if (m.getReason() != null && !m.getReason().isBlank()) {
+                            Span note = new Span("Reason: " + m.getReason());
+                            note.addClassName("booking-history-reason");
+                            groupBox.add(note);
+                        }
+                    }
+
+                    history.add(groupBox);
+                }
+            }
+        } else {
+            history.add(new Paragraph("No modification history available."));
+        }
+
+        // Add cancellation info to history if exists
+        if (booking.getId() != null) {
+            try {
+                bookingCancellationService.findLatestByBookingId(booking.getId()).ifPresent(bc -> {
+                    VerticalLayout cancelBox = new VerticalLayout();
+                    cancelBox.addClassName("booking-history-group");
+                    cancelBox.addClassName("booking-history-cancellation");
+
+                    String who = "guest";
+                    if (bc.getHandledBy() != null) {
+                        who = bc.getHandledBy().getFullName() != null && !bc.getHandledBy().getFullName().isBlank()
+                                ? bc.getHandledBy().getFullName()
+                                : bc.getHandledBy().getEmail();
+                    }
+
+                    cancelBox.add(new Paragraph(bc.getCancelledAt().format(GERMAN_DATETIME_FORMAT) + " — " + who + " (cancellation)"));
+                    cancelBox.add(new Paragraph("Booking cancelled."));
+                    if (bc.getReason() != null && !bc.getReason().isBlank()) {
+                        cancelBox.add(new Paragraph("Reason: " + bc.getReason()));
+                    }
+                    if (bc.getCancellationFee() != null) {
+                        cancelBox.add(new Paragraph("Cancellation fee: " + String.format("%.2f €", bc.getCancellationFee())));
+                    }
+
+                    history.addComponentAtIndex(0, cancelBox);
+                });
+            } catch (Exception ex) {
+                // ignore any errors when loading cancellation info
+            }
+        }
+        
+        return history;
     }
-
+    
     /**
-     * Formats a BigDecimal value as a currency string.
+     * Creates the Extras tab content.
      */
-    private String formatMoney(BigDecimal value) {
-        if (value == null) return "-";
-        return value.setScale(2, RoundingMode.HALF_UP).toPlainString() + " €";
+    private Div createExtrasTab(Booking booking) {
+        Div extras = new Div();
+        if (booking.getExtras() == null || booking.getExtras().isEmpty()) {
+            extras.add(new Paragraph("No additional services requested"));
+        } else {
+            for (BookingExtra extra : booking.getExtras()) {
+                Div extraItem = new Div();
+                extraItem.add(new Paragraph(extra.getName() + " - " + String.format("%.2f €", extra.getPrice())));
+                if (extra.getDescription() != null && !extra.getDescription().isBlank()) {
+                    Paragraph desc = new Paragraph(extra.getDescription());
+                    desc.addClassName("booking-extra-description");
+                    extraItem.add(desc);
+                }
+                extras.add(extraItem);
+            }
+        }
+        return extras;
     }
-
+    
     /**
-     * Formats a Double value as a currency string.
+     * Calculates price per night for display.
      */
-    private String formatMoney(Double value) {
-        if (value == null) return "-";
-        return formatMoney(BigDecimal.valueOf(value));
-    }
-
-    /**
-     * Formats a LocalDate using German date format (dd.MM.yyyy).
-     */
-    private String formatDate(LocalDate date) {
-        return date != null ? date.format(GERMAN_DATE_FORMAT) : "-";
-    }
-
-    /**
-     * Returns the string representation of a value, or a default value if null.
-     */
-    private String getOrElse(Object value, String defaultValue) {
-        return value != null ? String.valueOf(value) : defaultValue;
-    }
-
-    /**
-     * Creates a Div element with a CSS class name.
-     */
-    private Div createStyledDiv(String className) {
-        Div div = new Div();
-        div.addClassName(className);
-        return div;
+    private String calculatePricePerNight(Booking booking) {
+        if (booking.getRoomCategory() != null && booking.getRoomCategory().getPricePerNight() != null) {
+            return String.format("%.2f €", booking.getRoomCategory().getPricePerNight());
+        } else if (booking.getRoom() != null && booking.getRoom().getCategory() != null 
+                && booking.getRoom().getCategory().getPricePerNight() != null) {
+            return String.format("%.2f €", booking.getRoom().getCategory().getPricePerNight());
+        }
+        return null;
     }
 }
-

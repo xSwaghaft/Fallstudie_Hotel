@@ -36,6 +36,11 @@ public class FeedbackService {
     public List<Feedback> findByBookingId(Long bookingId) {
         return feedbackRepository.findByBookingId(bookingId);
     }
+    
+    @Transactional(readOnly = true)
+    public List<Feedback> findByRoomCategoryId(Long categoryId) {
+        return feedbackRepository.findByRoomCategoryId(categoryId);
+    }
 
     @Transactional(readOnly = true)
     public Optional<Feedback> findById(Long id) {

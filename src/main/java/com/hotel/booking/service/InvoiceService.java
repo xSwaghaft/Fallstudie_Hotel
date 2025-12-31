@@ -1,17 +1,27 @@
 package com.hotel.booking.service;
 
+import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.Invoice;
+import com.hotel.booking.entity.Invoice.PaymentMethod;
 import com.hotel.booking.entity.Invoice.PaymentStatus;
 import com.hotel.booking.repository.InvoiceRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 @Service
 @Transactional
 public class InvoiceService {
+    
+    private static final Logger log = LoggerFactory.getLogger(InvoiceService.class);
+    
+    /** Invoice number prefix */
+    private static final String INVOICE_PREFIX = "INV-";
     
     private final InvoiceRepository invoiceRepository;
     private final EmailService emailService;
@@ -60,8 +70,7 @@ public class InvoiceService {
                 emailService.sendInvoiceCreated(savedInvoice);
             } catch (Exception e) {
                 // Log error but don't fail the invoice save
-                System.err.println("Failed to send invoice created email: " + e.getMessage());
-                e.printStackTrace();
+                log.error("Failed to send invoice created email for invoice {}", savedInvoice.getId(), e);
             }
         }
         
@@ -74,5 +83,45 @@ public class InvoiceService {
 
     public int getNumberOfPendingInvoices() {
         return invoiceRepository.findByInvoiceStatus(PaymentStatus.PENDING).size();
+    }
+    
+    /**
+     * Generates a unique invoice number.
+     * Format: INV-YYYY-timestamp
+     * 
+     * @return a unique invoice number
+     */
+    public String generateInvoiceNumber() {
+        return INVOICE_PREFIX + java.time.LocalDate.now().getYear() + "-" + System.currentTimeMillis();
+    }
+    
+    /**
+     * Creates an invoice for a booking if it doesn't already exist.
+     * 
+     * @param booking the booking to create an invoice for
+     * @param paymentMethod the payment method used
+     * @param status the payment status (typically PAID)
+     * @return the created invoice, or the existing invoice if one already exists
+     */
+    @Transactional
+    public Invoice createInvoiceForBooking(Booking booking, PaymentMethod paymentMethod, PaymentStatus status) {
+        if (booking == null) {
+            throw new IllegalArgumentException("Booking cannot be null");
+        }
+        
+        // Check if invoice already exists
+        if (booking.getInvoice() != null) {
+            return booking.getInvoice();
+        }
+        
+        Invoice invoice = new Invoice();
+        invoice.setBooking(booking);
+        invoice.setAmount(booking.getTotalPrice());
+        invoice.setInvoiceStatus(status);
+        invoice.setPaymentMethod(paymentMethod);
+        invoice.setIssuedAt(LocalDateTime.now());
+        invoice.setInvoiceNumber(generateInvoiceNumber());
+        
+        return save(invoice);
     }
 }

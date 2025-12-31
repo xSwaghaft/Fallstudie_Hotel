@@ -46,6 +46,9 @@ import com.vaadin.flow.server.auth.AnonymousAllowed;
 @CssImport("./themes/hotel/views/reset-password.css")
 public class ResetPasswordView extends Div implements BeforeEnterObserver {
 
+    /** Route path for password reset view */
+    public static final String ROUTE = "reset-password";
+
     private static final int PASSWORD_MIN_LENGTH = 8;
 
     private final PasswordResetService passwordResetService;
