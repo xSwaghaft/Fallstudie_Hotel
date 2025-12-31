@@ -28,7 +28,12 @@ import java.util.List;
 
 import jakarta.annotation.security.RolesAllowed;
 
-
+/**
+ * User Management view for managing system users and their permissions.
+ * Allows searching, filtering, viewing, editing, adding, and deleting users.
+ * 
+ * @Author Matthias Lohr
+ */
 @Route(value = "user-management", layout = MainLayout.class)
 @PageTitle("User Management")
 @CssImport("./themes/hotel/styles.css")
@@ -51,35 +56,45 @@ public class UserManagementView extends VerticalLayout {
     public UserManagementView(SessionService sessionService, UserService userService) {
         this.sessionService = sessionService;
         this.userService = userService;
+
         setSpacing(true);
         setPadding(true);
         setSizeFull();
+
         users.addAll(userService.findAll());
         add(createHeader(), statsRow = createStatsRow(), createFilters(), createUsersCard());
     }
 
+    /**
+     * Creates the header section with title, subtitle, and "Add User" button.
+     * @return Header component
+     */
     private Component createHeader() {
         H1 title = new H1("User Management");
         title.addClassName("user-management-header-title");
-        
+
         Paragraph subtitle = new Paragraph("Manage system users and their permissions");
         subtitle.addClassName("user-management-header-subtitle");
-        
+
         Div headerLeft = new Div(title, subtitle);
         headerLeft.addClassName("user-management-header");
-        
+
         Button addUser = new Button("Add User", VaadinIcon.PLUS.create());
         addUser.addClassName("primary-button");
-        addUser.addClickListener(e -> openUserDialog(null));
-        
+        addUser.addClickListener(e -> openAddUserDialog(null));
+
         HorizontalLayout header = new HorizontalLayout(headerLeft, addUser);
         header.setWidthFull();
         header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
         header.setAlignItems(FlexComponent.Alignment.CENTER);
-        
+
         return header;
     }
 
+    /**
+     * Creates a statistics row showing total users, active users, employees, and guests.
+     * @return HorizontalLayout with stat cards
+     */
     private Component createStatsRow() {
         return CardFactory.createStatsRow(
             CardFactory.createStatCard("Total Users", String.valueOf(users.size()), VaadinIcon.USERS),
@@ -100,14 +115,18 @@ public class UserManagementView extends VerticalLayout {
         statsRow = newStats;
     }
 
+    /**
+     * Creates search and filter section for users.
+     * @return Component containing search and filters
+     */
     private Component createFilters() {
         Div card = new Div();
         card.addClassName("card");
         card.setWidthFull();
-        
+
         H3 title = new H3("Search & Filter");
         title.addClassName("user-filter-title");
-        
+
         Paragraph subtitle = new Paragraph("Find specific users quickly");
         subtitle.addClassName("user-filter-subtitle");
 
@@ -138,6 +157,9 @@ public class UserManagementView extends VerticalLayout {
         return card;
     }
 
+    /**
+     * Filters users based on search text and role selection.
+     */
     private void filterUsers() {
         List<User> filtered = users.stream()
             .filter(user -> {
@@ -146,7 +168,7 @@ public class UserManagementView extends VerticalLayout {
                     user.getUsername().toLowerCase().contains(search) ||
                     user.getEmail().toLowerCase().contains(search) ||
                     user.getFullName().toLowerCase().contains(search);
-                
+
                 String role = roleFilter.getValue();
                 boolean matchesRole = "All Roles".equals(role) || user.getRole().name().equals(role);
 
@@ -158,60 +180,30 @@ public class UserManagementView extends VerticalLayout {
                 return matchesSearch && matchesRole && matchesStatus;
             })
             .toList();
-        
+
         grid.setItems(filtered);
     }
 
+    /**
+     * Creates the card displaying all users in a grid with actions.
+     * @return Component containing the users card
+     */
     private Component createUsersCard() {
         Div card = new Div();
         card.addClassName("card");
         card.setWidthFull();
-        
+
         H3 title = new H3("All Users");
         title.addClassName("user-card-title");
 
-        grid.addColumn(User::getId)
-            .setHeader("ID")
-            .setAutoWidth(true)
-            .setFlexGrow(0);
-        
-        grid.addColumn(User::getUsername)
-            .setHeader("Username")
-            .setFlexGrow(1);
-        
-        grid.addColumn(User::getFullName)
-            .setHeader("Full Name")
-            .setFlexGrow(1);
-        
-        grid.addColumn(User::getEmail)  //AddColumn für plain Text
-            .setHeader("Email")
-            .setFlexGrow(1);
-        
-        grid.addComponentColumn(this::createRoleBadge) //Componente für mehr als nur Text
-            .setHeader("Role")
-            .setAutoWidth(true)
-            .setFlexGrow(0);
-        
-        grid.addComponentColumn(this::createStatusBadge)
-            .setHeader("Status")
-            .setAutoWidth(true)
-            .setFlexGrow(0);
-        
-        grid.addColumn(user -> user.getCreatedAt().format(GERMAN_DATE_FORMAT))
-            .setHeader("Created")
-            .setAutoWidth(true)
-            .setFlexGrow(0);
-        
-        // grid.addColumn(user -> user.getLastLogin() != null ? 
-        //         user.getLastLogin().format(GERMAN_DATE_FORMAT) : "Never")
-        //     .setHeader("Last Login")
-        //     .setAutoWidth(true)
-        //     .setFlexGrow(0);
-        
-        grid.addComponentColumn(this::createUserActions)
-            .setHeader("Actions")
-            .setAutoWidth(true)
-            .setFlexGrow(0);
+        grid.addColumn(User::getId).setHeader("ID").setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(User::getUsername).setHeader("Username").setFlexGrow(1);
+        grid.addColumn(User::getFullName).setHeader("Full Name").setFlexGrow(1);
+        grid.addColumn(User::getEmail).setHeader("Email").setFlexGrow(1);
+        grid.addComponentColumn(this::createRoleBadge).setHeader("Role").setAutoWidth(true).setFlexGrow(0);
+        grid.addComponentColumn(this::createStatusBadge).setHeader("Status").setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(user -> user.getCreatedAt().format(GERMAN_DATE_FORMAT)).setHeader("Created").setAutoWidth(true).setFlexGrow(0);
+        grid.addComponentColumn(this::createUserActions).setHeader("Actions").setAutoWidth(true).setFlexGrow(0);
 
         grid.setItems(users);
         grid.setAllRowsVisible(true);
@@ -221,19 +213,25 @@ public class UserManagementView extends VerticalLayout {
         return card;
     }
 
+    /**
+     * Creates a badge showing the user's role with styling.
+     */
     private Component createRoleBadge(User user) {
         Span badge = new Span(user.getRole().name());
         badge.addClassName("role-badge-base");
-        
+
         switch (user.getRole().name()) {
             case "MANAGER" -> badge.addClassName("role-badge-manager");
             case "RECEPTIONIST" -> badge.addClassName("role-badge-receptionist");
             case "GUEST" -> badge.addClassName("role-badge-guest");
         }
-        
+
         return badge;
     }
 
+    /**
+     * Creates a badge showing the user's status (Active/Inactive).
+     */
     private Component createStatusBadge(User user) {
         Span badge = new Span(user.isActive() ? "Active" : "Inactive");
         badge.addClassName("category-status-badge");
@@ -241,26 +239,35 @@ public class UserManagementView extends VerticalLayout {
         return badge;
     }
 
+    /**
+     * Creates action buttons (view, edit, delete) for a user.
+     */
     private Component createUserActions(User user) {
         HorizontalLayout actions = new HorizontalLayout();
         actions.setSpacing(true);
-        
+
+        User currentUser = sessionService.getCurrentUser();
+        boolean isCurrentUser = currentUser != null && currentUser.getId().equals(user.getId());
+
         Button viewBtn = new Button(VaadinIcon.EYE.create());
         viewBtn.addClickListener(e -> openUserDetailsDialog(user));
-        
+
         Button editBtn = new Button(VaadinIcon.EDIT.create());
-        editBtn.addClickListener(e -> openUserDialog(user));
-        
+        editBtn.addClickListener(e -> openAddUserDialog(user));
+
         Button deleteBtn = new Button(VaadinIcon.TRASH.create());
         deleteBtn.addClassName("user-delete-action-btn");
+        deleteBtn.setEnabled(!isCurrentUser);
         deleteBtn.addClickListener(e -> confirmDelete(user));
-        
+
         actions.add(viewBtn, editBtn, deleteBtn);
         return actions;
     }
 
-    //Matthias Lohr (Dialog zum Hinzufügen/Bearbeiten von Benutzern)
-    private void openUserDialog(User existingUser) {
+    /**
+     * Opens a dialog to add a new user or edit an existing user.
+     */
+    private void openAddUserDialog(User existingUser) {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle(existingUser == null ? "Add New User" : "Edit User");
         dialog.setWidth("600px");
@@ -269,8 +276,8 @@ public class UserManagementView extends VerticalLayout {
 
         Button saveButton = new Button("Save", e -> {
             try {
-                form.writeBean(); // Überträgt die Formulardaten in das User-Objekt
-                userService.save(form.getUser()); // Speichert das User-Objekt aus dem Formular in der Datenbank
+                form.writeBean();
+                userService.save(form.getUser());
                 users.clear();
                 users.addAll(userService.findAll());
                 refreshStatsRow();
@@ -284,13 +291,14 @@ public class UserManagementView extends VerticalLayout {
         saveButton.addClassName("primary-button");
 
         Button cancelButton = new Button("Cancel", e -> dialog.close());
-
         HorizontalLayout buttonLayout = new HorizontalLayout(saveButton, cancelButton);
         dialog.add(form, buttonLayout);
-
         dialog.open();
     }
 
+    /**
+     * Opens a read-only dialog showing user details.
+     */
     private void openUserDetailsDialog(User user) {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle("User Details - " + user.getUsername());
@@ -299,7 +307,7 @@ public class UserManagementView extends VerticalLayout {
         VerticalLayout content = new VerticalLayout();
         content.setSpacing(false);
         content.setPadding(false);
-        
+
         content.add(createDetailRow("ID", String.valueOf(user.getId())));
         content.add(createDetailRow("Username", user.getUsername()));
         content.add(createDetailRow("Full Name", user.getFullName()));
@@ -308,8 +316,6 @@ public class UserManagementView extends VerticalLayout {
         content.add(createDetailRow("Role", user.getRole().name()));
         content.add(createDetailRow("Status", user.isActive() ? "Active" : "Inactive"));
         content.add(createDetailRow("Created", user.getCreatedAt().format(GERMAN_DATE_FORMAT)));
-        // content.add(createDetailRow("Last Login", 
-        //     user.getLastLogin() != null ? user.getLastLogin().format(GERMAN_DATE_FORMAT) : "Never"));
 
         Button closeBtn = new Button("Close");
         closeBtn.addClickListener(e -> dialog.close());
@@ -319,24 +325,29 @@ public class UserManagementView extends VerticalLayout {
         dialog.open();
     }
 
+    /**
+     * Creates a row with a label and value for user details dialogs.
+     */
     private Component createDetailRow(String label, String value) {
         HorizontalLayout row = new HorizontalLayout();
         row.setWidthFull();
         row.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
         row.addClassName("detail-row");
-        
+
         Span labelSpan = new Span(label);
         labelSpan.addClassName("detail-row-label");
-        
+
         Span valueSpan = new Span(value);
         valueSpan.addClassName("detail-row-value");
-        
+
         row.add(labelSpan, valueSpan);
         return row;
     }
 
+    /**
+     * Confirms deletion of a user and shows error if blocked by bookings or if current user.
+     */
     private void confirmDelete(User user) {
-        // Prüfe, ob der aktuelle User versucht, sich selbst zu löschen
         User currentUser = sessionService.getCurrentUser();
         if (currentUser != null && currentUser.getId().equals(user.getId())) {
             Notification.show("You cannot delete your own account while logged in", 3000, Notification.Position.TOP_CENTER);
@@ -381,8 +392,7 @@ public class UserManagementView extends VerticalLayout {
         }
 
         UserService.DeleteAction action = userService.getDeletionAction(user.getId());
-        
-        // Wenn durch Bookings blockiert
+
         if (action.isBlocked) {
             Dialog errorDialog = new Dialog();
             errorDialog.setHeaderTitle(action.dialogTitle);
@@ -414,7 +424,7 @@ public class UserManagementView extends VerticalLayout {
                 filterUsers();
                 dialog.close();
                 Notification.show("User deleted successfully", 3000, Notification.Position.BOTTOM_START)
-                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                        .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
             } catch (Exception ex) {
                 Notification.show("Error deleting user: " + ex.getMessage(), 5000, Notification.Position.TOP_CENTER);
                 ex.printStackTrace();
