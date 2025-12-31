@@ -11,6 +11,7 @@ import com.hotel.booking.entity.BookingCancellation;
 import com.hotel.booking.entity.Invoice;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.BookingCancellationService;
+import com.hotel.booking.service.InvoiceService;
 
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -37,11 +38,14 @@ public class CancellationDialog {
     
     private final SessionService sessionService;
     private final BookingCancellationService bookingCancellationService;
+    private final InvoiceService invoiceService;
     
     public CancellationDialog(SessionService sessionService,
-                              BookingCancellationService bookingCancellationService) {
+                              BookingCancellationService bookingCancellationService,
+                              InvoiceService invoiceService) {
         this.sessionService = sessionService;
         this.bookingCancellationService = bookingCancellationService;
+        this.invoiceService = invoiceService;
     }
     
     /**
@@ -52,7 +56,18 @@ public class CancellationDialog {
      */
     public void open(Booking booking, Runnable onSuccess) {
         try {
-            if (booking.getInvoice() != null && booking.getInvoice().getInvoiceStatus() == Invoice.PaymentStatus.PAID) {
+            // Check if invoice exists and is PAID
+            // Try booking.getInvoice() first (if loaded), then fallback to InvoiceService
+            boolean isPaid = false;
+            if (booking.getInvoice() != null) {
+                isPaid = booking.getInvoice().getInvoiceStatus() == Invoice.PaymentStatus.PAID;
+            } else if (booking.getId() != null) {
+                isPaid = invoiceService.findByBookingId(booking.getId())
+                        .map(inv -> inv.getInvoiceStatus() == Invoice.PaymentStatus.PAID)
+                        .orElse(false);
+            }
+            
+            if (isPaid) {
                 Notification.show("This booking has already been paid and cannot be cancelled.", 
                         4000, Notification.Position.MIDDLE);
                 return;
