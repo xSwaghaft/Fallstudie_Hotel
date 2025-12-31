@@ -22,6 +22,10 @@ import com.hotel.booking.repository.BookingRepository;
 import com.hotel.booking.repository.RoomCategoryRepository;
 import com.hotel.booking.repository.RoomRepository;
 
+/**
+ * Service for booking operations.
+ * @author Viktor Götting
+ */
 @Service
 @Transactional
 public class BookingService {
@@ -29,12 +33,16 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final RoomRepository roomRepository;
     private final RoomCategoryRepository roomCategoryRepository;
+    private final EmailService emailService;
+    private final BookingModificationService modificationService;
     
    
-    public BookingService(BookingRepository bookingRepository, RoomRepository roomRepository, RoomCategoryRepository roomCategoryRepository) {
+    public BookingService(BookingRepository bookingRepository, RoomRepository roomRepository, RoomCategoryRepository roomCategoryRepository, EmailService emailService, BookingModificationService modificationService) {
         this.bookingRepository = bookingRepository;
         this.roomRepository = roomRepository;
         this.roomCategoryRepository = roomCategoryRepository;
+        this.emailService = emailService;
+        this.modificationService = modificationService;
     }
 
     public List<Booking> findAll() {
@@ -49,7 +57,7 @@ public class BookingService {
         return bookingRepository.findByBookingNumber(bookingNumber);
     }
 
-    // Durchschnittliches Rating für eine Kategorie (0, wenn keine Bewertungen)
+    // Average rating for a category (0 if no ratings)
     public double getAverageRatingForCategory(RoomCategory category) {
         if (category == null || category.getCategory_id() == null) {
             return 0d;
@@ -63,8 +71,7 @@ public class BookingService {
                 .orElse(0d);
     }
 
-    
-    //Matthias Lohr
+    // Matthias Lohr
     /**
      * Speichert eine Booking-Entität.
      *
@@ -79,6 +86,12 @@ public class BookingService {
      *   einen DB-Fehler zu provozieren.
      */
     public Booking save(Booking booking) {
+        // Load existing booking if editing to track changes
+        Booking before = null;
+        if (booking.getId() != null) {
+            before = bookingRepository.findById(booking.getId()).orElse(null);
+        }
+        
         // If this is a new booking, generate a booking number
         if (booking.getId() == null) {
             booking.setBookingNumber(generateBookingNumber());
@@ -115,14 +128,51 @@ public class BookingService {
             throw new IllegalStateException("No room available for selected category and dates");
         }
 
-        return bookingRepository.save(booking);
+        Booking savedBooking = bookingRepository.save(booking);
+        
+        // Send confirmation email for new bookings
+        boolean isNewBooking = (before == null);
+        if (isNewBooking) {
+            System.out.println("DEBUG: New booking - ID was null, attempting to send email");
+            System.out.println("DEBUG: Guest is null? " + (savedBooking.getGuest() == null));
+            if (savedBooking.getGuest() != null) {
+                System.out.println("DEBUG: Guest email: " + savedBooking.getGuest().getEmail());
+            }
+            
+            if (savedBooking.getGuest() != null && savedBooking.getGuest().getEmail() != null && !savedBooking.getGuest().getEmail().isBlank()) {
+                try {
+                    System.out.println("DEBUG: Sending booking confirmation email to: " + savedBooking.getGuest().getEmail());
+                    emailService.sendBookingConfirmation(savedBooking);
+                    System.out.println("DEBUG: Email sent successfully");
+                } catch (Exception e) {
+                    // Log error but don't fail the booking save
+                    System.err.println("Failed to send booking confirmation email: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            } else {
+                System.err.println("DEBUG: Email NOT sent - guest is null or email is null/blank");
+            }
+        }
+        
+        // Record changes and send modification email for existing bookings
+        if (before != null && savedBooking.getGuest() != null && savedBooking.getGuest().getEmail() != null) {
+            try {
+                modificationService.recordChanges(before, savedBooking, null, null);
+            } catch (Exception e) {
+                // Log error but don't fail the booking save
+                System.err.println("Failed to record booking modifications: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+        
+        return savedBooking;
     }
 
     public void delete(Long id) {
         bookingRepository.deleteById(id);
     }
 
-    //Matthias Lohr
+    // Matthias Lohr
     public List<Booking> getActiveBookings(LocalDate start, LocalDate end) {
         return bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(start, end, BookingStatus.CANCELLED);
     }
@@ -138,7 +188,7 @@ public class BookingService {
                 .toList();
     }
 
-    //Matthias Lohr
+    // Matthias Lohr
     public int getNumberOfGuestsPresent() {
         List<Booking> todayBookings = bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(LocalDate.now(), LocalDate.now(), BookingStatus.CANCELLED);
         return todayBookings.stream()
@@ -146,7 +196,7 @@ public class BookingService {
                 .sum();
     }
 
-    //Matthias Lohr
+    // Matthias Lohr
     public int getNumberOfCheckoutsToday() {
         List<Booking> todayCheckouts = bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(LocalDate.now(), LocalDate.now(), BookingStatus.CANCELLED);
         return (int) todayCheckouts.stream()
@@ -154,7 +204,7 @@ public class BookingService {
                 .count();
     }
 
-    //Matthias Lohr
+    // Matthias Lohr
     public int getNumberOfCheckinsToday() {
         List<Booking> todayCheckins = bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(LocalDate.now(), LocalDate.now(), BookingStatus.CANCELLED);
         return (int) todayCheckins.stream()
@@ -162,7 +212,7 @@ public class BookingService {
                 .count();
     }
 
-    //Matthias Lohr
+    // Matthias Lohr
     public BigDecimal getRevenueToday() {
         List<Booking> todayBookings = bookingRepository.findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(LocalDate.now(), LocalDate.now(), BookingStatus.CANCELLED);
         return todayBookings.stream()
@@ -171,9 +221,9 @@ public class BookingService {
     }
 
     private String generateBookingNumber() {
-    // Beispiel: YYYYMMDD-xxxxx
+    // Example: YYYYMMDD-xxxxx
     String prefix = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
-    String random = UUID.randomUUID().toString().substring(0, 8).toUpperCase(); // 8 zufällige Zeichen durch universally unique identifier
+    String random = UUID.randomUUID().toString().substring(0, 8).toUpperCase(); // 8 random characters via universally unique identifier
     return prefix + "-" + random;
     }
 
@@ -304,7 +354,6 @@ public class BookingService {
         return bookingRepository.findByCreatedAtLessThanEqualAndCreatedAtGreaterThanEqual(to, from);
     }
 
-   
     //Viktor Götting Sucht alle vergangenen CONFIRMED Buchungen für einen Gast
     public List<Booking> findPastBookingsForGuest(Long guestId) {
         if (guestId == null) {

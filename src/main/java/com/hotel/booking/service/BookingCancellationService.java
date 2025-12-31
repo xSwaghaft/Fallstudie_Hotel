@@ -19,15 +19,18 @@ public class BookingCancellationService {
     private final BookingCancellationRepository cancellationRepository;
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
+    private final EmailService emailService;
 
     // Konstruktor-Injektion der benötigten Repositories
     public BookingCancellationService(
             BookingCancellationRepository cancellationRepository,
             BookingRepository bookingRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            EmailService emailService) {
         this.cancellationRepository = cancellationRepository;
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
+        this.emailService = emailService;
     }
 
     // Gibt eine Liste aller BookingCancellation-Objekte aus der Datenbank zurück
@@ -37,7 +40,19 @@ public class BookingCancellationService {
 
     // Speichert einen BookingCancellation-Eintrag
     public BookingCancellation save(BookingCancellation cancellation) {
-        return cancellationRepository.save(cancellation);
+        BookingCancellation saved = cancellationRepository.save(cancellation);
+        
+        // Send cancellation email
+        if (saved.getBooking() != null && saved.getBooking().getGuest() != null && saved.getBooking().getGuest().getEmail() != null) {
+            try {
+                emailService.sendBookingCancellation(saved.getBooking(), saved);
+            } catch (Exception e) {
+                // Log error but don't fail the cancellation save
+                System.err.println("Failed to send booking cancellation email: " + e.getMessage());
+            }
+        }
+        
+        return saved;
     }
 
     // Liefert das zuletzt erzeugte Cancellation-Objekt für eine Booking (optional)

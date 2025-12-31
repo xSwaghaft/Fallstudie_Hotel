@@ -10,14 +10,12 @@ import com.hotel.booking.entity.RoomImage;
  
 
 /**
- * Repository für RoomImage-Entitäten.
- * 
- * @author Viktor Götting
+ * Repository for RoomImage entities.
  */
 public interface RoomImageRepository extends JpaRepository<RoomImage, Long> {
 
     /**
-        * Findet alle Bilder einer Kategorie, Primary zuerst
+     * Finds all images for a category, primary images first.
      */
     @Query("SELECT ri FROM RoomImage ri WHERE ri.category.category_id = :categoryId ORDER BY ri.isPrimary DESC, ri.id ASC")
     List<RoomImage> findByCategoryIdOrderByPrimaryFirst(@Param("categoryId") Long categoryId);
@@ -26,8 +24,8 @@ public interface RoomImageRepository extends JpaRepository<RoomImage, Long> {
     List<RoomImage> findPrimaryByCategoryId(@Param("categoryId") Long categoryId);
 
     /**
-     * Findet alle Bilder mit eager-geladener Kategorie (zur Vermeidung von LazyInitializationException)
-     * Lädt ALLE Bilder, auch die ohne zugewiesene Kategorie
+     * Finds all images with eagerly loaded category (to avoid LazyInitializationException).
+     * Loads ALL images, including those without an assigned category.
      */
     @Query("SELECT DISTINCT ri FROM RoomImage ri LEFT JOIN FETCH ri.category ORDER BY ri.imagePath")
     List<RoomImage> findAllWithCategory();
