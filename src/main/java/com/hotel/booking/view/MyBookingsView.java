@@ -1,7 +1,6 @@
 package com.hotel.booking.view;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -15,7 +14,6 @@ import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.BookingService;
 import com.hotel.booking.service.PaymentService;
-import com.hotel.booking.service.InvoiceService;
 import com.hotel.booking.view.components.PaymentDialog;
 import com.hotel.booking.view.components.BookingDetailsDialog;
 import com.hotel.booking.view.components.BookingCard;
@@ -56,7 +54,6 @@ public class MyBookingsView extends VerticalLayout {
     private final SessionService sessionService;
     private final BookingService bookingService;
     private final PaymentService paymentService;
-    private final InvoiceService invoiceService;
     
     // Components
     private final BookingDetailsDialog bookingDetailsDialog;
@@ -71,8 +68,7 @@ public class MyBookingsView extends VerticalLayout {
     @Autowired
     public MyBookingsView(SessionService sessionService, 
                          BookingService bookingService, 
-                         PaymentService paymentService, 
-                         InvoiceService invoiceService,
+                         PaymentService paymentService,
                          BookingDetailsDialog bookingDetailsDialog,
                          BookingCard bookingCard,
                          EditBookingDialog editBookingDialog,
@@ -80,7 +76,6 @@ public class MyBookingsView extends VerticalLayout {
         this.sessionService = sessionService;
         this.bookingService = bookingService;
         this.paymentService = paymentService;
-        this.invoiceService = invoiceService;
         this.bookingDetailsDialog = bookingDetailsDialog;
         this.bookingCard = bookingCard;
         this.editBookingDialog = editBookingDialog;
@@ -189,16 +184,28 @@ public class MyBookingsView extends VerticalLayout {
 
     
     /**
-     * Creates a "Pay" button if booking has a pending payment
+     * Creates a "Pay" button if booking has a pending payment or is PENDING status without payment.
+     * This allows guests to pay for bookings created by manager/receptionist.
      */
     private Button createPayButtonIfNeeded(Booking booking) {
+        if (booking.getId() == null || booking.getTotalPrice() == null) {
+            return null;
+        }
+        
         // Check if booking has a pending payment
-        List<Payment> pendingPayments = paymentService.findByBookingId(booking.getId()).stream()
+        List<Payment> allPayments = paymentService.findByBookingId(booking.getId());
+        List<Payment> pendingPayments = allPayments.stream()
                 .filter(p -> p.getStatus() == Invoice.PaymentStatus.PENDING)
                 .toList();
         
-        if (pendingPayments.isEmpty()) {
-            return null; // No pending payment, no button needed
+        // Show button if:
+        // 1. There is a pending payment, OR
+        // 2. Booking is PENDING and no payment exists yet (e.g., created by manager/receptionist)
+        boolean shouldShowButton = !pendingPayments.isEmpty() || 
+                (booking.getStatus() == BookingStatus.PENDING && allPayments.isEmpty());
+        
+        if (!shouldShowButton) {
+            return null;
         }
         
         Button payBtn = new Button("Pay Now", e -> openPaymentDialog(booking));
@@ -220,18 +227,35 @@ public class MyBookingsView extends VerticalLayout {
             PaymentDialog paymentDialog = new PaymentDialog(booking.getTotalPrice());
             
             paymentDialog.setOnPaymentSuccess(() -> {
-                // Update existing PENDING payment to PAID
-                updatePendingPaymentToPaid(bookingId, paymentDialog.getSelectedPaymentMethod());
-                
-                Notification.show("Payment completed! Thank you.", 3000, Notification.Position.TOP_CENTER);
-                
-                // Refresh only the current tab content to update badge status
-                updateContent();
+                try {
+                    // Update existing PENDING payment to PAID, or create new PAID payment
+                    paymentService.processPaymentForBooking(bookingId, paymentDialog.getSelectedPaymentMethod(), Invoice.PaymentStatus.PAID);
+                    
+                    Notification.show("Payment completed! Thank you.", 3000, Notification.Position.TOP_CENTER);
+                    
+                    // Refresh only the current tab content to update badge status
+                    updateContent();
+                } catch (Exception ex) {
+                    System.err.println("DEBUG: Error processing payment: " + ex.getMessage());
+                    ex.printStackTrace();
+                    Notification.show("Error processing payment. Please try again.", 5000, Notification.Position.TOP_CENTER);
+                }
             });
             
             paymentDialog.setOnPaymentDeferred(() -> {
-                System.out.println("DEBUG: Payment deferred!");
-                Notification.show("Payment postponed.", 3000, Notification.Position.TOP_CENTER);
+                try {
+                    // Create new PENDING payment if none exists
+                    paymentService.processPaymentForBooking(bookingId, paymentDialog.getSelectedPaymentMethod(), Invoice.PaymentStatus.PENDING);
+                    
+                    Notification.show("Payment postponed. You can pay later in 'My Bookings'.", 3000, Notification.Position.TOP_CENTER);
+                    
+                    // Refresh to show the Pay button
+                    updateContent();
+                } catch (Exception ex) {
+                    System.err.println("DEBUG: Error processing deferred payment: " + ex.getMessage());
+                    ex.printStackTrace();
+                    Notification.show("Error processing payment. Please try again.", 5000, Notification.Position.TOP_CENTER);
+                }
             });
             
             paymentDialog.open();
@@ -242,57 +266,6 @@ public class MyBookingsView extends VerticalLayout {
         }
     }
     
-    /**
-     * Updates the PENDING payment for a booking to PAID status
-     * and updates the booking status to CONFIRMED
-     */
-    private void updatePendingPaymentToPaid(Long bookingId, String selectedMethod) {
-        try {
-            // Update payment status
-            List<Payment> payments = paymentService.findByBookingId(bookingId);
-            Payment paidPayment = null;
-            
-            for (Payment p : payments) {
-                if (p.getStatus() == Invoice.PaymentStatus.PENDING) {
-                    p.setStatus(Invoice.PaymentStatus.PAID);
-                    p.setPaidAt(LocalDateTime.now());
-                    p.setMethod(paymentService.mapPaymentMethod(selectedMethod));
-                    paymentService.save(p);
-                    paidPayment = p;
-                    System.out.println("DEBUG: Updated payment " + p.getId() + " to PAID");
-                    break;
-                }
-            }
-            
-            // Load booking fresh from database and update status to CONFIRMED
-            var bookingOpt = bookingService.findById(bookingId);
-            if (bookingOpt.isPresent()) {
-                Booking booking = bookingOpt.get();
-                if (booking.getStatus() == BookingStatus.PENDING) {
-                    booking.setStatus(BookingStatus.CONFIRMED);
-                    bookingService.save(booking);
-                    System.out.println("DEBUG: Updated booking " + booking.getId() + " status to CONFIRMED");
-                    
-                    // Automatisch auf COMPLETED setzen, wenn check_out_date in der Vergangenheit liegt
-                    if (booking.getCheckOutDate() != null && booking.getCheckOutDate().isBefore(java.time.LocalDate.now())) {
-                        booking.setStatus(BookingStatus.COMPLETED);
-                        bookingService.save(booking);
-                        System.out.println("DEBUG: Auto-completed booking " + booking.getId() + " (check-out was in the past)");
-                    }
-                    
-                    // Create Invoice if not exists
-                    if (booking.getInvoice() == null && paidPayment != null) {
-                        invoiceService.createInvoiceForBooking(booking, paidPayment.getMethod(), Invoice.PaymentStatus.PAID);
-                    }
-                }
-            }
-        } catch (Exception ex) {
-            System.err.println("DEBUG: Error updating payment/booking: " + ex.getMessage());
-            ex.printStackTrace();
-        }
-    }
-    
-
 
     // Lädt alle Buchungen des aktuellen Nutzers.
     private List<Booking> loadAllBookingsForCurrentUser() {

@@ -109,9 +109,12 @@ public class InvoiceService {
             throw new IllegalArgumentException("Booking cannot be null");
         }
         
-        // Check if invoice already exists
-        if (booking.getInvoice() != null) {
-            return booking.getInvoice();
+        // Check if invoice already exists (using findByBookingId to handle inverted relationship)
+        if (booking.getId() != null) {
+            Optional<Invoice> existingInvoice = findByBookingId(booking.getId());
+            if (existingInvoice.isPresent()) {
+                return existingInvoice.get();
+            }
         }
         
         Invoice invoice = new Invoice();

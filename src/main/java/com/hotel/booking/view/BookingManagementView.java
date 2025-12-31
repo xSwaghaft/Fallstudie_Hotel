@@ -56,6 +56,7 @@ public class BookingManagementView extends VerticalLayout {
     private final BookingFormService formService;
     private final com.hotel.booking.service.BookingModificationService modificationService;
     private final BookingCancellationService bookingCancellationService;
+    private final InvoiceService invoiceService;
 
     private static final DateTimeFormatter GERMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
@@ -74,6 +75,7 @@ public class BookingManagementView extends VerticalLayout {
         this.formService = formService;
         this.modificationService = modificationService;
         this.bookingCancellationService = bookingCancellationService;
+        this.invoiceService = invoiceService;
 
         setSpacing(true);
         setPadding(true);
@@ -115,10 +117,15 @@ public class BookingManagementView extends VerticalLayout {
         dialog.setWidth("600px");
 
         // Wenn vorhandene Buchung bezahlt ist, keine Änderungen erlauben
-        if (existingBooking != null && existingBooking.getInvoice() != null
-                && existingBooking.getInvoice().getInvoiceStatus() == Invoice.PaymentStatus.PAID) {
-            Notification.show("Änderung nicht möglich: Buchung bereits bezahlt.", 4000, Notification.Position.MIDDLE);
-            return;
+        // Use InvoiceService to handle inverted relationship (Invoice owns booking_id FK)
+        if (existingBooking != null && existingBooking.getId() != null) {
+            boolean isPaid = invoiceService.findByBookingId(existingBooking.getId())
+                    .map(inv -> inv.getInvoiceStatus() == Invoice.PaymentStatus.PAID)
+                    .orElse(false);
+            if (isPaid) {
+                Notification.show("Änderung nicht möglich: Buchung bereits bezahlt.", 4000, Notification.Position.MIDDLE);
+                return;
+            }
         }
 
         /**

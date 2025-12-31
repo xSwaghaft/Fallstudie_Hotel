@@ -14,6 +14,7 @@ import com.hotel.booking.entity.BookingStatus;
 import com.hotel.booking.entity.Invoice;
 import com.hotel.booking.service.BookingCancellationService;
 import com.hotel.booking.service.BookingModificationService;
+import com.hotel.booking.service.InvoiceService;
 
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -38,11 +39,14 @@ public class BookingDetailsDialog {
     
     private final BookingModificationService modificationService;
     private final BookingCancellationService bookingCancellationService;
+    private final InvoiceService invoiceService;
     
     public BookingDetailsDialog(BookingModificationService modificationService,
-                                BookingCancellationService bookingCancellationService) {
+                                BookingCancellationService bookingCancellationService,
+                                InvoiceService invoiceService) {
         this.modificationService = modificationService;
         this.bookingCancellationService = bookingCancellationService;
+        this.invoiceService = invoiceService;
     }
     
     /**
@@ -150,16 +154,21 @@ public class BookingDetailsDialog {
      */
     private Div createPaymentsTab(Booking booking) {
         Div payments = new Div();
-        if (booking.getInvoice() != null) {
-            Invoice invoice = booking.getInvoice();
-            payments.add(new Paragraph("Invoice Number: " + invoice.getInvoiceNumber()));
-            payments.add(new Paragraph("Amount: " + String.format("%.2f €", invoice.getAmount())));
-            payments.add(new Paragraph("Status: " + invoice.getInvoiceStatus().toString()));
-            payments.add(new Paragraph("Payment Method: " + invoice.getPaymentMethod().toString()));
-            if (invoice.getIssuedAt() != null) {
-                payments.add(new Paragraph("Issued: " + invoice.getIssuedAt().format(
-                        DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"))));
-            }
+        // Use InvoiceService to handle inverted relationship (Invoice owns booking_id FK)
+        if (booking.getId() != null) {
+            invoiceService.findByBookingId(booking.getId()).ifPresentOrElse(
+                invoice -> {
+                    payments.add(new Paragraph("Invoice Number: " + invoice.getInvoiceNumber()));
+                    payments.add(new Paragraph("Amount: " + String.format("%.2f €", invoice.getAmount())));
+                    payments.add(new Paragraph("Status: " + invoice.getInvoiceStatus().toString()));
+                    payments.add(new Paragraph("Payment Method: " + invoice.getPaymentMethod().toString()));
+                    if (invoice.getIssuedAt() != null) {
+                        payments.add(new Paragraph("Issued: " + invoice.getIssuedAt().format(
+                                DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"))));
+                    }
+                },
+                () -> payments.add(new Paragraph("Payment information not available"))
+            );
         } else {
             payments.add(new Paragraph("Payment information not available"));
         }

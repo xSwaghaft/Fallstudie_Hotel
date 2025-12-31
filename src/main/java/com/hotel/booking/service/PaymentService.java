@@ -104,13 +104,87 @@ public class PaymentService {
             booking.setStatus(BookingStatus.CONFIRMED);
             bookingService.save(booking);
             
-            // Create invoice if not exists
-            if (booking.getInvoice() == null) {
-                invoiceService.createInvoiceForBooking(booking, paymentMethod, PaymentStatus.PAID);
+            // Automatisch auf COMPLETED setzen, wenn check_out_date in der Vergangenheit liegt
+            if (booking.getCheckOutDate() != null && booking.getCheckOutDate().isBefore(java.time.LocalDate.now())) {
+                booking.setStatus(BookingStatus.COMPLETED);
+                bookingService.save(booking);
+            }
+            
+            // Create invoice if not exists (using InvoiceService to handle inverted relationship)
+            if (booking.getId() != null) {
+                boolean invoiceExists = invoiceService.findByBookingId(booking.getId()).isPresent();
+                if (!invoiceExists) {
+                    invoiceService.createInvoiceForBooking(booking, paymentMethod, PaymentStatus.PAID);
+                }
             }
         }
         // If status is PENDING, booking status stays PENDING until payment is made
         
         return savedPayment;
+    }
+    
+    /**
+     * Processes payment for a booking: updates existing PENDING payment to the new status,
+     * or creates a new payment if none exists.
+     * Also updates booking status to CONFIRMED if payment is PAID.
+     * 
+     * @param bookingId the booking ID to process payment for
+     * @param paymentMethodString the payment method string from UI
+     * @param status the payment status (PAID or PENDING)
+     * @return the updated or created payment
+     */
+    @Transactional
+    public Payment processPaymentForBooking(Long bookingId, String paymentMethodString, PaymentStatus status) {
+        if (bookingId == null) {
+            throw new IllegalArgumentException("Booking ID cannot be null");
+        }
+        
+        var bookingOpt = bookingService.findById(bookingId);
+        if (bookingOpt.isEmpty()) {
+            throw new IllegalArgumentException("Booking not found for ID: " + bookingId);
+        }
+        Booking booking = bookingOpt.get();
+        
+        // Check for existing PENDING payment
+        List<Payment> payments = findByBookingId(bookingId);
+        Payment existingPendingPayment = payments.stream()
+                .filter(p -> p.getStatus() == PaymentStatus.PENDING)
+                .findFirst()
+                .orElse(null);
+        
+        if (existingPendingPayment != null) {
+            // Update existing PENDING payment
+            existingPendingPayment.setStatus(status);
+            if (status == PaymentStatus.PAID) {
+                existingPendingPayment.setPaidAt(LocalDateTime.now());
+            }
+            existingPendingPayment.setMethod(mapPaymentMethod(paymentMethodString));
+            Payment savedPayment = save(existingPendingPayment);
+            
+            // If payment is PAID, update booking status and create invoice
+            if (status == PaymentStatus.PAID && booking.getStatus() == BookingStatus.PENDING) {
+                booking.setStatus(BookingStatus.CONFIRMED);
+                bookingService.save(booking);
+                
+                // Automatisch auf COMPLETED setzen, wenn check_out_date in der Vergangenheit liegt
+                if (booking.getCheckOutDate() != null && booking.getCheckOutDate().isBefore(java.time.LocalDate.now())) {
+                    booking.setStatus(BookingStatus.COMPLETED);
+                    bookingService.save(booking);
+                }
+                
+                // Create Invoice if not exists (using InvoiceService to handle inverted relationship)
+                if (booking.getId() != null) {
+                    boolean invoiceExists = invoiceService.findByBookingId(booking.getId()).isPresent();
+                    if (!invoiceExists) {
+                        invoiceService.createInvoiceForBooking(booking, existingPendingPayment.getMethod(), PaymentStatus.PAID);
+                    }
+                }
+            }
+            
+            return savedPayment;
+        } else {
+            // Create new payment if none exists (e.g., booking created by manager/receptionist)
+            return processPayment(booking, paymentMethodString, status);
+        }
     }
 }
