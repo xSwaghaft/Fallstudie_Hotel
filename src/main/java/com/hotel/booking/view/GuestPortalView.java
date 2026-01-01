@@ -322,7 +322,7 @@ public class GuestPortalView extends VerticalLayout {
         PaymentDialog paymentDialog = new PaymentDialog(booking.getTotalPrice());
         paymentDialog.setOnPaymentSuccess(() -> {
             try {
-                paymentService.processPayment(booking, paymentDialog.getSelectedPaymentMethod(), Invoice.PaymentStatus.PAID);
+                paymentService.processPayment(booking, null, paymentDialog.getSelectedPaymentMethod(), Invoice.PaymentStatus.PAID);
                 Notification.show(MSG_PAYMENT_COMPLETED, NOTIFICATION_DURATION_SHORT, Notification.Position.TOP_CENTER);
             } catch (Exception ex) {
                 log.error("Error processing payment", ex);
@@ -332,7 +332,7 @@ public class GuestPortalView extends VerticalLayout {
         
         paymentDialog.setOnPaymentDeferred(() -> {
             try {
-                paymentService.processPayment(booking, paymentDialog.getSelectedPaymentMethod(), Invoice.PaymentStatus.PENDING);
+                paymentService.processPayment(booking, null, paymentDialog.getSelectedPaymentMethod(), Invoice.PaymentStatus.PENDING);
             } catch (Exception ex) {
                 log.error("Error processing deferred payment", ex);
                 Notification.show("Error processing payment. Please try again.", NOTIFICATION_DURATION_LONG, Notification.Position.TOP_CENTER);

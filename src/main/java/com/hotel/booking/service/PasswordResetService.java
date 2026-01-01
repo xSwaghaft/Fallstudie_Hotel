@@ -47,7 +47,7 @@ public class PasswordResetService {
                                 PasswordResetTokenRepository tokenRepository,
                                 EmailService emailService,
                                 BcryptPasswordEncoder passwordEncoder,
-                                @Value("${app.base-url}") String baseUrl) {
+                                @Value("${app.base-url:http://localhost:8080}") String baseUrl) {
         this.userService = userService;
         this.tokenRepository = tokenRepository;
         this.emailService = emailService;

@@ -87,12 +87,13 @@ public class InvoiceService {
     
     /**
      * Generates a unique invoice number.
-     * Format: INV-YYYY-timestamp
+     * Format: INV-YYYY-UUID
      * 
      * @return a unique invoice number
      */
     public String generateInvoiceNumber() {
-        return INVOICE_PREFIX + java.time.LocalDate.now().getYear() + "-" + System.currentTimeMillis();
+        return INVOICE_PREFIX + java.time.LocalDate.now().getYear() + "-" + 
+               java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
     
     /**
@@ -105,16 +106,18 @@ public class InvoiceService {
      */
     @Transactional
     public Invoice createInvoiceForBooking(Booking booking, PaymentMethod paymentMethod, PaymentStatus status) {
-        if (booking == null) {
-            throw new IllegalArgumentException("Booking cannot be null");
+        if (booking == null || booking.getId() == null) {
+            throw new IllegalArgumentException("Booking cannot be null and must have an ID");
         }
         
-        // Check if invoice already exists (using findByBookingId to handle inverted relationship)
-        if (booking.getId() != null) {
-            Optional<Invoice> existingInvoice = findByBookingId(booking.getId());
-            if (existingInvoice.isPresent()) {
-                return existingInvoice.get();
-            }
+        if (booking.getTotalPrice() == null) {
+            throw new IllegalArgumentException("Booking must have a total price");
+        }
+        
+        // Check if invoice already exists
+        Optional<Invoice> existingInvoice = findByBookingId(booking.getId());
+        if (existingInvoice.isPresent()) {
+            return existingInvoice.get();
         }
         
         Invoice invoice = new Invoice();

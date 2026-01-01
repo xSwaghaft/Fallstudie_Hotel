@@ -229,7 +229,7 @@ public class MyBookingsView extends VerticalLayout {
             paymentDialog.setOnPaymentSuccess(() -> {
                 try {
                     // Update existing PENDING payment to PAID, or create new PAID payment
-                    paymentService.processPaymentForBooking(bookingId, paymentDialog.getSelectedPaymentMethod(), Invoice.PaymentStatus.PAID);
+                    paymentService.processPaymentForBooking(bookingId, null, paymentDialog.getSelectedPaymentMethod(), Invoice.PaymentStatus.PAID);
                     
                     Notification.show("Payment completed! Thank you.", 3000, Notification.Position.TOP_CENTER);
                     
@@ -245,7 +245,7 @@ public class MyBookingsView extends VerticalLayout {
             paymentDialog.setOnPaymentDeferred(() -> {
                 try {
                     // Create new PENDING payment if none exists
-                    paymentService.processPaymentForBooking(bookingId, paymentDialog.getSelectedPaymentMethod(), Invoice.PaymentStatus.PENDING);
+                    paymentService.processPaymentForBooking(bookingId, null, paymentDialog.getSelectedPaymentMethod(), Invoice.PaymentStatus.PENDING);
                     
                     Notification.show("Payment postponed. You can pay later in 'My Bookings'.", 3000, Notification.Position.TOP_CENTER);
                     
