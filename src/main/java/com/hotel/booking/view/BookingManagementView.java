@@ -221,12 +221,14 @@ public class BookingManagementView extends VerticalLayout {
                         dialog.close();
                         preview.close();
                         grid.setItems(bookingService.findAll());
+                        checkgrid.getDataProvider().refreshItem(updated);
                         Notification.show("Booking saved successfully.", 3000, Notification.Position.BOTTOM_START);
                     } catch (Exception ex) {
-                        String msg = ex.getMessage() != null ? ex.getMessage() : "Fehler beim Speichern der Buchung.";
+                        String msg = ex.getMessage() != null ? ex.getMessage() : "Save failed.";
                         Notification.show(msg, 6000, Notification.Position.MIDDLE);
                     }
                 });
+                confirm.addClassName("primary-button");
 
                 Button back = new Button("Back", ev -> preview.close());
                 HorizontalLayout actions = new HorizontalLayout(confirm, back);
@@ -350,7 +352,7 @@ public class BookingManagementView extends VerticalLayout {
 
         checkgrid.setItems(actionable);
         checkgrid.setWidthFull();
-        checkgrid.setMaxHeight("250px");
+        checkgrid.setMaxHeight("210px");
 
         card.add(title, checkgrid);
         return card;
