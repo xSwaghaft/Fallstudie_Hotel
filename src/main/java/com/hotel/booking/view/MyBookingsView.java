@@ -6,8 +6,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.hotel.booking.entity.Booking;
-import com.hotel.booking.entity.BookingCancellation;
-import com.hotel.booking.entity.BookingExtra;
 import com.hotel.booking.entity.BookingStatus;
 import com.hotel.booking.entity.Invoice;
 import com.hotel.booking.entity.Payment;
@@ -16,13 +14,9 @@ import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.BookingService;
 import com.hotel.booking.service.PaymentService;
-import com.hotel.booking.view.components.PaymentDialog;
-import com.hotel.booking.view.components.BookingDetailsDialog;
-import com.hotel.booking.view.components.BookingCard;
-import com.hotel.booking.view.components.EditBookingDialog;
-import com.hotel.booking.view.components.CancellationDialog;
+import com.hotel.booking.view.components.*;
+
 import com.vaadin.flow.component.dependency.CssImport;
-import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Paragraph;
@@ -37,7 +31,6 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouterLink;
 
 import jakarta.annotation.security.RolesAllowed;
-
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Route(value = "my-bookings", layout = MainLayout.class)
@@ -51,13 +44,10 @@ public class MyBookingsView extends VerticalLayout {
     private static final String TAB_PAST = "Past";
     private static final String TAB_CANCELLED = "Cancelled";
 
-    private static final DateTimeFormatter GERMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-
     private final SessionService sessionService;
     private final BookingService bookingService;
     private final PaymentService paymentService;
-    
-    // Components
+
     private final BookingDetailsDialog bookingDetailsDialog;
     private final BookingCard bookingCard;
     private final EditBookingDialog editBookingDialog;
@@ -68,13 +58,14 @@ public class MyBookingsView extends VerticalLayout {
     private List<Booking> allBookings;
 
     @Autowired
-    public MyBookingsView(SessionService sessionService, 
-                         BookingService bookingService, 
-                         PaymentService paymentService,
-                         BookingDetailsDialog bookingDetailsDialog,
-                         BookingCard bookingCard,
-                         EditBookingDialog editBookingDialog,
-                         CancellationDialog cancellationDialog) {
+    public MyBookingsView(SessionService sessionService,
+                          BookingService bookingService,
+                          PaymentService paymentService,
+                          BookingDetailsDialog bookingDetailsDialog,
+                          BookingCard bookingCard,
+                          EditBookingDialog editBookingDialog,
+                          CancellationDialog cancellationDialog) {
+
         this.sessionService = sessionService;
         this.bookingService = bookingService;
         this.paymentService = paymentService;
@@ -83,97 +74,80 @@ public class MyBookingsView extends VerticalLayout {
         this.editBookingDialog = editBookingDialog;
         this.cancellationDialog = cancellationDialog;
 
-        setSpacing(true);
-        setPadding(true);
         setSizeFull();
-        setWidthFull();
-        getStyle().set("overflow-x", "hidden");
+        setPadding(true);
+        setSpacing(true);
 
-        reloadBookings();
+        allBookings = loadAllBookingsForCurrentUser();
 
-        add(
-                createHeader(),
-                createTabsBar(),
-                createBookingsCard()
+        add(new H1("My Bookings"));
+
+        if (allBookings.isEmpty()) {
+            add(new Paragraph("No bookings found."));
+        } else {
+            createTabsAndContent();
+        }
+    }
+
+    private void createTabsAndContent() {
+        tabs = new Tabs(
+                new Tab(TAB_UPCOMING),
+                new Tab(TAB_PAST),
+                new Tab(TAB_CANCELLED)
         );
-
-        updateContent();
-    }
-
-    // =========================================================
-    // TOP-LEVEL LAYOUT
-    // =========================================================
-
-    private Component createHeader() {
-        return new H1("My Bookings");
-    }
-
-    private Component createTabsBar() {
-        Tab upcomingTab = new Tab(TAB_UPCOMING);
-        Tab pastTab = new Tab(TAB_PAST);
-        Tab cancelledTab = new Tab(TAB_CANCELLED);
-
-        tabs = new Tabs(upcomingTab, pastTab, cancelledTab);
-        tabs.addClassName("bookings-tabs");
         tabs.addSelectedChangeListener(e -> updateContent());
-        
+
         contentArea = new Div();
-        contentArea.addClassName("bookings-content-area");
         contentArea.setWidthFull();
-        
+        contentArea.addClassName("bookings-content-area");
+
         add(tabs, contentArea);
         updateContent();
     }
-    
-    // Filtert Buchungen je nach gewähltem Tab und rendert die Kartenliste.
+
     private void updateContent() {
         contentArea.removeAll();
-        
+
         Tab selectedTab = tabs.getSelectedTab();
         if (selectedTab == null) return;
 
-        String tabLabel = selectedTab.getLabel();
-        
-        // IMPORTANT: Reload all bookings from database to get fresh payment data
-        User currentUser = sessionService.getCurrentUser();
-        if (currentUser != null) {
-            allBookings = bookingService.findAllBookingsForGuest(currentUser.getId());
+        User user = sessionService.getCurrentUser();
+        if (user != null) {
+            allBookings = bookingService.findAllBookingsForGuest(user.getId());
             allBookings.forEach(bookingService::calculateBookingPrice);
         }
-        
-        List<Booking> filteredBookings = filterBookingsByTabType(tabLabel);
-        
-        if (filteredBookings.isEmpty()) {
-            Paragraph emptyMessage = new Paragraph("No bookings in this category.");
-            emptyMessage.getStyle().set("padding", "var(--spacing-xl)");
-            emptyMessage.getStyle().set("text-align", "center");
-            emptyMessage.getStyle().set("color", "var(--color-text-secondary)");
-            contentArea.add(emptyMessage);
-        } else {
-            Div bookingsContainer = new Div();
-            bookingsContainer.addClassName("bookings-container");
-            
-            for (Booking booking : filteredBookings) {
-                HorizontalLayout actionButtons = createActionButtons(booking, tabLabel);
-                Div card = bookingCard.create(booking, 
-                    () -> bookingDetailsDialog.open(booking), 
-                    actionButtons);
-                bookingsContainer.add(card);
-            }
-            
-            contentArea.add(bookingsContainer);
+
+        List<Booking> filtered = filterBookingsByTabType(selectedTab.getLabel());
+
+        if (filtered.isEmpty()) {
+            contentArea.add(new Paragraph("No bookings in this category."));
+            return;
         }
+
+        Div container = new Div();
+        container.addClassName("bookings-container");
+
+        for (Booking booking : filtered) {
+            HorizontalLayout actions = createActionButtons(booking, selectedTab.getLabel());
+            container.add(
+                    bookingCard.create(
+                            booking,
+                            () -> bookingDetailsDialog.open(booking),
+                            actions
+                    )
+            );
+        }
+
+        contentArea.add(container);
     }
-    
-    // Hilfsmethode: Filtert Buchungen basierend auf dem gewählten Tab-Type
-    private List<Booking> filterBookingsByTabType(String tabLabel) {
+
+    private List<Booking> filterBookingsByTabType(String tab) {
         LocalDate today = LocalDate.now();
 
-        switch (tabLabel) {
+        switch (tab) {
             case TAB_UPCOMING:
                 return allBookings.stream()
-                        .filter(b -> b.getCheckInDate().isAfter(today)
-                                || (!b.getCheckInDate().isAfter(today) && !b.getCheckOutDate().isBefore(today)))
+                        .filter(b -> !b.getCheckOutDate().isBefore(today))
                         .filter(b -> b.getStatus() != BookingStatus.CANCELLED)
                         .collect(Collectors.toList());
 
@@ -193,129 +167,99 @@ public class MyBookingsView extends VerticalLayout {
         }
     }
 
-    
-    /**
-     * Creates a "Pay" button if booking has a pending payment or is PENDING status without payment.
-     * This allows guests to pay for bookings created by manager/receptionist.
-     */
     private Button createPayButtonIfNeeded(Booking booking) {
-        if (booking.getId() == null || booking.getTotalPrice() == null) {
+        List<Payment> payments = paymentService.findByBookingId(booking.getId());
+
+        boolean hasPendingPayment = payments.stream()
+                .anyMatch(p -> p.getStatus() == Invoice.PaymentStatus.PENDING);
+
+        boolean noPaymentsYet = payments.isEmpty();
+        boolean statusAllowsPay = booking.getStatus() == BookingStatus.PENDING
+                || booking.getStatus() == BookingStatus.MODIFIED;
+
+        if (!hasPendingPayment && !(statusAllowsPay && noPaymentsYet)) {
             return null;
         }
-        
-        // Check if booking has a pending payment
-        List<Payment> allPayments = paymentService.findByBookingId(booking.getId());
-        List<Payment> pendingPayments = allPayments.stream()
-                .filter(p -> p.getStatus() == Invoice.PaymentStatus.PENDING)
-                .toList();
-        
-        // Show button if:
-        // 1. There is a pending payment, OR
-        // 2. Booking is PENDING and no payment exists yet (e.g., created by manager/receptionist)
-        boolean shouldShowButton = !pendingPayments.isEmpty() || 
-                (booking.getStatus() == BookingStatus.PENDING && allPayments.isEmpty());
-        
-        if (!shouldShowButton) {
-            return null;
-        }
-        
-        Button payBtn = new Button("Pay Now", e -> openPaymentDialog(booking));
-        payBtn.addClassName("primary-button");
-        return payBtn;
+
+        Button pay = new Button("Pay Now", e -> openPaymentDialog(booking));
+        pay.addClassName("primary-button");
+        return pay;
     }
 
     private void openPaymentDialog(Booking booking) {
-        try {
-            if (booking.getTotalPrice() == null) {
-                Notification.show("Error: Total price is missing", 5000, Notification.Position.TOP_CENTER);
-                return;
+        PaymentDialog dialog = new PaymentDialog(booking.getTotalPrice());
+
+        dialog.setOnPaymentSuccess(() -> {
+            paymentService.processPaymentForBooking(
+                    booking.getId(),
+                    null,
+                    dialog.getSelectedPaymentMethod(),
+                    Invoice.PaymentStatus.PAID
+            );
+            updateContent();
+        });
+
+        dialog.setOnPaymentDeferred(() -> {
+            paymentService.processPaymentForBooking(
+                    booking.getId(),
+                    null,
+                    dialog.getSelectedPaymentMethod(),
+                    Invoice.PaymentStatus.PENDING
+            );
+            updateContent();
+        });
+
+        dialog.open();
+    }
+
+    private HorizontalLayout createActionButtons(Booking booking, String tab) {
+        HorizontalLayout layout = new HorizontalLayout();
+
+        BookingStatus status = booking.getStatus();
+        boolean isPast = booking.getCheckOutDate().isBefore(LocalDate.now());
+
+        boolean canEdit = status == BookingStatus.PENDING || status == BookingStatus.MODIFIED;
+        boolean canPay = canEdit;
+        boolean canCancel = !isPast &&
+                (status == BookingStatus.PENDING
+                        || status == BookingStatus.CONFIRMED
+                        || status == BookingStatus.MODIFIED);
+
+        if (TAB_UPCOMING.equals(tab)) {
+
+            if (canPay) {
+                Button pay = createPayButtonIfNeeded(booking);
+                if (pay != null) layout.add(pay);
             }
 
-            Long bookingId = booking.getId();
-            PaymentDialog paymentDialog = new PaymentDialog(booking.getTotalPrice());
+            if (canEdit) {
+                Button edit = new Button("Edit", e ->
+                        editBookingDialog.open(booking, this::updateContent));
+                edit.addClassName("primary-button");
+                layout.add(edit);
+            }
 
-            paymentDialog.setOnPaymentSuccess(() -> {
-                try {
-                    // Update existing PENDING payment to PAID, or create new PAID payment
-                    paymentService.processPaymentForBooking(bookingId, null, paymentDialog.getSelectedPaymentMethod(), Invoice.PaymentStatus.PAID);
-                    
-                    Notification.show("Payment completed! Thank you.", 3000, Notification.Position.TOP_CENTER);
-                    
-                    // Refresh only the current tab content to update badge status
-                    updateContent();
-                } catch (Exception ex) {
-                    System.err.println("DEBUG: Error processing payment: " + ex.getMessage());
-                    ex.printStackTrace();
-                    Notification.show("Error processing payment. Please try again.", 5000, Notification.Position.TOP_CENTER);
-                }
-            });
-
-            paymentDialog.setOnPaymentDeferred(() -> {
-                try {
-                    // Create new PENDING payment if none exists
-                    paymentService.processPaymentForBooking(bookingId, null, paymentDialog.getSelectedPaymentMethod(), Invoice.PaymentStatus.PENDING);
-                    
-                    Notification.show("Payment postponed. You can pay later in 'My Bookings'.", 3000, Notification.Position.TOP_CENTER);
-                    
-                    // Refresh to show the Pay button
-                    updateContent();
-                } catch (Exception ex) {
-                    System.err.println("DEBUG: Error processing deferred payment: " + ex.getMessage());
-                    ex.printStackTrace();
-                    Notification.show("Error processing payment. Please try again.", 5000, Notification.Position.TOP_CENTER);
-                }
-            });
-
-            paymentDialog.open();
-        } catch (Exception ex) {
-            Notification.show("Error opening payment dialog", 5000, Notification.Position.TOP_CENTER);
+            if (canCancel) {
+                Button cancel = new Button("Cancel", e ->
+                        cancellationDialog.open(booking, this::updateContent));
+                cancel.addClassName("secondary-button");
+                layout.add(cancel);
+            }
         }
-    }
-    
 
-    // Lädt alle Buchungen des aktuellen Nutzers.
+        if (TAB_PAST.equals(tab)) {
+            RouterLink review = new RouterLink("Write Review", MyReviewsView.class);
+            review.addClassName("primary-button");
+            layout.add(review);
+        }
+
+        return layout;
+    }
+
     private List<Booking> loadAllBookingsForCurrentUser() {
         User user = sessionService.getCurrentUser();
-        if (user == null) {
-            return List.of();
-        }
-        return bookingService.findAllBookingsForGuest(user.getId());
-    }
-
-
-
-    private HorizontalLayout createActionButtons(Booking booking, String tabLabel) {
-        HorizontalLayout buttonsLayout = new HorizontalLayout();
-        buttonsLayout.setSpacing(true);
-
-        if (TAB_UPCOMING.equals(tabLabel)) {
-            Button editBtn = new Button("Edit");
-            editBtn.addClassName("primary-button");
-            editBtn.addClickListener(e -> editBookingDialog.open(booking, () -> {
-                allBookings = loadAllBookingsForCurrentUser();
-                updateContent();
-            }));
-
-            Button cancelBtn = new Button("Cancel");
-            cancelBtn.addClassName("secondary-button");
-            cancelBtn.addClickListener(e -> cancellationDialog.open(booking, () -> {
-                allBookings = loadAllBookingsForCurrentUser();
-                updateContent();
-            }));
-            
-            // Add Pay button if payment is pending
-            Button payBtn = createPayButtonIfNeeded(booking);
-            if (payBtn != null) {
-                buttonsLayout.add(payBtn, editBtn, cancelBtn);
-            } else {
-                buttonsLayout.add(editBtn, cancelBtn);
-            }
-        } else if (TAB_PAST.equals(tabLabel)) {
-            RouterLink reviewLink = new RouterLink("Write Review", MyReviewsView.class);
-            reviewLink.addClassName("primary-button");
-            buttonsLayout.add(reviewLink);
-        }
-        
-        return buttonsLayout;
+        return user == null
+                ? List.of()
+                : bookingService.findAllBookingsForGuest(user.getId());
     }
 }

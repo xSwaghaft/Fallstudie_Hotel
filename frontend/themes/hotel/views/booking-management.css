@@ -51,6 +51,18 @@
 .status-modified { background: #5bc0de; }
 .status-cancelled { background: #d9534f; }
 
+/* Ensure action buttons are always visible and wrap instead of overflowing */
+.booking-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.booking-actions vaadin-button {
+  min-width: 90px;
+}
+
 /* History / modifications list styles */
 .history-group {
   padding: 8px;

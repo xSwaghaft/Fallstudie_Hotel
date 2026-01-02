@@ -53,6 +53,10 @@ public class BookingService {
         return bookingRepository.findById(id);
     }
 
+    public Optional<Booking> findByBookingNumber(String bookingNumber) {
+        return bookingRepository.findByBookingNumber(bookingNumber);
+    }
+
  
 
     // Average rating for a category (0 if no ratings)

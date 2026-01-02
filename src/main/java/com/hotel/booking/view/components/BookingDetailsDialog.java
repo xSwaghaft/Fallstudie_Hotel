@@ -59,13 +59,10 @@ public class BookingDetailsDialog {
         dialog.setHeaderTitle("Booking Details - " + booking.getBookingNumber());
         dialog.setWidth("800px");
 
-        Tabs tabs = new Tabs(new Tab("Details"), new Tab("Payments"), new Tab("History"), new Tab("Extras"));
+        Tabs tabs = new Tabs(new Tab("Details"), new Tab("History"), new Tab("Extras"));
 
         // Details tab content
         Div details = createDetailsTab(booking);
-
-        // Payments tab
-        Div payments = createPaymentsTab(booking);
 
         // History tab
         Div history = createHistoryTab(booking);
@@ -73,17 +70,15 @@ public class BookingDetailsDialog {
         // Extras tab
         Div extras = createExtrasTab(booking);
 
-        Div pages = new Div(details, payments, history, extras);
+        Div pages = new Div(details, history, extras);
         pages.addClassName("booking-details-container");
-        payments.setVisible(false);
         history.setVisible(false);
         extras.setVisible(false);
 
         tabs.addSelectedChangeListener(ev -> {
             details.setVisible(tabs.getSelectedIndex() == 0);
-            payments.setVisible(tabs.getSelectedIndex() == 1);
-            history.setVisible(tabs.getSelectedIndex() == 2);
-            extras.setVisible(tabs.getSelectedIndex() == 3);
+            history.setVisible(tabs.getSelectedIndex() == 1);
+            extras.setVisible(tabs.getSelectedIndex() == 2);
         });
 
         Button close = new Button("Close", e -> dialog.close());

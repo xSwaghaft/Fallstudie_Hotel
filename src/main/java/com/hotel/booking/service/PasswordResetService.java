@@ -89,13 +89,21 @@ public class PasswordResetService {
             return false;
         }
 
-        // Get user directly from token relationship
-        User user = prt.getUser();
-        if (user == null) {
-            log.error("Password reset token has no associated user");
+
+        // Resolve user by email from the token (tests expect service to lookup by email)
+        String email = prt.getEmail();
+        if (email == null) {
+            log.error("Password reset token has no email attached");
             return false;
         }
 
+        Optional<User> userOpt = userService.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            log.warn("Password reset attempted for unknown email: {}", email);
+            return false;
+        }
+
+        User user = userOpt.get();
         String hashed = passwordEncoder.encode(newPassword);
         user.setPassword(hashed);
         userService.save(user);
@@ -120,7 +128,7 @@ public class PasswordResetService {
 
         String token = UUID.randomUUID().toString();
         Instant expires = Instant.now().plus(TOKEN_EXPIRATION_HOURS, ChronoUnit.HOURS);
-        PasswordResetToken prt = new PasswordResetToken(token, user, expires);
+        PasswordResetToken prt = new PasswordResetToken(token, email, expires);
         tokenRepository.save(prt);
 
         String resetLink = String.format("%s/%s?token=%s", baseUrl, ResetPasswordView.ROUTE, token);

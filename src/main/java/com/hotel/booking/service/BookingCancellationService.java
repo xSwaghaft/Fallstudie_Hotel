@@ -29,7 +29,6 @@ public class BookingCancellationService {
     private final EmailService emailService;
     private final RoomService roomService;
 
-    // Konstruktor-Injektion der benötigten Repositories
     @Autowired
     public BookingCancellationService(
             BookingCancellationRepository cancellationRepository,
@@ -46,10 +45,6 @@ public class BookingCancellationService {
         this.roomService = roomService;
     }
 
-    /**
-     * Backwards-compatible constructor for existing wiring that doesn't provide RoomService.
-     * Delegates to main constructor with a null RoomService.
-     */
     public BookingCancellationService(
             BookingCancellationRepository cancellationRepository,
             BookingService bookingService,
@@ -59,92 +54,79 @@ public class BookingCancellationService {
         this(cancellationRepository, bookingService, paymentService, invoiceService, emailService, null);
     }
 
-    // Gibt eine Liste aller BookingCancellation-Objekte aus der Datenbank zurück
     public List<BookingCancellation> getAll() {
         return cancellationRepository.findAll();
     }
 
-    // Speichert einen BookingCancellation-Eintrag
     public BookingCancellation save(BookingCancellation cancellation) {
         BookingCancellation saved = cancellationRepository.save(cancellation);
-        
-        // Send cancellation email
+
         if (saved.getBooking() != null && saved.getBooking().getGuest() != null && saved.getBooking().getGuest().getEmail() != null) {
             try {
                 emailService.sendBookingCancellation(saved.getBooking(), saved);
             } catch (Exception e) {
-                // Log error but don't fail the cancellation save
                 log.error("Failed to send booking cancellation email for booking {}", saved.getBooking().getId(), e);
             }
         }
-        
+
         return saved;
     }
 
-    // Liefert das zuletzt erzeugte Cancellation-Objekt für eine Booking (optional)
     public java.util.Optional<BookingCancellation> findLatestByBookingId(Long bookingId) {
         return cancellationRepository.findTopByBookingIdOrderByCancelledAtDesc(bookingId);
     }
 
-    // Sucht eine BookingCancellation anhand der ID und gibt sie als Optional zurück
     public Optional<BookingCancellation> getById(Long id) {
         return cancellationRepository.findById(id);
     }
 
-    // Löscht eine BookingCancellation anhand der ID aus der Datenbank
     public void delete(Long id) {
         cancellationRepository.deleteById(id);
     }
-    
-    /**
-     * Berechnet die Stornierungsgebühr basierend auf den Tagen bis zum Check-in:
-     * - 30+ Tage: 0% (kostenlos)
-     * - 7-29 Tage: 20% Gebühr
-     * - 1-6 Tage: 50% Gebühr
-     * - 0 Tage (Anreisetag): 100% Gebühr
-     */
+
     public BigDecimal calculateCancellationFee(Booking booking, BigDecimal totalPrice) {
         if (booking.getCheckInDate() == null) {
             return BigDecimal.ZERO;
         }
-        
+
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
         java.time.LocalDateTime checkInAtStart = booking.getCheckInDate().atStartOfDay();
         long daysBefore = java.time.Duration.between(now, checkInAtStart).toDays();
-        
+
         BigDecimal feePercentage;
         if (daysBefore >= 30) {
-            feePercentage = BigDecimal.ZERO;  // Kostenlos
+            feePercentage = BigDecimal.ZERO;
         } else if (daysBefore >= 7) {
-            feePercentage = new BigDecimal("0.20");  // 20%
+            feePercentage = new BigDecimal("0.20");
         } else if (daysBefore >= 1) {
-            feePercentage = new BigDecimal("0.50");  // 50%
+            feePercentage = new BigDecimal("0.50");
         } else {
-            feePercentage = new BigDecimal("1.00");  // 100%
+            feePercentage = new BigDecimal("1.00");
         }
-        
-        BigDecimal fee = totalPrice.multiply(feePercentage).setScale(2, java.math.RoundingMode.HALF_UP);
-        return fee;
+
+        return totalPrice.multiply(feePercentage).setScale(2, java.math.RoundingMode.HALF_UP);
     }
 
-    /**
-     * Verarbeitet die komplette Stornierungslogik: aktualisiert Booking und Payment Status.
-     * Diese Methode ist @Transactional um sicherzustellen, dass alle Änderungen gepersistet werden.
-     */
     @Transactional
     public void processCancellation(Booking booking, BookingCancellation cancellation, BigDecimal refundedAmount) {
+
+        // ✅ NEW: Prevent cancelling bookings in the past (already finished)
+        if (booking.getCheckOutDate() != null && booking.getCheckOutDate().isBefore(java.time.LocalDate.now())) {
+            throw new IllegalStateException("Cannot cancel a booking that is already in the past.");
+        }
+
         // 1. Booking zu CANCELLED
         booking.setStatus(com.hotel.booking.entity.BookingStatus.CANCELLED);
         bookingService.save(booking);
         log.debug("Booking {} status changed to CANCELLED", booking.getId());
-        
+
         // 2. BookingCancellation speichern
         save(cancellation);
         log.debug("BookingCancellation saved for booking {}", booking.getId());
 
         final BigDecimal safeRefund = refundedAmount == null
-            ? BigDecimal.ZERO
-            : refundedAmount.max(BigDecimal.ZERO);
+                ? BigDecimal.ZERO
+                : refundedAmount.max(BigDecimal.ZERO);
 
         // 3. Payment Status anpassen (REFUNDED / PARTIAL / PAID)
         List<Payment> payments = paymentService.findByBookingId(booking.getId());
@@ -154,15 +136,12 @@ public class BookingCancellationService {
                 BigDecimal appliedRefund = safeRefund.min(paidAmount);
 
                 if (appliedRefund.compareTo(BigDecimal.ZERO) == 0) {
-                    // No refund (100% cancellation fee)
                     p.setStatus(Invoice.PaymentStatus.PAID);
                     p.setRefundedAmount(null);
                 } else if (appliedRefund.compareTo(paidAmount) >= 0) {
-                    // Full refund (appliedRefund equals or exceeds paidAmount)
                     p.setStatus(Invoice.PaymentStatus.REFUNDED);
                     p.setRefundedAmount(appliedRefund);
                 } else {
-                    // Partial refund (appliedRefund < paidAmount)
                     p.setStatus(Invoice.PaymentStatus.PARTIAL);
                     p.setRefundedAmount(appliedRefund);
                 }
@@ -180,26 +159,22 @@ public class BookingCancellationService {
                 BigDecimal appliedRefund = safeRefund.min(invoiceAmount);
 
                 if (appliedRefund.compareTo(BigDecimal.ZERO) == 0) {
-                    // No refund (100% cancellation fee)
                     inv.setInvoiceStatus(Invoice.PaymentStatus.PAID);
                 } else if (appliedRefund.compareTo(invoiceAmount) >= 0) {
-                    // Full refund (appliedRefund equals or exceeds invoiceAmount)
                     inv.setInvoiceStatus(Invoice.PaymentStatus.REFUNDED);
                 } else {
-                    // Partial refund (appliedRefund < invoiceAmount)
                     inv.setInvoiceStatus(Invoice.PaymentStatus.PARTIAL);
                 }
 
                 invoiceService.save(inv);
                 log.debug("Invoice {} status changed to {}", inv.getId(), inv.getInvoiceStatus());
             });
-            // After invoice/payment adjustments, attempt to release the booked room for the cancelled period
+
             try {
                 if (roomService != null && booking.getRoom() != null && booking.getRoom().getId() != null) {
                     roomService.releaseRoomIfFree(booking.getRoom().getId(), booking.getCheckInDate(), booking.getCheckOutDate());
                 }
             } catch (Exception ex) {
-                // Don't fail cancellation due to room-release issues; just log
                 System.err.println("Failed to release room after cancellation: " + ex.getMessage());
             }
         }

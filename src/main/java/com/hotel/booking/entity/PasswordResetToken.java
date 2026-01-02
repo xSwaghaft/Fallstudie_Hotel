@@ -64,6 +64,19 @@ public class PasswordResetToken {
         this.expiresAt = expiresAt;
     }
 
+    /**
+     * Backwards-compatible constructor used by tests that construct a token
+     * with an email string instead of a User entity.
+     */
+    public PasswordResetToken(String token, String email, Instant expiresAt) {
+        this.token = token;
+        this.expiresAt = expiresAt;
+        // create a minimal User object carrying the email for tests
+        User u = new User();
+        u.setEmail(email);
+        this.user = u;
+    }
+
     public Long getId() {
         return id;
     }

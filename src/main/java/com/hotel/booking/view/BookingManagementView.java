@@ -362,6 +362,7 @@ public class BookingManagementView extends VerticalLayout {
     private Component createActionButtons(Booking booking) {
         HorizontalLayout actions = new HorizontalLayout();
         actions.setSpacing(true);
+        actions.addClassName("booking-actions");
         
         Button viewBtn = new Button("View", VaadinIcon.EYE.create());
         viewBtn.addClickListener(e -> openDetails(booking));
@@ -383,8 +384,10 @@ public class BookingManagementView extends VerticalLayout {
             actions.add(checkInBtn);
         }
 
-        // Cancel button: visible/usable for PENDING or MODIFIED bookings
-        if (booking.getStatus() != null && (booking.getStatus() == com.hotel.booking.entity.BookingStatus.PENDING || booking.getStatus() == com.hotel.booking.entity.BookingStatus.MODIFIED)) {
+        // Cancel button: visible/usable for PENDING, MODIFIED or CONFIRMED bookings
+        if (booking.getStatus() != null && (booking.getStatus() == com.hotel.booking.entity.BookingStatus.PENDING
+            || booking.getStatus() == com.hotel.booking.entity.BookingStatus.MODIFIED
+            || booking.getStatus() == com.hotel.booking.entity.BookingStatus.CONFIRMED)) {
             Button cancelBtn = new Button("Cancel", VaadinIcon.CLOSE.create());
             cancelBtn.addClickListener(e -> confirmAndCancelBooking(booking));
             actions.add(cancelBtn);
@@ -395,9 +398,11 @@ public class BookingManagementView extends VerticalLayout {
 
     // Performs cancellation with a confirmation dialog and calculates tiered fees
     private void confirmAndCancelBooking(Booking b) {
-        // Only allow cancellation via this action for bookings with PENDING or MODIFIED status
-        if (b.getStatus() == null || (b.getStatus() != com.hotel.booking.entity.BookingStatus.PENDING && b.getStatus() != com.hotel.booking.entity.BookingStatus.MODIFIED)) {
-            Notification.show("Only bookings with status 'Pending' or 'Modified' can be cancelled here.", 4000, Notification.Position.MIDDLE);
+        // Allow cancellation for PENDING, MODIFIED, CONFIRMED
+        if (b.getStatus() == null || (b.getStatus() != com.hotel.booking.entity.BookingStatus.PENDING
+                && b.getStatus() != com.hotel.booking.entity.BookingStatus.MODIFIED
+                && b.getStatus() != com.hotel.booking.entity.BookingStatus.CONFIRMED)) {
+            Notification.show("Only bookings with status 'Pending', 'Modified' or 'Confirmed' can be cancelled here.", 4000, Notification.Position.MIDDLE);
             return;
         }
 
@@ -466,7 +471,7 @@ public class BookingManagementView extends VerticalLayout {
         d.setHeaderTitle("Booking Details - " + b.getBookingNumber());
         d.setWidth("800px");
 
-        Tabs tabs = new Tabs(new Tab("Details"), new Tab("Payments"), new Tab("History"), new Tab("Extras"));
+        Tabs tabs = new Tabs(new Tab("Details"), new Tab("History"), new Tab("Extras"));
         
         Div details = new Div();
         details.add(new Paragraph("Guest Name: " + (b.getGuest() != null ? b.getGuest().getFullName() : "N/A")));
@@ -492,8 +497,6 @@ public class BookingManagementView extends VerticalLayout {
                 // ignore
             }
         }
-
-        Div payments = new Div(new Paragraph("Payment information not available"));
 
         Div history = new Div();
         // Load modifications for this booking and display them grouped by `modifiedAt` timestamp
@@ -597,17 +600,15 @@ public class BookingManagementView extends VerticalLayout {
             }
         }
 
-        Div pages = new Div(details, payments, history, extras);
+        Div pages = new Div(details, history, extras);
         pages.addClassName("booking-details-container");
-        payments.setVisible(false); 
         history.setVisible(false); 
         extras.setVisible(false);
 
         tabs.addSelectedChangeListener(ev -> {
             details.setVisible(tabs.getSelectedIndex() == 0);
-            payments.setVisible(tabs.getSelectedIndex() == 1);
-            history.setVisible(tabs.getSelectedIndex() == 2);
-            extras.setVisible(tabs.getSelectedIndex() == 3);
+            history.setVisible(tabs.getSelectedIndex() == 1);
+            extras.setVisible(tabs.getSelectedIndex() == 2);
         });
 
         Button edit = new Button("Edit Booking");

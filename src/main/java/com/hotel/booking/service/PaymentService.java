@@ -17,14 +17,14 @@ import java.util.Optional;
 @Service
 @Transactional
 public class PaymentService {
-    
+
     private final PaymentRepository paymentRepository;
     private final BookingService bookingService;
     private final InvoiceService invoiceService;
 
-    public PaymentService(PaymentRepository paymentRepository, 
-                         BookingService bookingService,
-                         InvoiceService invoiceService) {
+    public PaymentService(PaymentRepository paymentRepository,
+                          BookingService bookingService,
+                          InvoiceService invoiceService) {
         this.paymentRepository = paymentRepository;
         this.bookingService = bookingService;
         this.invoiceService = invoiceService;
@@ -57,10 +57,10 @@ public class PaymentService {
     public void deleteById(Long id) {
         paymentRepository.deleteById(id);
     }
-    
+
     /**
      * Maps UI payment method string to PaymentMethod enum.
-     * 
+     *
      * @param uiMethod the payment method string from UI (can be null)
      * @return the corresponding PaymentMethod enum value (defaults to CARD)
      */
@@ -73,11 +73,11 @@ public class PaymentService {
         }
         return PaymentMethod.CARD;
     }
-    
+
     /**
      * Processes a payment for a booking.
      * Creates the payment, updates booking status if paid, and creates invoice if needed.
-     * 
+     *
      * @param booking the booking to process payment for
      * @param amount the payment amount (if null, uses booking.getTotalPrice())
      * @param paymentMethodString the payment method string from UI
@@ -89,42 +89,40 @@ public class PaymentService {
         if (booking == null) {
             throw new IllegalArgumentException("Booking cannot be null");
         }
-        
-        // Use provided amount or fall back to booking total price
+
         BigDecimal paymentAmount = amount != null ? amount : booking.getTotalPrice();
         if (paymentAmount == null) {
             throw new IllegalArgumentException("Payment amount cannot be null");
         }
-        
+
         PaymentMethod paymentMethod = mapPaymentMethod(paymentMethodString);
-        
-        // Create and save payment
+
         Payment payment = new Payment();
         payment.setAmount(paymentAmount);
         payment.setStatus(status);
         payment.setPaidAt(status == PaymentStatus.PAID ? LocalDateTime.now() : null);
         payment.setMethod(paymentMethod);
         payment.setBooking(booking);
+
         Payment savedPayment = save(payment);
-        
+
         // If payment is PAID, update booking status and create invoice
         if (status == PaymentStatus.PAID) {
             booking.setStatus(BookingStatus.CONFIRMED);
             bookingService.save(booking);
-            
+
             updateBookingStatusIfCompleted(booking);
             createInvoiceIfNotExists(booking, paymentMethod);
         }
-        // If status is PENDING, booking status stays PENDING until payment is made
-        
+
         return savedPayment;
     }
-    
+
     /**
      * Processes payment for a booking: updates existing PENDING payment to the new status,
      * or creates a new payment if none exists.
      * Also updates booking status to CONFIRMED if payment is PAID.
-     * 
+     *
      * @param bookingId the booking ID to process payment for
      * @param amount the payment amount (if null, uses booking.getTotalPrice())
      * @param paymentMethodString the payment method string from UI
@@ -136,20 +134,20 @@ public class PaymentService {
         if (bookingId == null) {
             throw new IllegalArgumentException("Booking ID cannot be null");
         }
-        
+
         var bookingOpt = bookingService.findById(bookingId);
         if (bookingOpt.isEmpty()) {
             throw new IllegalArgumentException("Booking not found for ID: " + bookingId);
         }
         Booking booking = bookingOpt.get();
-        
+
         // Check for existing PENDING payment
         List<Payment> payments = findByBookingId(bookingId);
         Payment existingPendingPayment = payments.stream()
                 .filter(p -> p.getStatus() == PaymentStatus.PENDING)
                 .findFirst()
                 .orElse(null);
-        
+
         if (existingPendingPayment != null) {
             // Update existing PENDING payment
             existingPendingPayment.setStatus(status);
@@ -157,28 +155,32 @@ public class PaymentService {
                 existingPendingPayment.setPaidAt(LocalDateTime.now());
             }
             existingPendingPayment.setMethod(mapPaymentMethod(paymentMethodString));
+
             // Update amount if provided
             if (amount != null) {
                 existingPendingPayment.setAmount(amount);
             }
+
             Payment savedPayment = save(existingPendingPayment);
-            
-            // If payment is PAID, update booking status and create invoice
-            if (status == PaymentStatus.PAID && booking.getStatus() == BookingStatus.PENDING) {
+
+            // FIX: also allow MODIFIED -> CONFIRMED (not only PENDING)
+            if (status == PaymentStatus.PAID
+                    && (booking.getStatus() == BookingStatus.PENDING || booking.getStatus() == BookingStatus.MODIFIED)) {
+
                 booking.setStatus(BookingStatus.CONFIRMED);
                 bookingService.save(booking);
-                
+
                 updateBookingStatusIfCompleted(booking);
                 createInvoiceIfNotExists(booking, existingPendingPayment.getMethod());
             }
-            
+
             return savedPayment;
         } else {
             // Create new payment if none exists (e.g., booking created by manager/receptionist)
             return processPayment(booking, amount, paymentMethodString, status);
         }
     }
-    
+
     /**
      * Updates booking status to COMPLETED if check-out date is in the past.
      */
@@ -188,7 +190,7 @@ public class PaymentService {
             bookingService.save(booking);
         }
     }
-    
+
     /**
      * Creates an invoice for the booking if it doesn't already exist.
      */
