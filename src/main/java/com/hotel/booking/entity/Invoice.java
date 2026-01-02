@@ -22,8 +22,24 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 /**
- * Invoice for a booking
+ * Invoice entity for hotel bookings.
+ * 
+ * This entity represents financial invoices generated for hotel bookings.
+ * Each invoice corresponds to exactly one booking and tracks payment status and method.
+ * Invoices can be issued as PDF documents and support multiple payment methods and statuses.
+ * 
+ * Key attributes:
+ * - invoiceNumber: Unique invoice identifier (max 50 characters)
+ * - amount: Total invoice amount in currency (precision 10, scale 2)
+ * - paymentMethod: Payment method used (CARD, CASH, INVOICE, TRANSFER)
+ * - invoiceStatus: Current payment status (PENDING, PAID, FAILED, REFUNDED, PARTIAL)
+ * - issuedAt: Timestamp when invoice was created
+ * - paidAt: Timestamp when invoice was paid (nullable)
+ * - booking: One-to-one relationship with the associated booking
+ * 
  * @author Arman Özcanli
+ * @see Booking
+ * @see Payment
  */
 @Entity
 @Table(name = "invoices")

@@ -14,6 +14,28 @@ import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 
+/**
+ * Dialog component for payment entry and processing.
+ * 
+ * This Vaadin dialog provides a user-friendly interface for collecting payment information
+ * and processing payments. It supports two payment methods:
+ * - Credit Card: Collects card number, expiry date, and CVC
+ * - Bank Transfer: Collects IBAN, BIC, and account holder information
+ * 
+ * Features:
+ * - Dynamic payment method selection with form field switching
+ * - Comprehensive validation of all payment fields
+ * - Error display for failed validation
+ * - Callback support for successful and deferred payments
+ * - Binder-based data binding for form handling
+ * 
+ * The dialog displays the payment amount and allows users to choose their preferred
+ * payment method before submitting payment details for processing.
+ * 
+ * @author Arman Özcanli
+ * @see PaymentMethodManager
+ * @see PaymentValidator
+ */
 public class PaymentDialog extends Dialog {
 
     private Binder<PaymentData> binder;

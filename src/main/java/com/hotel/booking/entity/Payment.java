@@ -22,8 +22,24 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 /**
- * Payment transaction for a booking
+ * Payment transaction entity for hotel bookings.
+ * 
+ * This entity represents individual payment transactions made towards booking invoices.
+ * Multiple payments can be made for a single booking to handle partial payments and refunds.
+ * Each payment transaction is tracked with its amount, method, status, and transaction reference.
+ * 
+ * Key attributes:
+ * - amount: Payment amount in currency (precision 10, scale 2)
+ * - method: Payment method used (CARD, CASH, INVOICE, TRANSFER)
+ * - status: Current payment status (PENDING, PAID, FAILED, REFUNDED, PARTIAL)
+ * - transactionRef: External transaction reference from payment provider (max 100 characters)
+ * - paidAt: Timestamp when payment was processed
+ * - refundedAmount: Amount refunded (may be less than original for partial refunds)
+ * - booking: Many-to-one relationship with the associated booking
+ * 
  * @author Arman Özcanli
+ * @see Booking
+ * @see Invoice
  */
 @Entity
 @Table(name = "payments")

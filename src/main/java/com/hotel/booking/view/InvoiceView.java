@@ -36,7 +36,31 @@ import org.slf4j.LoggerFactory;
 import jakarta.annotation.security.RolesAllowed;
 
 /**
- * Invoice View - Manage invoices (Receptionist and Manager only).
+ * View for displaying and managing invoices.
+ * 
+ * This view provides invoice management functionality with role-based access:
+ * - GUEST: View only their own invoices
+ * - RECEPTIONIST & MANAGER: View and manage all invoices
+ * 
+ * Features:
+ * - Display invoices in a sortable grid with columns for invoice number, booking number,
+ *   amount, payment method, status, and issued date
+ * - Search invoices by invoice number
+ * - Filter invoices by payment status, payment method, and date issued
+ * - Download invoices as PDF documents
+ * - Visual status badges with color coding
+ * - Formatted currency amounts in German locale
+ * 
+ * The view automatically filters data based on the current user's role,
+ * ensuring guests see only their own invoices while staff see all invoices.
+ * 
+ * All data is loaded and filtered asynchronously to provide a responsive user experience.
+ * 
+ * @author Arman Özcanli
+ * @see Invoice
+ * @see InvoiceService
+ * @see InvoicePdfService
+ * @see SessionService
  */
 @Route(value = "invoices", layout = MainLayout.class)
 @PageTitle("Invoices")
