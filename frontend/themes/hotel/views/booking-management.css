@@ -20,62 +20,56 @@
     width: 180px;
 }
 
-/* General layout and controls */
-.card {
-  background: #ffffff;
-  border: 1px solid #e8e8e8;
-  border-radius: 6px;
-  padding: 16px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-}
-
-.primary-button {
-  background-color: var(--lumo-primary-color, #0b5cff);
-  color: white;
-  border-radius: 4px;
-}
-
-.booking-section-title {
-  font-size: 1.1rem;
-  margin-bottom: 8px;
-}
-
-.status-badge {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.85rem;
-  color: #fff;
-}
-.status-pending { background: #f0ad4e; }
-.status-confirmed { background: #5cb85c; }
-.status-modified { background: #5bc0de; }
-.status-cancelled { background: #d9534f; }
-
-/* Ensure action buttons are always visible and wrap instead of overflowing */
-.booking-actions {
+/* Preview (Before/After) */
+.booking-edit-preview {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  align-items: center;
+  flex-direction: column;
+  gap: var(--spacing-lg);
 }
 
-.booking-actions vaadin-button {
-  min-width: 90px;
+.booking-edit-preview-section {
+  padding: var(--spacing-md);
+  background: var(--color-bg-light, #f8f9fb);
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--color-border, #e5e7eb);
 }
 
-/* History / modifications list styles */
+.booking-edit-preview-title {
+  font-weight: 600;
+  font-size: var(--font-size-lg, 18px);
+  margin-bottom: var(--spacing-sm, 6px);
+  color: var(--color-text-primary, #111827);
+}
+
+/* History */
 .history-group {
-  padding: 8px;
-  margin-bottom: 6px;
-  border: 1px solid #eee;
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-bg-white, #fff);
+  box-shadow: var(--shadow-xs, 0 1px 2px rgba(0,0,0,0.04));
 }
-.history-field { font-weight: 600; }
-.history-values { margin-left: 8px; }
-.history-note { font-style: italic; display: block; margin-top: 6px; }
+
+.history-field {
+  font-weight: 600;
+  color: var(--color-text-primary, #111827);
+}
+
+.history-values {
+  color: var(--color-text-secondary, #4b5563);
+}
+
+.history-note {
+  font-style: italic;
+  color: var(--color-text-secondary, #6b7280);
+  font-size: var(--font-size-sm, 14px);
+}
 
 .cancel-box {
-  padding: 8px;
-  margin-bottom: 6px;
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
   border: 1px solid #f5c6cb;
-  background: #fff5f5;
+  background: #fef2f2;
+  border-radius: var(--radius-md, 8px);
 }
