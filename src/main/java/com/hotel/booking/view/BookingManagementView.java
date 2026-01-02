@@ -2,7 +2,6 @@ package com.hotel.booking.view;
 
 import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.BookingStatus;
-import com.hotel.booking.entity.Invoice;
 import com.hotel.booking.entity.RoomStatus;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
@@ -147,13 +146,6 @@ public class BookingManagementView extends VerticalLayout {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle(existingBooking != null ? "Edit Booking" : "New Booking");
         dialog.setWidth("600px");
-
-        // Wenn vorhandene Buchung bezahlt ist, keine Änderungen erlauben
-        if (existingBooking != null && existingBooking.getInvoice() != null
-                && existingBooking.getInvoice().getInvoiceStatus() == Invoice.PaymentStatus.PAID) {
-            Notification.show("Änderung nicht möglich: Buchung bereits bezahlt.", 4000, Notification.Position.MIDDLE);
-            return;
-        }
 
         createNewBookingForm form = new createNewBookingForm(sessionService.getCurrentUser(), sessionService, existingBooking, formService);
 
@@ -443,11 +435,11 @@ public class BookingManagementView extends VerticalLayout {
         
         Button viewBtn = new Button("View", VaadinIcon.EYE.create());
         viewBtn.addClickListener(e -> openDetails(booking));
-        
-        Button editBtn = new Button("Edit", VaadinIcon.EDIT.create());
-        editBtn.addClickListener(e -> openAddBookingDialog(booking));
-        
-        actions.add(viewBtn, editBtn);
+        if (booking.getStatus() == BookingStatus.PENDING || booking.getStatus() == BookingStatus.MODIFIED) {
+            Button editBtn = new Button("Edit", VaadinIcon.EDIT.create());
+            editBtn.addClickListener(e -> openAddBookingDialog(booking));
+            actions.add(viewBtn, editBtn);
+        }
 
         // Cancel button: visible/usable for PENDING or MODIFIED bookings
         if (booking.getStatus() != null && (booking.getStatus() == BookingStatus.PENDING || booking.getStatus() == BookingStatus.MODIFIED)) {

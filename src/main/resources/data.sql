@@ -10,7 +10,6 @@ TRUNCATE TABLE booking_cancellation;
 TRUNCATE TABLE booking_modification;
 TRUNCATE TABLE payments;
 TRUNCATE TABLE booking_extra;
-TRUNCATE TABLE room_bookings;
 TRUNCATE TABLE bookings;
 TRUNCATE TABLE invoices;
 TRUNCATE TABLE rooms;
@@ -90,7 +89,7 @@ VALUES
 (4,'20251115-M3N4O5P6',1,'2025-11-15','2025-11-16','CONFIRMED',249.00,4,4,3,'2025-11-14'),
 (5,'20251220-Q7R8S9T0',2,'2025-12-20','2025-12-25','CANCELLED',319.80,5,3,2,'2025-11-10'),
 (6,'20251205-U1V2W3X4',1,'2025-12-05','2025-12-06','PENDING',49.90,1,6,4,'2025-11-25'),
-(7,'20241010-G1H2I3J4',2,'2024-10-10','2024-10-15','CONFIRMED',649.50,5,3,2,'2024-10-01'),
+(7,'20241010-G1H2I3J4',2,'2024-10-10','2024-10-15','COMPLETED',649.50,5,3,2,'2024-10-01'),
 (8,'20240915-K5L6M7N8',1,'2024-09-15','2024-09-20','COMPLETED',249.00,5,4,3,'2024-09-10');
 
 
@@ -126,16 +125,6 @@ INSERT IGNORE INTO booking_extra (booking_id, extra_id) VALUES
 (5,2),
 (6,4);
 
--- ---------- room_bookings (ManyToMany Room <-> Booking) ----------
-INSERT IGNORE INTO room_bookings (room_id, booking_id) VALUES
-(1,1),
-(3,2),
-(5,3),
-(4,4),
-(3,5),
-(6,6),
-(3,7),
-(4,8);
 
 -- ---------- Payments (at least 6 entries) ----------
 INSERT IGNORE INTO payments (id, booking_id, amount, method, status, transaction_ref, paid_at) VALUES
@@ -165,13 +154,13 @@ INSERT IGNORE INTO booking_modification (id, booking_id, modified_at, field_chan
 (5,1,'2025-11-06 09:00:00','note','old','new','Internal note',4);
 
 -- ---------- Feedback (at least 5 entries) ----------
-INSERT IGNORE INTO feedback (id, booking_id, guest_id, rating, comment) VALUES
-(1,1,1,5,'Very clean room and friendly staff.'),
-(2,3,5,4,'Good stay, breakfast could be better.'),
-(3,4,5,5,'Perfect suite, great view.'),
-(4,2,2,2,'Cancellation resulted in refund problems.'),
-(5,6,1,4,'Nice staff, clean room.'),
-(6,7,5,5,'Fantastic stay! The Deluxe room was beautiful and the service was excellent.');
+INSERT IGNORE INTO feedback (id, booking_id, rating, comment, created_at) VALUES
+(1,1,5,'Very clean room and friendly staff.','2025-11-23 10:00:00'),
+(2,3,4,'Good stay, breakfast could be better.','2025-12-05 14:00:00'),
+(3,4,5,'Perfect suite, great view.','2025-11-17 09:00:00'),
+(4,2,2,'Cancellation resulted in refund problems.','2025-11-13 11:00:00'),
+(5,6,4,'Nice staff, clean room.','2025-12-07 16:00:00'),
+(6,7,5,'Fantastic stay! The Deluxe room was beautiful and the service was excellent.','2024-10-16 10:00:00');
 
 -- ---------- Room Images (for room categories) ----------
 INSERT IGNORE INTO room_images (image_path, alt_text, title, is_primary, category_id) VALUES
@@ -187,28 +176,19 @@ INSERT IGNORE INTO room_images (image_path, alt_text, title, is_primary, categor
 
 -- ---------- Additional future bookings to ensure each user has >=5 bookings
 -- Add bookings with check_in after 2025-12-14 so each user has at least one upcoming booking
-INSERT IGNORE INTO bookings (id, booking_number, amount, check_in_date, check_out_date, status, total_price, guest_id, room_id, invoice_id, room_category_id, created_at) VALUES
-(100,'20260110-G2A',2,'2026-01-10','2026-01-15','PENDING',649.50,2,2,NULL,2,'2025-12-05'),
-(101,'20260201-G3A',2,'2026-02-01','2026-02-03','PENDING',259.80,3,3,NULL,2,'2025-12-10'),
-(102,'20260120-G4A',1,'2026-01-20','2026-01-23','PENDING',747.00,4,4,NULL,3,'2025-12-12'),
-(103,'20260210-G4B',2,'2026-02-10','2026-02-12','PENDING',319.80,4,5,NULL,5,'2025-12-12');
+INSERT IGNORE INTO bookings (id, booking_number, amount, check_in_date, check_out_date, status, total_price, guest_id, room_id, room_category_id, created_at) VALUES
+(100,'20260110-G2A',2,'2026-01-10','2026-01-15','PENDING',649.50,2,2,2,'2025-12-05'),
+(101,'20260201-G3A',2,'2026-02-01','2026-02-03','PENDING',259.80,3,3,2,'2025-12-10'),
+(102,'20260120-G4A',1,'2026-01-20','2026-01-23','PENDING',747.00,4,4,3,'2025-12-12'),
+(103,'20260210-G4B',2,'2026-02-10','2026-02-12','PENDING',319.80,4,5,5,'2025-12-12');
 
--- Invoices for the additional bookings
+-- Invoices for the additional bookings (invoice has booking_id FK, not the other way around)
 INSERT IGNORE INTO invoices (id, invoice_number, amount, issued_at, payment_method, status, booking_id) VALUES
 (200,'INV-20251205-200',649.50,'2025-12-05 09:00:00','CARD','PENDING',100),
 (201,'INV-20251210-201',259.80,'2025-12-10 10:00:00','CARD','PENDING',101),
 (202,'INV-20251212-202',747.00,'2025-12-12 11:00:00','CARD','PENDING',102),
 (203,'INV-20251212-203',319.80,'2025-12-12 11:15:00','CARD','PENDING',103);
 
--- Link invoices to the new bookings
-UPDATE bookings SET invoice_id = 200 WHERE id = 100;
-UPDATE bookings SET invoice_id = 201 WHERE id = 101;
-UPDATE bookings SET invoice_id = 202 WHERE id = 102;
-UPDATE bookings SET invoice_id = 203 WHERE id = 103;
-
--- Map new bookings to rooms (future bookings)
-INSERT IGNORE INTO room_bookings (room_id, booking_id) VALUES
-(2,100),(3,101),(4,102),(5,103);
 
 -- Payments (initially PENDING for some, keep as PENDING to reflect not-yet-paid)
 INSERT IGNORE INTO payments (id, booking_id, amount, method, status, transaction_ref, paid_at) VALUES
