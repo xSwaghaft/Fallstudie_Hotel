@@ -24,6 +24,7 @@ import com.hotel.booking.entity.BookingExtra;
 import com.hotel.booking.entity.BookingModification;
 import com.hotel.booking.entity.User;
 import com.hotel.booking.repository.BookingModificationRepository;
+import com.hotel.booking.service.PaymentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -40,13 +41,15 @@ class BookingModificationServiceTest {
 
     BookingModificationRepository modificationRepository;
     EmailService emailService;
+    PaymentService paymentService;
     BookingModificationService service;
 
     @BeforeEach
     void setUp() {
         modificationRepository = mock(BookingModificationRepository.class);
         emailService = mock(EmailService.class);
-        service = new BookingModificationService(modificationRepository, emailService);
+        paymentService = mock(PaymentService.class);
+        service = new BookingModificationService(modificationRepository, emailService, paymentService);
 
         when(modificationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     }
