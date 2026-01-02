@@ -161,6 +161,17 @@ public class BookingManagementView extends VerticalLayout {
         dialog.setHeaderTitle(existingBooking != null ? "Edit Booking" : "New Booking");
         dialog.setWidth("600px");
 
+        // Wenn vorhandene Buchung bezahlt ist, keine Änderungen erlauben
+       
+
+        /**
+         * Opens the booking form (new / edit).
+         *
+         * Behavior:
+         * - Adds a two-step save flow: Form -> Preview (before/after) -> Confirm.
+         * - On confirmation, previous values are recorded via `BookingModificationService`
+         *   and the update is saved. Any save errors are shown in a Notification with details.
+         */
         createNewBookingForm form = new createNewBookingForm(sessionService.getCurrentUser(), sessionService, existingBooking, formService);
 
         Button saveButton = new Button("Save", e -> {
