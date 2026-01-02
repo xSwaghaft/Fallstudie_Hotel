@@ -4,17 +4,22 @@ import java.time.Instant;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 /**
  * Represents a password reset token used for secure password recovery.
  * 
  * <p>
  * When a user requests a password reset, a unique token is generated and stored
- * with their email address. This token is sent to the user via email and can be
+ * with a reference to the user. This token is sent to the user via email and can be
  * used to reset their password within a limited time period (defined by expiresAt).
  * The token ensures that only the person with access to the email account can
  * reset the password.
@@ -36,9 +41,12 @@ public class PasswordResetToken {
     @Column(nullable = false, unique = true, length = 64)
     private String token;
 
-    /** Email address of the user requesting the password reset. */
-    @Column(nullable = false)
-    private String email;
+    /** User requesting the password reset. */
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "user_id", nullable = false,
+            foreignKey = @ForeignKey(name = "fk_password_reset_token_user"))
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private User user;
 
     /** Expiration timestamp after which the token becomes invalid. */
     @Column(nullable = false)
@@ -50,9 +58,9 @@ public class PasswordResetToken {
     /**
      * Creates a new password reset token.
      */
-    public PasswordResetToken(String token, String email, Instant expiresAt) {
+    public PasswordResetToken(String token, User user, Instant expiresAt) {
         this.token = token;
-        this.email = email;
+        this.user = user;
         this.expiresAt = expiresAt;
     }
 
@@ -64,8 +72,20 @@ public class PasswordResetToken {
         return token;
     }
 
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    /**
+     * Convenience method to get the email address of the user.
+     * @return the user's email address, or null if user is null
+     */
     public String getEmail() {
-        return email;
+        return user != null ? user.getEmail() : null;
     }
 
     public Instant getExpiresAt() {

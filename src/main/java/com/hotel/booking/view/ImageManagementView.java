@@ -17,9 +17,12 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import java.util.List;
+import java.util.Optional;
 
 import jakarta.annotation.security.RolesAllowed;
 
@@ -45,7 +48,7 @@ import jakarta.annotation.security.RolesAllowed;
 @CssImport("./themes/hotel/styles.css")
 @CssImport("./themes/hotel/views/image-management.css")
 @RolesAllowed({UserRole.RECEPTIONIST_VALUE, UserRole.MANAGER_VALUE})
-public class ImageManagementView extends VerticalLayout {
+public class ImageManagementView extends VerticalLayout implements BeforeEnterObserver {
 
     private final RoomCategoryService roomCategoryService;
     private final RoomImageService roomImageService;
@@ -74,6 +77,54 @@ public class ImageManagementView extends VerticalLayout {
 
         configureLayout();
         initializeComponents();
+    }
+
+    /**
+     * Initializes view state from navigation query parameters.
+     *
+     * <p>If the URL contains {@code categoryId}, the view switches into “assignment mode” for that
+     * category: the grid shows only images that are not assigned to any category (i.e.
+     * {@code RoomImage#getCategory() == null}) and enables the “Assign” action for them.
+     *
+     * <p>If {@code categoryId} is missing, blank, invalid, or the category cannot be found, the view
+     * falls back to normal mode and shows all images.
+     *
+     * <p>The data refresh is triggered here (instead of the constructor) to ensure the URL parameters
+     * are available and applied consistently on every navigation to this view.
+     *
+     * @param event the navigation event containing the current location and query parameters
+     */
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        try {
+            Optional<String> categoryIdParam = event.getLocation()
+                    .getQueryParameters()
+                    .getParameters()
+                    .getOrDefault("categoryId", List.of())
+                    .stream()
+                    .findFirst();
+
+            if (categoryIdParam.isPresent() && !categoryIdParam.get().isBlank()) {
+                Long categoryId = Long.parseLong(categoryIdParam.get());
+                assignToCategory = roomCategoryService.getRoomCategoryById(categoryId).orElse(null);
+
+                if (assignToCategory == null) {
+                    showErrorNotification("Category not found (ID: " + categoryId + ") – showing all images.");
+                }
+            } else {
+                assignToCategory = null;
+            }
+
+            refreshImageData();
+        } catch (NumberFormatException ex) {
+            assignToCategory = null;
+            refreshImageData();
+            showErrorNotification("Invalid categoryId – showing all images.");
+        } catch (Exception ex) {
+            assignToCategory = null;
+            refreshImageData();
+            showErrorNotification("Error loading images: " + ex.getMessage());
+        }
     }
 
     /**
@@ -124,8 +175,6 @@ public class ImageManagementView extends VerticalLayout {
                 createUploadCard(),
                 createImagesCard()
             );
-
-            refreshImageData();
         } catch (Exception e) {
             handleInitializationError(e);
         }

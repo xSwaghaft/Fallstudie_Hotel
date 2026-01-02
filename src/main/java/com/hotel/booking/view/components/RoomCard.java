@@ -6,10 +6,8 @@ import com.hotel.booking.entity.Amenities;
 import com.hotel.booking.entity.RoomCategory;
 import com.hotel.booking.entity.RoomImage;
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
-import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
@@ -22,12 +20,23 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
  * @author Viktor Götting
  */
 public class RoomCard extends Div {
+    
+    /** Default values */
+    private static final String DEFAULT_CATEGORY_NAME = "Unknown";
+    private static final String DEFAULT_DESCRIPTION = "Comfortable Room";
+    private static final String DEFAULT_PRICE_TEXT = "N/A";
+    
+    /** UI text constants */
+    private static final String NO_IMAGE_TEXT = "No Image";
+    private static final String PER_NIGHT_TEXT = "per night";
+    private static final String CURRENCY_PREFIX = "€";
   
     private final RoomCategory category;
-    private List<RoomImage> images;
+    private final List<RoomImage> images;
     private VerticalLayout contentArea; // Cache for direct access
     private VerticalLayout rightSide; // Cache für Rating-Platzierung rechts
     private HorizontalLayout amenitiesRatingRow; // Cache für Rating-Platzierung auf derselben Ebene wie Amenities
+    private RoomGalleryDialog galleryDialog;
     
     /**
      * Creates a RoomCard with the specified category.
@@ -78,13 +87,14 @@ public class RoomCard extends Div {
         if (images != null && !images.isEmpty()) {
             // Show the first image as the main image
             RoomImage firstImage = images.get(0);
-            imageContainer.getStyle().set("background-image", "url('" + firstImage.getImagePath() + "')");
+            // Use CSS variable for dynamic background image
+            imageContainer.getStyle().set("--card-image-url", "url('" + firstImage.getImagePath() + "')");
             // Clicking on the image opens the gallery
             imageContainer.addClickListener(e -> openGallery());
         } else {
             // No image available: Show placeholder
             imageContainer.addClassName("room-card__image--empty");
-            imageContainer.add(new Paragraph("No Image"));
+            imageContainer.add(new Paragraph(NO_IMAGE_TEXT));
         }
         
         return imageContainer;
@@ -134,49 +144,31 @@ public class RoomCard extends Div {
         return content;
     }
 
-    // 5 Sterne rechts: gefüllt bis Rating, mit Halbsternen
+    /**
+     * Sets a provider that will populate the reviews content area in the gallery dialog.
+     * 
+     * @param provider Consumer that receives the reviews Div to populate
+     */
+    public void setReviewsContentProvider(java.util.function.Consumer<Div> provider) {
+        // Initialize gallery dialog if not already created
+        if (galleryDialog == null) {
+            galleryDialog = new RoomGalleryDialog(category, images);
+        }
+        galleryDialog.setReviewsContentProvider(provider);
+    }
+    
+    /**
+     * Sets the average rating and displays it as clickable stars.
+     * Stars open the gallery dialog with Reviews tab when clicked.
+     * 
+     * @param average the average rating value
+     */
     public void setAverageRating(double average) {
         if (amenitiesRatingRow == null || average <= 0d) return;
         
-        HorizontalLayout starsLayout = new HorizontalLayout();
-        starsLayout.addClassName("room-card__rating");
-        starsLayout.setSpacing(false);
-        starsLayout.setPadding(false);
-        starsLayout.setAlignItems(Alignment.CENTER);
-        
-        int full = (int) average;
-        double remainder = average - full;
-        boolean hasHalf = remainder >= 0.25 && remainder < 0.75;
-        
-        for (int i = 1; i <= 5; i++) {
-            if (i <= full) {
-                Span star = new Span("★");
-                star.addClassName("filled");
-                starsLayout.add(star);
-            } else if (hasHalf && i == full + 1) {
-                Div halfStarContainer = new Div();
-                halfStarContainer.addClassName("half-star-container");
-                
-                Span emptyStar = new Span("★");
-                emptyStar.addClassName("half-star-empty");
-                
-                Span filledHalf = new Span("★");
-                filledHalf.addClassName("half-star-filled");
-                
-                halfStarContainer.add(emptyStar, filledHalf);
-                starsLayout.add(halfStarContainer);
-            } else {
-                Span star = new Span("★");
-                star.addClassName("empty");
-                starsLayout.add(star);
-            }
-        }
-        
-        Span text = new Span(String.format(java.util.Locale.US, "%.1f", average));
-        text.addClassName("room-card__rating-text");
-        starsLayout.add(text);
-        
-        amenitiesRatingRow.add(starsLayout);
+        Runnable onRatingClick = () -> openGallery(true);
+        StarRating starRating = new StarRating(average, onRatingClick);
+        amenitiesRatingRow.add(starRating);
     }
     
     /**
@@ -207,7 +199,7 @@ public class RoomCard extends Div {
      * Gets the category name, or a default value if null.
      */
     private String getCategoryName() {
-        return category != null ? category.getName() : "Unknown";
+        return category != null ? category.getName() : DEFAULT_CATEGORY_NAME;
     }
     
     /**
@@ -216,7 +208,7 @@ public class RoomCard extends Div {
     private String getDescription() {
         return category != null && category.getDescription() != null
                 ? category.getDescription()
-                : "Comfortable Room";
+                : DEFAULT_DESCRIPTION;
     }
     
     /**
@@ -224,12 +216,12 @@ public class RoomCard extends Div {
      */
     private Div createPriceDiv() {
         String priceText = category != null && category.getPricePerNight() != null
-                ? "€" + category.getPricePerNight()
-                : "N/A";
+                ? CURRENCY_PREFIX + category.getPricePerNight()
+                : DEFAULT_PRICE_TEXT;
         
         Paragraph priceMain = new Paragraph(priceText);
         priceMain.addClassName("room-card__price-main");
-        Paragraph priceSub = new Paragraph("per night");
+        Paragraph priceSub = new Paragraph(PER_NIGHT_TEXT);
         priceSub.addClassName("room-card__price-sub");
         
         Div priceDiv = new Div(priceMain, priceSub);
@@ -289,94 +281,21 @@ public class RoomCard extends Div {
  
     /**
      * Opens a dialog with a gallery of all category images.
+     * 
+     * @param showReviewsTab if true, opens with Reviews tab selected
+     */
+    public void openGallery(boolean showReviewsTab) {
+        if (galleryDialog == null) {
+            galleryDialog = new RoomGalleryDialog(category, images);
+        }
+        galleryDialog.open(showReviewsTab);
+    }
+    
+    /**
+     * Opens a dialog with a gallery of all category images (default: Images tab).
      */
     private void openGallery() {
-        if ((images == null || images.isEmpty()) && category != null) {
-            images = getCategoryImages();
-        }
-        
-        if (images == null || images.isEmpty()) {
-            createDialog("Room Gallery", new Paragraph("No images available.")).open();
-            return;
-        }
-        
-        createGalleryDialog().open();
-    }
-    
-    /**
-     * Creates the gallery dialog with all images of the category.
-     */
-    private Dialog createGalleryDialog() {
-        VerticalLayout content = createStyledLayout("room-gallery-content", false, false);
-        content.setWidthFull();
-        
-        Div gallery = createGalleryGrid();
-        content.add(gallery);
-        content.setFlexGrow(1, gallery);
-        
-        Dialog dialog = createDialog("Room Gallery", content);
-        dialog.addClassName("room-gallery-dialog");
-        dialog.setWidth("90%");
-        dialog.setMaxWidth("1200px");
-        return dialog;
-    }
-    
-    /**
-     * Creates a dialog with the specified title and content components.
-     */
-    private Dialog createDialog(String title, com.vaadin.flow.component.Component... content) {
-        Dialog dialog = new Dialog();
-        dialog.setHeaderTitle(title);
-        Button closeButton = new Button("Close", ev -> dialog.close());
-        closeButton.addClassName("primary-button");
-        dialog.getFooter().add(closeButton);
-        dialog.add(content);
-        return dialog;
-    }
-    
-    /**
-     * Creates the grid with all category images.
-     */
-    private Div createGalleryGrid() {
-        Div gallery = new Div();
-        gallery.addClassName("room-gallery-grid");
-        gallery.setWidthFull();
-        
-        int validImageCount = 0;
-        for (RoomImage image : images) {
-            if (image == null || image.getImagePath() == null || image.getImagePath().isEmpty()) {
-                continue;
-            }
-            
-            Div imageDiv = new Div();
-            imageDiv.addClassName("room-gallery-image");
-            // CSS variable for dynamic background image
-            imageDiv.getStyle().set("--gallery-image-url", "url('" + image.getImagePath() + "')");
-            // Clicking opens a larger view
-            imageDiv.addClickListener(e -> openImageDialog(image));
-            gallery.add(imageDiv);
-            validImageCount++;
-        }
-        
-        // If only one image, add class to make it take full width
-        if (validImageCount == 1) {
-            gallery.addClassName("room-gallery-grid--single");
-        }
-        
-        return gallery;
-    }
-    
-    /**
-     * Opens a dialog with a large view of a single image.
-     */
-    private void openImageDialog(RoomImage image) {
-        Image img = new Image(image.getImagePath(), image.getAltText() != null ? image.getAltText() : "Room Image");
-        img.addClassName("gallery-image-full");
-        img.setWidthFull();
-        
-        Dialog dialog = createDialog(image.getTitle() != null ? image.getTitle() : "Room Image", img);
-        dialog.addClassName("room-gallery-image-dialog");
-        dialog.open();
+        openGallery(false);
     }
     
 }
