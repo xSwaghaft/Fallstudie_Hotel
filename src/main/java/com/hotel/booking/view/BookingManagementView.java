@@ -143,6 +143,7 @@ public class BookingManagementView extends VerticalLayout {
         dialog.setHeaderTitle(existingBooking != null ? "Edit Booking" : "New Booking");
         dialog.setWidth("600px");
 
+        // Wenn vorhandene Buchung bezahlt ist, keine Änderungen erlauben
        
 
         /**
