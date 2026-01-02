@@ -38,17 +38,27 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
+
 import java.util.stream.Collectors;
 
 import jakarta.annotation.security.RolesAllowed;
 
-//Matthias Lohr
+// Author: Matthias Lohr
 @Route(value = "bookings", layout = MainLayout.class)
 @PageTitle("Booking Management")
 @CssImport("./themes/hotel/styles.css")
 @CssImport("./themes/hotel/views/booking-management.css")
 @RolesAllowed({UserRole.RECEPTIONIST_VALUE, UserRole.MANAGER_VALUE})
+/**
+ * BookingManagementView
+ *
+ * Main Vaadin view for managing bookings. Shows a searchable/filterable grid
+ * of bookings and provides actions for viewing, editing and cancelling bookings.
+ * Responsibilities:
+ * - List bookings in a grid with custom columns and actions
+ * - Provide add/edit dialog with preview + confirm step
+ * - Handle cancellation flow and record modification history
+ */
 public class BookingManagementView extends VerticalLayout {
 
     private final SessionService sessionService;
@@ -67,6 +77,10 @@ public class BookingManagementView extends VerticalLayout {
     private Select<String> categoryFilter;
     private List<String> categoryNames;
     private final String ALL_STATUS = "All Status";
+
+    // Simple immutable snapshot holder for previous booking values.
+    // Declared at class level to avoid local-record issues with some compiler setups.
+    private static record PrevBooking(LocalDate checkIn, LocalDate checkOut, Integer amount, BigDecimal total, Set<BookingExtra> extras) {}
 
     public BookingManagementView(SessionService sessionService, BookingService bookingService, BookingFormService formService, com.hotel.booking.service.BookingModificationService modificationService, RoomCategoryService roomCategoryService, BookingCancellationService bookingCancellationService, PaymentService paymentService, InvoiceService invoiceService) {
         this.sessionService = sessionService;
@@ -88,6 +102,7 @@ public class BookingManagementView extends VerticalLayout {
         add(createHeader(), createFilters(), createBookingsCard());
     }
 
+    // Create the top header area containing page title, subtitle and action button.
     private Component createHeader() {
         H1 title = new H1("Booking Management");
         
@@ -108,63 +123,56 @@ public class BookingManagementView extends VerticalLayout {
         return header;
     }
 
-    //Ruslan
+    // Edited/maintained by: Ruslan
     private void openAddBookingDialog(Booking existingBooking) {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle(existingBooking != null ? "Edit Booking" : "New Booking");
         dialog.setWidth("600px");
 
-        // Wenn vorhandene Buchung bezahlt ist, keine Änderungen erlauben
+        // If the existing booking is paid, do not allow edits
         if (existingBooking != null && existingBooking.getInvoice() != null
                 && existingBooking.getInvoice().getInvoiceStatus() == Invoice.PaymentStatus.PAID) {
-            Notification.show("Änderung nicht möglich: Buchung bereits bezahlt.", 4000, Notification.Position.MIDDLE);
+            Notification.show("Cannot modify: booking already paid.", 4000, Notification.Position.MIDDLE);
             return;
         }
 
         /**
-         * Öffnet das Booking-Formular (Neu/ Edit).
+         * Opens the booking form (new / edit).
          *
-         * Verhalten:
-         * - Fügt eine zweistufige Speicherung hinzu: Formular -> Preview (Vorher/Nachher) -> Confirm.
-         * - Bei Bestätigung werden alte Werte protokolliert (über `BookingModificationService`)
-         *   und die Änderung gespeichert. Fehler beim Speichern werden in einer
-         *   Notification mit der konkreten Fehlermeldung angezeigt.
+         * Behavior:
+         * - Adds a two-step save flow: Form -> Preview (before/after) -> Confirm.
+         * - On confirmation, previous values are recorded via `BookingModificationService`
+         *   and the update is saved. Any save errors are shown in a Notification with details.
          */
         createNewBookingForm form = new createNewBookingForm(sessionService.getCurrentUser(), sessionService, existingBooking, formService);
 
         Button saveButton = new Button("Save", e -> {
             try {
-                // Bei bestehenden Buchungen vorherige Werte als Snapshot merken
-                final AtomicReference<LocalDate> prevCheckInRef = new AtomicReference<>();
-                final AtomicReference<LocalDate> prevCheckOutRef = new AtomicReference<>();
-                final AtomicReference<Integer> prevAmountRef = new AtomicReference<>();
-                final AtomicReference<BigDecimal> prevTotalRef = new AtomicReference<>();
-                final AtomicReference<Set<BookingExtra>> prevExtrasRef = new AtomicReference<>();
-                if (existingBooking != null) {
-                    prevCheckInRef.set(existingBooking.getCheckInDate());
-                    prevCheckOutRef.set(existingBooking.getCheckOutDate());
-                    prevAmountRef.set(existingBooking.getAmount());
-                    prevTotalRef.set(existingBooking.getTotalPrice());
-                    prevExtrasRef.set(existingBooking.getExtras());
-                }
+                // For existing bookings, capture previous values as a snapshot.
+                // Use the `PrevBooking` nested record declared at class level
+                // instead of multiple `AtomicReference` instances — clearer and safe.
+                final PrevBooking prevSnapshot = existingBooking != null
+                        ? new PrevBooking(existingBooking.getCheckInDate(), existingBooking.getCheckOutDate(), existingBooking.getAmount(), existingBooking.getTotalPrice(), existingBooking.getExtras())
+                        : null;
 
-                form.writeBean(); // Überträgt die Formulardaten in das Booking-Objekt
+                form.writeBean(); // Transfers form values into the Booking object
                 Booking updated = form.getBooking();
 
-                // Preis neu berechnen (nutze vorhandene Methode)
+                // Recalculate the booking price using the service method
                 bookingService.calculateBookingPrice(updated);
 
-                // Preview Dialog (Vorher / Nachher)
+                // Preview dialog (before / after) to let the user confirm changes
                 Dialog preview = new Dialog();
                 preview.setHeaderTitle(existingBooking != null ? "Confirm Booking Changes" : "Confirm New Booking");
                 VerticalLayout content = new VerticalLayout();
                 if (existingBooking != null) {
                     content.add(new Paragraph("-- Before --"));
-                    LocalDate prevCheckIn = prevCheckInRef.get();
-                    LocalDate prevCheckOut = prevCheckOutRef.get();
-                    Integer prevAmount = prevAmountRef.get();
-                    BigDecimal prevTotal = prevTotalRef.get();
-                    Set<BookingExtra> prevExtras = prevExtrasRef.get();
+                    PrevBooking prev = prevSnapshot;
+                    LocalDate prevCheckIn = prev != null ? prev.checkIn() : null;
+                    LocalDate prevCheckOut = prev != null ? prev.checkOut() : null;
+                    Integer prevAmount = prev != null ? prev.amount() : null;
+                    BigDecimal prevTotal = prev != null ? prev.total() : null;
+                    Set<BookingExtra> prevExtras = prev != null ? prev.extras() : null;
                     content.add(new Paragraph("Check-in: " + (prevCheckIn != null ? prevCheckIn.format(GERMAN_DATE_FORMAT) : "N/A")));
                     content.add(new Paragraph("Check-out: " + (prevCheckOut != null ? prevCheckOut.format(GERMAN_DATE_FORMAT) : "N/A")));
                     content.add(new Paragraph("Guests: " + (prevAmount != null ? prevAmount : "N/A")));
@@ -189,10 +197,14 @@ public class BookingManagementView extends VerticalLayout {
 
                 Button confirm = new Button("Confirm", ev -> {
                     try {
-                        // Falls vorhanden, protokolliere alte Werte
+                        // If present, record previous values
                         if (existingBooking != null) {
                                 modificationService.recordChangesFromSnapshot(existingBooking,
-                                    prevCheckInRef.get(), prevCheckOutRef.get(), prevAmountRef.get(), prevTotalRef.get(), prevExtrasRef.get(),
+                                    (prevSnapshot != null ? prevSnapshot.checkIn() : null),
+                                    (prevSnapshot != null ? prevSnapshot.checkOut() : null),
+                                    (prevSnapshot != null ? prevSnapshot.amount() : null),
+                                    (prevSnapshot != null ? prevSnapshot.total() : null),
+                                    (prevSnapshot != null ? prevSnapshot.extras() : null),
                                     updated, sessionService.getCurrentUser(), null);
                         }
 
@@ -203,7 +215,7 @@ public class BookingManagementView extends VerticalLayout {
                         grid.setItems(bookingService.findAll());
                         Notification.show("Booking saved successfully.", 3000, Notification.Position.BOTTOM_START);
                     } catch (Exception ex) {
-                        String msg = ex.getMessage() != null ? ex.getMessage() : "Fehler beim Speichern der Buchung.";
+                        String msg = ex.getMessage() != null ? ex.getMessage() : "Error saving booking.";
                         Notification.show(msg, 6000, Notification.Position.MIDDLE);
                     }
                 });
@@ -227,6 +239,7 @@ public class BookingManagementView extends VerticalLayout {
         dialog.open();
     }
 
+    // Build search and filter controls (text, status, date, category).
     private Component createFilters() {
         Div card = new Div();
         card.addClassName("card");
@@ -272,6 +285,8 @@ public class BookingManagementView extends VerticalLayout {
         return card;
     }
 
+    // Assemble the bookings card: grid setup and column configuration.
+    // Columns are defined manually to control widths and responsive behavior.
     private Component createBookingsCard() {
         Div card = new Div();
         card.addClassName("card");
@@ -335,6 +350,8 @@ public class BookingManagementView extends VerticalLayout {
     //     return badge;
     // }
 
+    // Create the action buttons shown in the grid for each booking.
+    // Buttons vary depending on booking status (e.g. Check In only for CONFIRMED).
     private Component createActionButtons(Booking booking) {
         HorizontalLayout actions = new HorizontalLayout();
         actions.setSpacing(true);
@@ -342,9 +359,15 @@ public class BookingManagementView extends VerticalLayout {
         Button viewBtn = new Button("View", VaadinIcon.EYE.create());
         viewBtn.addClickListener(e -> openDetails(booking));
         
+        // Edit button: only enabled when booking is not CONFIRMED
         Button editBtn = new Button("Edit", VaadinIcon.EDIT.create());
-        editBtn.addClickListener(e -> openAddBookingDialog(booking));
-        
+        if (booking.getStatus() == null || booking.getStatus() != BookingStatus.CONFIRMED) {
+            editBtn.addClickListener(e -> openAddBookingDialog(booking));
+        } else {
+            editBtn.setEnabled(false);
+            editBtn.getElement().setProperty("title", "Cannot edit a confirmed booking");
+        }
+
         actions.add(viewBtn, editBtn);
         
         if (booking.getStatus() != null && "CONFIRMED".equals(booking.getStatus().name())) {
@@ -363,11 +386,11 @@ public class BookingManagementView extends VerticalLayout {
         return actions;
     }
 
-    // Führt die Stornierung mit Bestätigungsdialog, Berechnung der gestaffelten Gebühren
+    // Performs cancellation with a confirmation dialog and calculates tiered fees
     private void confirmAndCancelBooking(Booking b) {
         // Only allow cancellation via this action for bookings with PENDING or MODIFIED status
         if (b.getStatus() == null || (b.getStatus() != com.hotel.booking.entity.BookingStatus.PENDING && b.getStatus() != com.hotel.booking.entity.BookingStatus.MODIFIED)) {
-            Notification.show("Nur Buchungen mit Status 'Pending' oder 'Modified' können hier storniert werden.", 4000, Notification.Position.MIDDLE);
+            Notification.show("Only bookings with status 'Pending' or 'Modified' can be cancelled here.", 4000, Notification.Position.MIDDLE);
             return;
         }
 
@@ -378,30 +401,30 @@ public class BookingManagementView extends VerticalLayout {
 
             String timeframe;
             if (daysBefore >= 30) {
-                timeframe = "mehr als 30 Tage";
+                timeframe = "more than 30 days";
             } else if (daysBefore >= 7) {
-                timeframe = "7-29 Tage";
+                timeframe = "7-29 days";
             } else if (daysBefore >= 1) {
-                timeframe = "1-6 Tage";
+                timeframe = "1-6 days";
             } else {
-                timeframe = "am Anreisetag";
+                timeframe = "on arrival day";
             }
 
             Dialog confirm = new Dialog();
-            confirm.setHeaderTitle("Stornierung bestätigen");
+            confirm.setHeaderTitle("Confirm cancellation");
             VerticalLayout cnt = new VerticalLayout();
-            cnt.add(new Paragraph("Stornierungszeitraum: " + timeframe + " vor Check-in"));
-            cnt.add(new Paragraph("Stornierungsgebühr: " + String.format("%.2f €", penalty)));
-            cnt.add(new Paragraph("Rückerstattung: " + String.format("%.2f €", b.getTotalPrice().subtract(penalty))));
-            cnt.add(new Paragraph("Möchten Sie die Stornierung bestätigen?"));
+            cnt.add(new Paragraph("Cancellation window: " + timeframe + " before check-in"));
+            cnt.add(new Paragraph("Cancellation fee: " + String.format("%.2f €", penalty)));
+            cnt.add(new Paragraph("Refund: " + String.format("%.2f €", b.getTotalPrice().subtract(penalty))));
+            cnt.add(new Paragraph("Do you want to confirm the cancellation?"));
 
             final java.math.BigDecimal penaltyFinal = penalty;
-            Button confirmBtn = new Button("Bestätigen", ev -> {
+            Button confirmBtn = new Button("Confirm", ev -> {
                 try {
                     BookingCancellation bc = new BookingCancellation();
                     bc.setBooking(b);
                     bc.setCancelledAt(java.time.LocalDateTime.now());
-                    bc.setReason("Storniert vom Management");
+                    bc.setReason("Cancelled by management");
                     bc.setCancellationFee(penaltyFinal);
                     java.math.BigDecimal refundedAmount = b.getTotalPrice().subtract(penaltyFinal);
                     bc.setRefundedAmount(refundedAmount);
@@ -415,20 +438,22 @@ public class BookingManagementView extends VerticalLayout {
 
                     confirm.close();
                     grid.setItems(bookingService.findAll());
-                    Notification.show("Buchung storniert. Rückerstattung: " + String.format("%.2f €", refundedAmount) + " | Gebühr: " + String.format("%.2f €", penaltyFinal), 4000, Notification.Position.BOTTOM_START);
+                    Notification.show("Booking cancelled. Refund: " + String.format("%.2f €", refundedAmount) + " | Fee: " + String.format("%.2f €", penaltyFinal), 4000, Notification.Position.BOTTOM_START);
                 } catch (Exception ex) {
-                    Notification.show(ex.getMessage() != null ? ex.getMessage() : "Fehler beim Stornieren", 5000, Notification.Position.MIDDLE);
+                    Notification.show(ex.getMessage() != null ? ex.getMessage() : "Error canceling booking", 5000, Notification.Position.MIDDLE);
                 }
             });
-
-            Button backBtn = new Button("Zurück", ev -> confirm.close());
+            
+            Button backBtn = new Button("Back", ev -> confirm.close());
             confirm.add(cnt, new HorizontalLayout(confirmBtn, backBtn));
             confirm.open();
         } catch (Exception ex) {
-            Notification.show(ex.getMessage() != null ? ex.getMessage() : "Fehler beim Stornieren", 5000, Notification.Position.MIDDLE);
+            Notification.show(ex.getMessage() != null ? ex.getMessage() : "Error canceling booking", 5000, Notification.Position.MIDDLE);
         }
     }
 
+    // Open a details dialog for a booking. Shows tabs for details, payments, history and extras.
+    // History tab aggregates BookingModification entries grouped by modification timestamp.
     private void openDetails(Booking b) {
         Dialog d = new Dialog();
         d.setHeaderTitle("Booking Details - " + b.getBookingNumber());
@@ -445,15 +470,15 @@ public class BookingManagementView extends VerticalLayout {
         details.add(new Paragraph("Guests: " + b.getAmount()));
         details.add(new Paragraph("Status: " + b.getStatus()));
 
-        // Wenn storniert: zeige die zuletzt gespeicherte Stornogebühr und Grund an
+        // If cancelled: show the most recently saved cancellation fee and reason
         if (b.getStatus() == com.hotel.booking.entity.BookingStatus.CANCELLED && b.getId() != null) {
             try {
                 bookingCancellationService.findLatestByBookingId(b.getId()).ifPresent(bc -> {
                     if (bc.getCancellationFee() != null) {
-                        details.add(new Paragraph("Stornogebühr: " + String.format("%.2f €", bc.getCancellationFee())));
+                        details.add(new Paragraph("Cancellation fee: " + String.format("%.2f €", bc.getCancellationFee())));
                     }
                     if (bc.getReason() != null && !bc.getReason().isBlank()) {
-                        details.add(new Paragraph("Storno-Grund: " + bc.getReason()));
+                        details.add(new Paragraph("Cancellation reason: " + bc.getReason()));
                     }
                 });
             } catch (Exception ex) {
@@ -464,13 +489,13 @@ public class BookingManagementView extends VerticalLayout {
         Div payments = new Div(new Paragraph("Payment information not available"));
 
         Div history = new Div();
-        // Lade Modifikationen für diese Buchung und zeige sie gruppiert an (nach modifiedAt)
+        // Load modifications for this booking and display them grouped by `modifiedAt` timestamp
         if (b.getId() != null) {
             java.util.List<com.hotel.booking.entity.BookingModification> mods = modificationService.findByBookingId(b.getId());
             if (mods.isEmpty()) {
                 history.add(new Paragraph("No modification history available."));
             } else {
-                // Gruppiere nach modifiedAt (erzeugt pro Batch eine Gruppe)
+                // Group by modifiedAt to produce one batch group per modification timestamp
                 java.util.Map<java.time.LocalDateTime, java.util.List<com.hotel.booking.entity.BookingModification>> grouped =
                         mods.stream().collect(java.util.stream.Collectors.groupingBy(com.hotel.booking.entity.BookingModification::getModifiedAt, java.util.LinkedHashMap::new, java.util.stream.Collectors.toList()));
 
@@ -481,11 +506,9 @@ public class BookingManagementView extends VerticalLayout {
                     java.util.List<com.hotel.booking.entity.BookingModification> group = entry.getValue();
 
                     VerticalLayout groupBox = new VerticalLayout();
-                    groupBox.getStyle().set("padding", "8px");
-                    groupBox.getStyle().set("margin-bottom", "6px");
-                    groupBox.getStyle().set("border", "1px solid #eee");
+                    groupBox.addClassName("history-group");
 
-                    // Kopfzeile: Zeitpunkt + Bearbeiter (erster nicht-null)
+                    // Header: timestamp + handler (first non-null handler in the group)
                     String who = "system";
                     for (com.hotel.booking.entity.BookingModification m : group) {
                         if (m.getHandledBy() != null) {
@@ -495,19 +518,19 @@ public class BookingManagementView extends VerticalLayout {
                     }
                     groupBox.add(new Paragraph(ts.format(dtf) + " — " + who));
 
-                    // Liste der Feld-Änderungen in der Gruppe
+                    // List of field changes for this group
                     for (com.hotel.booking.entity.BookingModification m : group) {
                         HorizontalLayout row = new HorizontalLayout();
                         row.setWidthFull();
                         Paragraph field = new Paragraph(m.getFieldChanged() + ": ");
-                        field.getStyle().set("font-weight", "600");
+                        field.addClassName("history-field");
                         Paragraph values = new Paragraph((m.getOldValue() != null ? m.getOldValue() : "<null>") + " → " + (m.getNewValue() != null ? m.getNewValue() : "<null>"));
-                        values.getStyle().set("margin-left", "8px");
+                        values.addClassName("history-values");
                         row.add(field, values);
                         groupBox.add(row);
                         if (m.getReason() != null && !m.getReason().isBlank()) {
                             Span note = new Span("Reason: " + m.getReason());
-                            note.getElement().getStyle().set("font-style", "italic");
+                            note.addClassName("history-note");
                             groupBox.add(note);
                         }
                     }
@@ -519,14 +542,12 @@ public class BookingManagementView extends VerticalLayout {
             history.add(new Paragraph("No modification history available."));
         }
 
-        // Wenn es eine Stornierung gab, zeige diese prominent in der History (wer, wann, Grund, Gebühr)
+        // If a cancellation exists, display it prominently in the history (who, when, reason, fee)
         if (b.getId() != null) {
             try {
                 bookingCancellationService.findLatestByBookingId(b.getId()).ifPresent(bc -> {
                     VerticalLayout cancelBox = new VerticalLayout();
-                    cancelBox.getStyle().set("padding", "8px");
-                    cancelBox.getStyle().set("margin-bottom", "6px");
-                    cancelBox.getStyle().set("border", "1px solid #f5c6cb");
+                    cancelBox.addClassName("cancel-box");
 
                     java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
                     String who = "system";
@@ -543,7 +564,7 @@ public class BookingManagementView extends VerticalLayout {
                         cancelBox.add(new Paragraph("Cancellation fee: " + String.format("%.2f €", bc.getCancellationFee())));
                     }
 
-                    // Füge die Storno-Eintragung an den Anfang der History ein
+                    // Prepend the cancellation entry to the top of the history list
                     history.addComponentAtIndex(0, cancelBox);
                 });
             } catch (Exception ex) {
@@ -551,7 +572,23 @@ public class BookingManagementView extends VerticalLayout {
             }
         }
 
-        Div extras = new Div(new Paragraph(b.getExtras().isEmpty() ? "No additional services requested" : b.getExtras().size() + " services added"));
+        Div extras = new Div();
+        // Show extras the same way as in MyBookings view: each extra with name, price and optional description
+        if (b.getExtras() == null || b.getExtras().isEmpty()) {
+            extras.add(new Paragraph("No additional services requested"));
+        } else {
+            for (BookingExtra extra : b.getExtras()) {
+                Div extraItem = new Div();
+                extraItem.add(new Paragraph(extra.getName() + " - " + String.format("%.2f €", extra.getPrice())));
+                if (extra.getDescription() != null && !extra.getDescription().isBlank()) {
+                    Paragraph desc = new Paragraph(extra.getDescription());
+                    desc.getStyle().set("font-size", "var(--font-size-sm)");
+                    desc.getStyle().set("color", "var(--color-text-secondary)");
+                    extraItem.add(desc);
+                }
+                extras.add(extraItem);
+            }
+        }
 
         Div pages = new Div(details, payments, history, extras);
         pages.addClassName("booking-details-container");
@@ -566,7 +603,13 @@ public class BookingManagementView extends VerticalLayout {
             extras.setVisible(tabs.getSelectedIndex() == 3);
         });
 
-        Button edit = new Button("Edit Booking", e -> { d.close(); openAddBookingDialog(b); });
+        Button edit = new Button("Edit Booking");
+        if (b.getStatus() == null || b.getStatus() != BookingStatus.CONFIRMED) {
+            edit.addClickListener(e -> { d.close(); openAddBookingDialog(b); });
+        } else {
+            edit.setEnabled(false);
+            edit.getElement().setProperty("title", "Cannot edit a confirmed booking");
+        }
         Button cancel = new Button("Cancel", e -> d.close());
 
         d.add(new VerticalLayout(tabs, pages));

@@ -238,10 +238,11 @@ public class BookingService {
         List<Room> rooms = roomRepository.findByCategory(booking.getRoomCategory());
         for (Room room : rooms) {
             // Prüfe, ob das Zimmer im Zeitraum frei ist
-            boolean overlaps = bookingRepository.existsByRoom_IdAndCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(
+            boolean overlaps = bookingRepository.existsByRoom_IdAndCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(
                 room.getId(),
                 booking.getCheckOutDate(),
-                booking.getCheckInDate()
+                booking.getCheckInDate(),
+                BookingStatus.CANCELLED
             );
             if (!overlaps) {
                 return room;
@@ -255,10 +256,11 @@ public class BookingService {
     public boolean isRoomAvailable(RoomCategory category, LocalDate checkIn, LocalDate checkOut) {
         List<Room> rooms = roomRepository.findByCategory(category);
         for (Room room : rooms) {
-            boolean overlaps = bookingRepository.existsByRoom_IdAndCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(
+            boolean overlaps = bookingRepository.existsByRoom_IdAndCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(
                 room.getId(),
                 checkOut,
-                checkIn
+                checkIn,
+                BookingStatus.CANCELLED
             );
             if (!overlaps) {
                 return true; // Mindestens ein Zimmer ist verfügbar

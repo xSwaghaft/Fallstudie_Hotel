@@ -51,6 +51,15 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
             LocalDate endInclusive,
             LocalDate startInclusive);
 
+    /**
+     * Same as existsByRoom... but ignores bookings with the given status (e.g. CANCELLED).
+     */
+    boolean existsByRoom_IdAndCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(
+            Long roomId,
+            LocalDate endInclusive,
+            LocalDate startInclusive,
+            com.hotel.booking.entity.BookingStatus statusToExclude);
+
     // --- Time period queries --------------------------------------------------
 
      // Alle Buchungen, in einem Zeitraum erstellt wurden:
@@ -92,6 +101,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
               AND b.id <> :excludeId
               AND b.checkInDate <= :endInclusive
               AND b.checkOutDate >= :startInclusive
+              AND b.status <> com.hotel.booking.entity.BookingStatus.CANCELLED
             """)
     boolean overlapsInRoomExcludingBooking(
             @Param("roomId") Long roomId,

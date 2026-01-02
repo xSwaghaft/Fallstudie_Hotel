@@ -6,8 +6,10 @@ import com.hotel.booking.entity.BookingCancellation;
 import com.hotel.booking.entity.Invoice;
 import com.hotel.booking.entity.Payment;
 import com.hotel.booking.repository.BookingCancellationRepository;
+import com.hotel.booking.service.RoomService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -21,19 +23,36 @@ public class BookingCancellationService {
     private final PaymentService paymentService;
     private final InvoiceService invoiceService;
     private final EmailService emailService;
+    private final RoomService roomService;
 
     // Konstruktor-Injektion der benötigten Repositories
+    @Autowired
+    public BookingCancellationService(
+            BookingCancellationRepository cancellationRepository,
+            BookingService bookingService,
+            PaymentService paymentService,
+            InvoiceService invoiceService,
+            EmailService emailService,
+            RoomService roomService) {
+        this.cancellationRepository = cancellationRepository;
+        this.bookingService = bookingService;
+        this.paymentService = paymentService;
+        this.invoiceService = invoiceService;
+        this.emailService = emailService;
+        this.roomService = roomService;
+    }
+
+    /**
+     * Backwards-compatible constructor for existing wiring that doesn't provide RoomService.
+     * Delegates to main constructor with a null RoomService.
+     */
     public BookingCancellationService(
             BookingCancellationRepository cancellationRepository,
             BookingService bookingService,
             PaymentService paymentService,
             InvoiceService invoiceService,
             EmailService emailService) {
-        this.cancellationRepository = cancellationRepository;
-        this.bookingService = bookingService;
-        this.paymentService = paymentService;
-        this.invoiceService = invoiceService;
-        this.emailService = emailService;
+        this(cancellationRepository, bookingService, paymentService, invoiceService, emailService, null);
     }
 
     // Gibt eine Liste aller BookingCancellation-Objekte aus der Datenbank zurück
@@ -165,6 +184,15 @@ public class BookingCancellationService {
                 invoiceService.save(inv);
                 System.out.println("DEBUG: Invoice " + inv.getId() + " status changed to " + inv.getInvoiceStatus());
             });
+            // After invoice/payment adjustments, attempt to release the booked room for the cancelled period
+            try {
+                if (roomService != null && booking.getRoom() != null && booking.getRoom().getId() != null) {
+                    roomService.releaseRoomIfFree(booking.getRoom().getId(), booking.getCheckInDate(), booking.getCheckOutDate());
+                }
+            } catch (Exception ex) {
+                // Don't fail cancellation due to room-release issues; just log
+                System.err.println("Failed to release room after cancellation: " + ex.getMessage());
+            }
         }
     }
 }

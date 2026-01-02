@@ -1,6 +1,7 @@
 package com.hotel.booking.service;
 
 import com.hotel.booking.entity.Booking;
+import com.hotel.booking.entity.BookingStatus;
 import com.hotel.booking.entity.Room;
 import com.hotel.booking.entity.RoomCategory;
 import com.hotel.booking.entity.RoomStatus;
@@ -13,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDate;
 
 /**
  * Service class for managing Room entities.
@@ -206,6 +208,48 @@ public class RoomService {
         room.setStatus(status);
         logger.info("Room with ID {} status changed to {}", roomId, status);
         return roomRepository.save(room);
+    }
+
+    /**
+     * Releases a room (sets status to AVAILABLE) for a given date range if there are
+     * no other active (non-cancelled) bookings overlapping the given period.
+     *
+     * @param roomId the ID of the room to potentially release
+     * @param from start date of the booking period (inclusive)
+     * @param to end date of the booking period (inclusive)
+     */
+    public void releaseRoomIfFree(Long roomId, LocalDate from, LocalDate to) {
+        if (roomId == null) return;
+
+        // Find all bookings referencing this room and check for any non-cancelled overlaps
+        var bookings = bookingRepository.findByRoom_Id(roomId);
+        for (Booking b : bookings) {
+            if (b.getStatus() == null) continue;
+            if (BookingStatus.CANCELLED.equals(b.getStatus())) {
+                continue; // ignore cancelled bookings
+            }
+
+            // If booking has null dates, be conservative and do not release
+            if (b.getCheckInDate() == null || b.getCheckOutDate() == null) {
+                return;
+            }
+
+            // Overlap test: !(b.checkOut < from || b.checkIn > to) => overlap exists
+            if (!(b.getCheckOutDate().isBefore(from) || b.getCheckInDate().isAfter(to))) {
+                // There is another active booking that overlaps this period -> cannot release
+                return;
+            }
+        }
+
+        // No overlapping active bookings -> set room to AVAILABLE
+        try {
+            Room room = findRoomById(roomId);
+            room.setStatus(RoomStatus.AVAILABLE);
+            roomRepository.save(room);
+            logger.info("Room with ID {} set to AVAILABLE after related booking cancellation", roomId);
+        } catch (Exception e) {
+            logger.warn("Failed to release room {}: {}", roomId, e.getMessage());
+        }
     }
 
     /**

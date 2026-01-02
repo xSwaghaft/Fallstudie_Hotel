@@ -19,3 +19,51 @@
     padding: 8px 12px;
     width: 180px;
 }
+
+/* General layout and controls */
+.card {
+  background: #ffffff;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  padding: 16px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+
+.primary-button {
+  background-color: var(--lumo-primary-color, #0b5cff);
+  color: white;
+  border-radius: 4px;
+}
+
+.booking-section-title {
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  color: #fff;
+}
+.status-pending { background: #f0ad4e; }
+.status-confirmed { background: #5cb85c; }
+.status-modified { background: #5bc0de; }
+.status-cancelled { background: #d9534f; }
+
+/* History / modifications list styles */
+.history-group {
+  padding: 8px;
+  margin-bottom: 6px;
+  border: 1px solid #eee;
+}
+.history-field { font-weight: 600; }
+.history-values { margin-left: 8px; }
+.history-note { font-style: italic; display: block; margin-top: 6px; }
+
+.cancel-box {
+  padding: 8px;
+  margin-bottom: 6px;
+  border: 1px solid #f5c6cb;
+  background: #fff5f5;
+}
