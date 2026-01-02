@@ -37,6 +37,31 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 //Viktor Götting
+
+/**
+ * View for managing guest feedback and reviews.
+ * 
+ * This view provides staff (receptionists and managers) with feedback management capabilities:
+ * - Display all guest feedback in a searchable grid
+ * - View feedback details including rating, comment, and associated booking
+ * - Delete feedback entries with confirmation dialogs
+ * - Filter feedback by room category
+ * - View rating distribution statistics by category
+ * 
+ * The view shows feedback information organized by:
+ * - Room category with category-specific statistics
+ * - Individual feedback ratings (1-5 stars) with visual indicators
+ * - Feedback comments and creation timestamps
+ * - Associated guest and booking information
+ * 
+ * Only accessible to RECEPTIONIST and MANAGER roles.
+ * 
+ * @author Arman Özcanli
+ * @see Feedback
+ * @see FeedbackService
+ * @see BookingService
+ * @see RoomCategoryService
+ */
 @Route(value = "feedback", layout = MainLayout.class)
 @PageTitle("Feedback Management")
 @CssImport("./themes/hotel/styles.css")

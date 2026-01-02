@@ -1,5 +1,23 @@
 package com.hotel.booking.view.components;
 
+/**
+ * Utility class providing validation methods for payment form fields.
+ * 
+ * This class contains static validation methods for various payment-related input fields.
+ * It supports validation for:
+ * - Credit card numbers (16 digits)
+ * - Card expiry dates (MM/YY format)
+ * - Card CVC codes (3-4 digits)
+ * - IBAN numbers (15-34 alphanumeric characters, country-specific format)
+ * - BIC/SWIFT codes (8-11 alphanumeric characters)
+ * 
+ * All validation methods follow international standards and return boolean results
+ * indicating whether the input is valid.
+ * 
+ * @author Arman Özcanli
+ * @see PaymentDialog
+ * @see PaymentMethodManager
+ */
 public class PaymentValidator {
 
     private PaymentValidator() {

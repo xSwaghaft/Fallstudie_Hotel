@@ -10,6 +10,25 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Service class for managing feedback/review operations.
+ * 
+ * This service handles business logic for feedback management, including:
+ * - Retrieving feedback by guest, booking, or room category
+ * - Creating and saving new feedback entries
+ * - Deleting feedback while maintaining database referential integrity
+ * - Filtering feedback by rating
+ * 
+ * The service ensures that when feedback is deleted, the associated booking
+ * relationship is properly cleaned up to prevent orphaned data.
+ * 
+ * All operations are transactional to maintain data consistency.
+ * 
+ * @author Arman Özcanli
+ * @see Feedback
+ * @see FeedbackRepository
+ * @see BookingRepository
+ */
 @Service
 @Transactional
 public class FeedbackService {

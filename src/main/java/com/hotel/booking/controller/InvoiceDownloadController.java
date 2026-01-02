@@ -13,6 +13,17 @@ import org.springframework.web.bind.annotation.RestController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * REST Controller for handling invoice PDF download requests.
+ * 
+ * This controller provides endpoints for downloading invoices as PDF files.
+ * It handles the retrieval of invoice data and PDF generation, then returns
+ * the generated PDF file to the client with appropriate HTTP headers.
+ * 
+ * @author Arman Özcanli
+ * @see InvoiceService
+ * @see InvoicePdfService
+ */
 @RestController
 @RequestMapping("/api")
 public class InvoiceDownloadController {
@@ -21,6 +32,12 @@ public class InvoiceDownloadController {
     private final InvoiceService invoiceService;
     private final InvoicePdfService invoicePdfService;
 
+    /**
+     * Constructs an InvoiceDownloadController with required dependencies.
+     * 
+     * @param invoiceService Service for retrieving invoice data
+     * @param invoicePdfService Service for generating invoice PDFs
+     */
     public InvoiceDownloadController(InvoiceService invoiceService, InvoicePdfService invoicePdfService) {
         this.invoiceService = invoiceService;
         this.invoicePdfService = invoicePdfService;

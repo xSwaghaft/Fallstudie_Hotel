@@ -13,8 +13,15 @@ import com.hotel.booking.entity.Feedback;
 import com.hotel.booking.entity.User;
 
 /**
- * Repository interface for Feedback entity
+ * Repository interface for Feedback entity persistence operations.
+ * 
+ * This repository provides database access methods for feedback/review data.
+ * It supports querying feedback by guest, booking, rating, and room category.
+ * Extends JpaRepository to provide standard CRUD operations.
+ * 
  * @author Arman Özcanli
+ * @see Feedback
+ * @see FeedbackService
  */
 @Repository
 public interface FeedbackRepository extends JpaRepository<Feedback, Long> {

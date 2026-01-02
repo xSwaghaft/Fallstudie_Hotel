@@ -14,6 +14,27 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Service class for managing invoice operations.
+ * 
+ * This service handles all business logic related to invoices, including:
+ * - Retrieving invoices by various criteria (ID, number, booking, status)
+ * - Creating and updating invoices
+ * - Generating unique invoice numbers
+ * - Creating invoices for bookings with automatic email notifications
+ * - Tracking pending invoices
+ * 
+ * Invoice numbers are generated in the format: INV-YYYY-UUID to ensure uniqueness.
+ * When new invoices are created, confirmation emails are automatically sent to guests.
+ * 
+ * All operations are transactional to maintain data consistency.
+ * 
+ * @author Arman Özcanli
+ * @see Invoice
+ * @see InvoiceRepository
+ * @see EmailService
+ * @see Booking
+ */
 @Service
 @Transactional
 public class InvoiceService {

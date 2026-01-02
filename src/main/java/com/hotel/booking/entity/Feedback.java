@@ -18,8 +18,20 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 /**
- * Guest feedback for a booking
+ * Guest feedback entity for hotel bookings.
+ * 
+ * This entity represents customer feedback/reviews for completed bookings.
+ * Each feedback entry includes a rating (1-5 stars) and an optional comment.
+ * Feedback is linked to a specific booking and can be retrieved by guest or room category.
+ * 
+ * Key attributes:
+ * - rating: Integer rating from 1 to 5 stars (required)
+ * - comment: Optional text feedback up to 1000 characters
+ * - createdAt: Timestamp when feedback was submitted
+ * - booking: One-to-one relationship with the booking being reviewed
+ * 
  * @author Arman Özcanli
+ * @see Booking
  */
 @Entity
 @Table(name = "feedback")
