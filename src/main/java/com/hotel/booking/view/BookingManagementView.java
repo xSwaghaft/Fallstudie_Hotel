@@ -14,21 +14,12 @@ import com.hotel.booking.service.BookingCancellationService;
 import com.hotel.booking.service.BookingFormService;
 import com.hotel.booking.service.BookingModificationService;
 import com.hotel.booking.service.BookingService;
-<<<<<<< HEAD
-import com.hotel.booking.service.PaymentService;
-import com.hotel.booking.service.InvoiceService;
-import com.hotel.booking.service.RoomCategoryService;
-import com.hotel.booking.service.RoomService;
-import com.hotel.booking.entity.Payment;
-import com.hotel.booking.entity.Invoice;
-=======
 import com.hotel.booking.service.InvoiceService;
 import com.hotel.booking.service.PaymentService;
 import com.hotel.booking.service.RoomCategoryService;
 import com.hotel.booking.service.RoomService;
 import com.hotel.booking.view.createNewBookingForm;
 
->>>>>>> cb26bbb (BookingmanagementView)
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.datepicker.DatePicker;
@@ -71,15 +62,10 @@ public class BookingManagementView extends VerticalLayout {
     private final BookingFormService formService;
     private final BookingModificationService modificationService;
     private final BookingCancellationService bookingCancellationService;
-<<<<<<< HEAD
-    private PaymentService paymentService;
-    private InvoiceService invoiceService;
-=======
     private final PaymentService paymentService;
     private final InvoiceService invoiceService;
     private final RoomCategoryService roomCategoryService;
     private final RoomService roomService;
->>>>>>> cb26bbb (BookingmanagementView)
 
     private static final DateTimeFormatter GERMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     private final LocalDate today = LocalDate.now();
@@ -95,10 +81,6 @@ public class BookingManagementView extends VerticalLayout {
     private Select<String> categoryFilter;
     private List<String> categoryNames;
 
-<<<<<<< HEAD
-    //Matthias Lohr
-    public BookingManagementView(SessionService sessionService, BookingService bookingService, BookingFormService formService, BookingModificationService modificationService, RoomCategoryService roomCategoryService, BookingCancellationService bookingCancellationService, RoomService roomService, PaymentService paymentService, InvoiceService invoiceService) {
-=======
     private final String ALL_STATUS = "All Status";
     private static final String ALL_ROOMS = "All Rooms";
 
@@ -117,7 +99,6 @@ public class BookingManagementView extends VerticalLayout {
                                  RoomService roomService,
                                  PaymentService paymentService,
                                  InvoiceService invoiceService) {
->>>>>>> cb26bbb (BookingmanagementView)
         this.sessionService = sessionService;
         this.bookingService = bookingService;
         this.formService = formService;
@@ -125,6 +106,8 @@ public class BookingManagementView extends VerticalLayout {
         this.bookingCancellationService = bookingCancellationService;
         this.roomCategoryService = roomCategoryService;
         this.roomService = roomService;
+        this.paymentService = paymentService;
+        this.invoiceService = invoiceService;
         this.paymentService = paymentService;
         this.invoiceService = invoiceService;
 
@@ -413,19 +396,7 @@ public class BookingManagementView extends VerticalLayout {
 
             Button checkInBtn = new Button(
                     VaadinIcon.SIGN_IN.create(),
-<<<<<<< HEAD
-                    e -> {
-                        // If status is PENDING, open dialog to ask about cash payment
-                        if (booking.getStatus() == BookingStatus.PENDING) {
-                            openPaymentDialog(booking);
-                        } else {
-                            // For CONFIRMED or MODIFIED, proceed with check-in directly
-                            performCheckIn(booking);
-                        }
-                    });
-=======
                     e -> openPaymentDialog(booking));
->>>>>>> cb26bbb (BookingmanagementView)
             checkInBtn.getElement().setAttribute("title", "Check In");
             layout.add(checkInBtn);
             hasButton = true;
@@ -459,85 +430,6 @@ public class BookingManagementView extends VerticalLayout {
         return hasButton ? layout : new Span();
     }
 
-<<<<<<< HEAD
-    /**
-     * Opens a dialog asking if payment was made with cash.
-     * If yes, creates a payment record and invoice.
-     * 
-     * @param booking the booking to process
-     * @author Artur Derr
-     */
-    private void openPaymentDialog(Booking booking) {
-        Dialog dialog = new Dialog();
-        dialog.setHeaderTitle("Payment Confirmation");
-        dialog.setWidth("400px");
-        
-        Paragraph message = new Paragraph("Paid with cash?");
-        message.addClassName("dialog-message");
-        
-        Button yesButton = new Button("Yes, Create Invoice", e -> {
-            // Create payment for cash
-            Payment payment = new Payment(booking.getTotalPrice(), Invoice.PaymentMethod.CASH);
-            payment.setStatus(Invoice.PaymentStatus.PAID);
-            payment.setPaidAt(LocalDateTime.now());
-            payment.setBooking(booking);
-            
-            // Save payment
-            paymentService.save(payment);
-            
-            // Create invoice for the booking
-            invoiceService.createInvoiceForBooking(booking, Invoice.PaymentMethod.CASH, Invoice.PaymentStatus.PAID);
-            
-            // Perform check-in
-            performCheckIn(booking);
-            
-            dialog.close();
-            Notification.show("Check-in successful. Payment and invoice created.", 3000, Notification.Position.BOTTOM_START);
-        });
-        yesButton.addClassName("primary-button");
-        
-        Button cancelButton = new Button("Cancel", e -> {
-            dialog.close();
-        });
-        
-        HorizontalLayout buttonLayout = new HorizontalLayout(yesButton, cancelButton);
-        buttonLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
-        buttonLayout.setSpacing(true);
-        
-        dialog.add(message, buttonLayout);
-        dialog.open();
-    }
-
-    /**
-     * Performs the actual check-in operation.
-     * 
-     * @param booking the booking to check in
-     * @author Artur Derr
-     */
-    private void performCheckIn(Booking booking) {
-        booking.setStatus(BookingStatus.CHECKED_IN);
-        booking.getRoom().setStatus(RoomStatus.OCCUPIED);
-        roomService.save(booking.getRoom());
-        bookingService.save(booking);
-        grid.getDataProvider().refreshItem(booking);
-        checkgrid.getDataProvider().refreshItem(booking);
-    }
-
-    /**
-     * Determines whether a booking can be checked in or checked out today.
-     * <p>
-     * A booking is actionable if:
-     * <ul>
-     *   <li>Today is the check-in date and status is PENDING, CONFIRMED or MODIFIED</li>
-     *   <li>Today is the check-out date and status is CHECKED_IN</li>
-     * </ul>
-     *
-     * @param booking booking to evaluate
-     * @return {@code true} if the booking can be processed today
-     * @author Matthias Lohr
-     */
-=======
->>>>>>> cb26bbb (BookingmanagementView)
     private boolean isActionableToday(Booking b) {
         if (b == null) return false;
 
@@ -946,104 +838,4 @@ public class BookingManagementView extends VerticalLayout {
 
         return history;
     }
-
-    private Div buildExtrasTab(Booking b) {
-        Div extras = new Div();
-
-        if (b.getExtras() == null || b.getExtras().isEmpty()) {
-            extras.add(new Paragraph("No additional services requested"));
-            return extras;
-        }
-
-        for (BookingExtra extra : b.getExtras()) {
-            Div extraItem = new Div();
-            extraItem.add(new Paragraph(extra.getName() + " - " + String.format("%.2f €", extra.getPrice())));
-            if (extra.getDescription() != null && !extra.getDescription().isBlank()) {
-                Paragraph desc = new Paragraph(extra.getDescription());
-                desc.getStyle().set("font-size", "var(--font-size-sm)");
-                desc.getStyle().set("color", "var(--color-text-secondary)");
-                extraItem.add(desc);
-            }
-            extras.add(extraItem);
-        }
-
-        return extras;
-    }
-
-    private void filterBookings() {
-        String search = searchField != null && searchField.getValue() != null
-                ? searchField.getValue().trim().toLowerCase()
-                : "";
-
-        String selectedStatus = statusFilter != null ? statusFilter.getValue() : ALL_STATUS;
-        LocalDate date = dateFilter != null ? dateFilter.getValue() : null;
-        String selectedCategory = categoryFilter != null ? categoryFilter.getValue() : ALL_ROOMS;
-
-        List<Booking> filtered = bookings.stream()
-                .filter(b -> {
-                    boolean matchesSearch = search.isEmpty()
-                            || (b.getBookingNumber() != null && b.getBookingNumber().toLowerCase().contains(search))
-                            || (b.getGuest() != null && b.getGuest().getFullName() != null
-                                && b.getGuest().getFullName().toLowerCase().contains(search));
-
-                    boolean matchesStatus = ALL_STATUS.equals(selectedStatus)
-                            || (b.getStatus() != null && b.getStatus().name().equals(selectedStatus));
-
-                    boolean matchesDate = (date == null)
-                            || (b.getCreatedAt() != null && b.getCreatedAt().isAfter(date));
-
-                    boolean matchesCategory = ALL_ROOMS.equals(selectedCategory)
-                            || (b.getRoomCategory() != null
-                                && b.getRoomCategory().getName() != null
-                                && b.getRoomCategory().getName().equalsIgnoreCase(selectedCategory));
-
-                    return matchesSearch && matchesStatus && matchesDate && matchesCategory;
-                })
-                .toList();
-
-        grid.setItems(filtered);
-    }
-
-    private VerticalLayout createPreviewSection(String title,
-                                               LocalDate checkIn,
-                                               LocalDate checkOut,
-                                               Integer amount,
-                                               BigDecimal totalPrice,
-                                               Set<BookingExtra> extras) {
-        VerticalLayout section = new VerticalLayout();
-        section.addClassName("booking-edit-preview-section");
-
-        Paragraph titlePara = new Paragraph(title);
-        titlePara.addClassName("booking-edit-preview-title");
-        section.add(titlePara);
-
-        section.add(new Paragraph("Check-in: " + formatDate(checkIn)));
-        section.add(new Paragraph("Check-out: " + formatDate(checkOut)));
-        section.add(new Paragraph("Guests: " + formatValue(amount)));
-        section.add(new Paragraph("Total Price: " + formatPrice(totalPrice)));
-        section.add(new Paragraph("Extras: " + formatExtras(extras)));
-
-        return section;
-    }
-
-    private String formatDate(LocalDate date) {
-        return date != null ? date.format(GERMAN_DATE_FORMAT) : "N/A";
-    }
-
-    private String formatValue(Object value) {
-        return value != null ? value.toString() : "N/A";
-    }
-
-    private String formatPrice(BigDecimal price) {
-        return price != null ? String.format("%.2f €", price) : "N/A";
-    }
-
-    private String formatExtras(Set<BookingExtra> extras) {
-        if (extras == null || extras.isEmpty()) {
-            return "none";
-        }
-        return extras.stream()
-                .map(BookingExtra::getName)
-                .collect(Collectors.joining(", "));
-    }
-}
+    
