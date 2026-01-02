@@ -13,8 +13,12 @@ import com.hotel.booking.service.BookingCancellationService;
 import com.hotel.booking.service.BookingFormService;
 import com.hotel.booking.service.BookingModificationService;
 import com.hotel.booking.service.BookingService;
+import com.hotel.booking.service.PaymentService;
+import com.hotel.booking.service.InvoiceService;
 import com.hotel.booking.service.RoomCategoryService;
 import com.hotel.booking.service.RoomService;
+import com.hotel.booking.entity.Payment;
+import com.hotel.booking.entity.Invoice;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.datepicker.DatePicker;
@@ -66,6 +70,8 @@ public class BookingManagementView extends VerticalLayout {
     private final RoomService roomService;
     private final BookingModificationService modificationService;
     private final BookingCancellationService bookingCancellationService;
+    private PaymentService paymentService;
+    private InvoiceService invoiceService;
 
     private static final DateTimeFormatter GERMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     private final LocalDate today = LocalDate.now();
@@ -81,13 +87,15 @@ public class BookingManagementView extends VerticalLayout {
     private final String ALL_STATUS = "All Status";
 
     //Matthias Lohr
-    public BookingManagementView(SessionService sessionService, BookingService bookingService, BookingFormService formService, BookingModificationService modificationService, RoomCategoryService roomCategoryService, BookingCancellationService bookingCancellationService, RoomService roomService) {
+    public BookingManagementView(SessionService sessionService, BookingService bookingService, BookingFormService formService, BookingModificationService modificationService, RoomCategoryService roomCategoryService, BookingCancellationService bookingCancellationService, RoomService roomService, PaymentService paymentService, InvoiceService invoiceService) {
         this.sessionService = sessionService;
         this.bookingService = bookingService;
         this.formService = formService;
         this.modificationService = modificationService;
         this.bookingCancellationService = bookingCancellationService;
         this.roomService = roomService;
+        this.paymentService = paymentService;
+        this.invoiceService = invoiceService;
 
         setSpacing(true);
         setPadding(true);
@@ -474,12 +482,13 @@ public class BookingManagementView extends VerticalLayout {
             Button checkInBtn = new Button(
                     VaadinIcon.SIGN_IN.create(),
                     e -> {
-                        booking.setStatus(BookingStatus.CHECKED_IN);
-                        booking.getRoom().setStatus(RoomStatus.OCCUPIED);
-                        roomService.save(booking.getRoom());
-                        bookingService.save(booking);
-                        grid.getDataProvider().refreshItem(booking);
-                        checkgrid.getDataProvider().refreshItem(booking);
+                        // If status is PENDING, open dialog to ask about cash payment
+                        if (booking.getStatus() == BookingStatus.PENDING) {
+                            openPaymentDialog(booking);
+                        } else {
+                            // For CONFIRMED or MODIFIED, proceed with check-in directly
+                            performCheckIn(booking);
+                        }
                     });
             checkInBtn.getElement().setAttribute("title", "Check In");
             layout.add(checkInBtn);
@@ -504,6 +513,69 @@ public class BookingManagementView extends VerticalLayout {
         }
 
         return hasButton ? layout : new Span();
+    }
+
+    /**
+     * Opens a dialog asking if payment was made with cash.
+     * If yes, creates a payment record and invoice.
+     * 
+     * @param booking the booking to process
+     * @author Artur Derr
+     */
+    private void openPaymentDialog(Booking booking) {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("Payment Confirmation");
+        dialog.setWidth("400px");
+        
+        Paragraph message = new Paragraph("Paid with cash?");
+        message.addClassName("dialog-message");
+        
+        Button yesButton = new Button("Yes, Create Invoice", e -> {
+            // Create payment for cash
+            Payment payment = new Payment(booking.getTotalPrice(), Invoice.PaymentMethod.CASH);
+            payment.setStatus(Invoice.PaymentStatus.PAID);
+            payment.setPaidAt(LocalDateTime.now());
+            payment.setBooking(booking);
+            
+            // Save payment
+            paymentService.save(payment);
+            
+            // Create invoice for the booking
+            invoiceService.createInvoiceForBooking(booking, Invoice.PaymentMethod.CASH, Invoice.PaymentStatus.PAID);
+            
+            // Perform check-in
+            performCheckIn(booking);
+            
+            dialog.close();
+            Notification.show("Check-in successful. Payment and invoice created.", 3000, Notification.Position.BOTTOM_START);
+        });
+        yesButton.addClassName("primary-button");
+        
+        Button cancelButton = new Button("Cancel", e -> {
+            dialog.close();
+        });
+        
+        HorizontalLayout buttonLayout = new HorizontalLayout(yesButton, cancelButton);
+        buttonLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
+        buttonLayout.setSpacing(true);
+        
+        dialog.add(message, buttonLayout);
+        dialog.open();
+    }
+
+    /**
+     * Performs the actual check-in operation.
+     * 
+     * @param booking the booking to check in
+     * @author Artur Derr
+     */
+    private void performCheckIn(Booking booking) {
+        booking.setStatus(BookingStatus.CHECKED_IN);
+        booking.getRoom().setStatus(RoomStatus.OCCUPIED);
+        roomService.save(booking.getRoom());
+        bookingService.save(booking);
+        grid.getDataProvider().refreshItem(booking);
+        checkgrid.getDataProvider().refreshItem(booking);
     }
 
     /**
