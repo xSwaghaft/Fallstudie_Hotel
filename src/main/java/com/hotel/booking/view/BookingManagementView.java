@@ -433,7 +433,6 @@ public class BookingManagementView extends VerticalLayout {
         HorizontalLayout actions = new HorizontalLayout();
         actions.setSpacing(true);
         actions.addClassName("booking-actions");
-
         Button viewBtn = new Button("View", VaadinIcon.EYE.create());
         viewBtn.addClickListener(e -> openDetails(booking));
         
@@ -454,7 +453,10 @@ public class BookingManagementView extends VerticalLayout {
             actions.add(checkInBtn);
         }
 
-        if (isCancellableByStatus(booking)) {
+        // Cancel button: visible/usable for PENDING, MODIFIED or CONFIRMED bookings
+        if (booking.getStatus() != null && (booking.getStatus() == BookingStatus.PENDING
+            || booking.getStatus() == BookingStatus.MODIFIED
+            || booking.getStatus() == BookingStatus.CONFIRMED)) {
             Button cancelBtn = new Button("Cancel", VaadinIcon.CLOSE.create());
             cancelBtn.addClickListener(e -> confirmAndCancelBooking(booking));
             actions.add(cancelBtn);
@@ -465,9 +467,11 @@ public class BookingManagementView extends VerticalLayout {
 
     // Performs cancellation with a confirmation dialog and calculates tiered fees
     private void confirmAndCancelBooking(Booking b) {
-        // Only allow cancellation via this action for bookings with PENDING or MODIFIED status
-        if (b.getStatus() == null || (b.getStatus() != com.hotel.booking.entity.BookingStatus.PENDING && b.getStatus() != com.hotel.booking.entity.BookingStatus.MODIFIED)) {
-            Notification.show("Only bookings with status 'Pending' or 'Modified' can be cancelled here.", 4000, Notification.Position.MIDDLE);
+        // Allow cancellation for PENDING, MODIFIED, CONFIRMED
+        if (b.getStatus() == null || (b.getStatus() != com.hotel.booking.entity.BookingStatus.PENDING
+                && b.getStatus() != com.hotel.booking.entity.BookingStatus.MODIFIED
+                && b.getStatus() != com.hotel.booking.entity.BookingStatus.CONFIRMED)) {
+            Notification.show("Only bookings with status 'Pending', 'Modified' or 'Confirmed' can be cancelled here.", 4000, Notification.Position.MIDDLE);
             return;
         }
 
@@ -550,7 +554,6 @@ public class BookingManagementView extends VerticalLayout {
         d.setWidth("800px");
 
         Tabs tabs = new Tabs(new Tab("Details"), new Tab("History"), new Tab("Extras"));
-
         Div details = new Div();
         details.add(new Paragraph("Guest Name: " + (b.getGuest() != null ? b.getGuest().getFullName() : "N/A")));
         details.add(new Paragraph("Booking Number: " + (b.getBookingNumber() != null ? b.getBookingNumber() : "N/A")));
@@ -567,10 +570,8 @@ public class BookingManagementView extends VerticalLayout {
                 bookingCancellationService.findLatestByBookingId(b.getId()).ifPresent(bc -> {
                     if (bc.getCancellationFee() != null) {
                         details.add(new Paragraph("Cancellation fee: " + String.format("%.2f €", bc.getCancellationFee())));
-                        details.add(new Paragraph("Cancellation fee: " + String.format("%.2f €", bc.getCancellationFee())));
                     }
                     if (bc.getReason() != null && !bc.getReason().isBlank()) {
-                        details.add(new Paragraph("Cancellation reason: " + bc.getReason()));
                         details.add(new Paragraph("Cancellation reason: " + bc.getReason()));
                     }
                 });
@@ -578,39 +579,6 @@ public class BookingManagementView extends VerticalLayout {
             }
         }
 
-        Div history = buildHistoryTab(b);
-        Div extras = buildExtrasTab(b);
-
-        Div pages = new Div(details, history, extras);
-        pages.addClassName("booking-details-container");
-
-        history.setVisible(false);
-        extras.setVisible(false);
-
-        tabs.addSelectedChangeListener(ev -> {
-            details.setVisible(tabs.getSelectedIndex() == 0);
-            history.setVisible(tabs.getSelectedIndex() == 1);
-            extras.setVisible(tabs.getSelectedIndex() == 2);
-        });
-
-        HorizontalLayout footer = new HorizontalLayout();
-        footer.setSpacing(true);
-
-        if (isEditableByStatus(b)) {
-            Button edit = new Button("Edit Booking");
-            edit.addClickListener(e -> { d.close(); openAddBookingDialog(b); });
-            footer.add(edit);
-        }
-
-        Button close = new Button("Close", e -> d.close());
-        footer.add(close);
-
-        d.add(new VerticalLayout(tabs, pages));
-        d.getFooter().add(footer);
-        d.open();
-    }
-
-    private Div buildHistoryTab(Booking b) {
         Div history = new Div();
         // Load modifications for this booking and display them grouped by `modifiedAt` timestamp
         if (b.getId() != null) {
@@ -629,7 +597,6 @@ public class BookingManagementView extends VerticalLayout {
                     List<com.hotel.booking.entity.BookingModification> group = entry.getValue();
 
                     VerticalLayout groupBox = new VerticalLayout();
-                    groupBox.addClassName("history-group");
                     groupBox.addClassName("history-group");
 
                     // Header: timestamp + handler (first non-null handler in the group)
@@ -660,7 +627,6 @@ public class BookingManagementView extends VerticalLayout {
                         if (m.getReason() != null && !m.getReason().isBlank()) {
                             Span note = new Span("Reason: " + m.getReason());
                             note.addClassName("history-note");
-                            note.addClassName("history-note");
                             groupBox.add(note);
                         }
                     }
@@ -677,7 +643,6 @@ public class BookingManagementView extends VerticalLayout {
             try {
                 bookingCancellationService.findLatestByBookingId(b.getId()).ifPresent(bc -> {
                     VerticalLayout cancelBox = new VerticalLayout();
-                    cancelBox.addClassName("cancel-box");
                     cancelBox.addClassName("cancel-box");
 
                     DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
@@ -724,17 +689,15 @@ public class BookingManagementView extends VerticalLayout {
             }
         }
 
-        Div pages = new Div(details, payments, history, extras);
+        Div pages = new Div(details, history, extras);
         pages.addClassName("booking-details-container");
-        payments.setVisible(false); 
         history.setVisible(false); 
         extras.setVisible(false);
 
         tabs.addSelectedChangeListener(ev -> {
             details.setVisible(tabs.getSelectedIndex() == 0);
-            payments.setVisible(tabs.getSelectedIndex() == 1);
-            history.setVisible(tabs.getSelectedIndex() == 2);
-            extras.setVisible(tabs.getSelectedIndex() == 3);
+            history.setVisible(tabs.getSelectedIndex() == 1);
+            extras.setVisible(tabs.getSelectedIndex() == 2);
         });
 
         Button edit = new Button("Edit Booking");

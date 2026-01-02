@@ -47,10 +47,6 @@ public class BookingCancellationService {
         this.roomService = roomService;
     }
 
-    /**
-     * Backwards-compatible constructor for existing wiring that doesn't provide RoomService.
-     * Delegates to main constructor with a null RoomService.
-     */
     public BookingCancellationService(
             BookingCancellationRepository cancellationRepository,
             BookingService bookingService,
@@ -182,7 +178,6 @@ public class BookingCancellationService {
                     roomService.releaseRoomIfFree(booking.getRoom().getId(), booking.getCheckInDate(), booking.getCheckOutDate());
                 }
             } catch (Exception ex) {
-                // Don't fail cancellation due to room-release issues; just log
                 System.err.println("Failed to release room after cancellation: " + ex.getMessage());
             }
         }

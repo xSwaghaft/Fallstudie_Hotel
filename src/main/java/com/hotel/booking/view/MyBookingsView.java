@@ -1,10 +1,5 @@
 package com.hotel.booking.view;
 
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.BookingStatus;
 import com.hotel.booking.entity.Invoice;
@@ -33,9 +28,11 @@ import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouterLink;
-
 import jakarta.annotation.security.RolesAllowed;
-import org.springframework.beans.factory.annotation.Autowired;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Route(value = "my-bookings", layout = MainLayout.class)
 @PageTitle("My Bookings")
@@ -61,7 +58,6 @@ public class MyBookingsView extends VerticalLayout {
     private Div contentArea;
     private List<Booking> allBookings;
 
-    @Autowired
     public MyBookingsView(SessionService sessionService,
                           BookingService bookingService,
                           PaymentService paymentService,
@@ -69,7 +65,6 @@ public class MyBookingsView extends VerticalLayout {
                           BookingCard bookingCard,
                           EditBookingDialog editBookingDialog,
                           CancellationDialog cancellationDialog) {
-
         this.sessionService = sessionService;
         this.bookingService = bookingService;
         this.paymentService = paymentService;
@@ -84,12 +79,7 @@ public class MyBookingsView extends VerticalLayout {
 
         reloadBookings();
 
-        add(
-                createHeader(),
-                createTabsBar(),
-                createBookingsCard()
-        );
-
+        add(createHeader(), createTabsBar(), createBookingsCard());
         updateContent();
     }
 
@@ -115,13 +105,11 @@ public class MyBookingsView extends VerticalLayout {
         card.addClassName("card");
         card.setWidthFull();
 
-        Div body = new Div();
-        body.addClassName("bookings-content-area");
-        body.setWidthFull();
+        contentArea = new Div();
+        contentArea.addClassName("bookings-content-area");
+        contentArea.setWidthFull();
 
-        contentArea = body;
-
-        card.add(body);
+        card.add(contentArea);
         return card;
     }
 
@@ -179,28 +167,21 @@ public class MyBookingsView extends VerticalLayout {
     private List<Booking> filterBookingsByTabType(String tabLabel) {
         LocalDate today = LocalDate.now();
 
-        switch (tabLabel) {
-            case TAB_UPCOMING:
-                return allBookings.stream()
-                        .filter(b -> b.getCheckInDate().isAfter(today)
-                                || (!b.getCheckInDate().isAfter(today) && !b.getCheckOutDate().isBefore(today)))
-                        .filter(b -> b.getStatus() != BookingStatus.CANCELLED)
-                        .collect(Collectors.toList());
-
-            case TAB_PAST:
-                return allBookings.stream()
-                        .filter(b -> b.getCheckOutDate().isBefore(today))
-                        .filter(b -> b.getStatus() != BookingStatus.CANCELLED)
-                        .collect(Collectors.toList());
-
-            case TAB_CANCELLED:
-                return allBookings.stream()
-                        .filter(b -> b.getStatus() == BookingStatus.CANCELLED)
-                        .collect(Collectors.toList());
-
-            default:
-                return new ArrayList<>();
-        }
+        return switch (tabLabel) {
+            case TAB_UPCOMING -> allBookings.stream()
+                    .filter(b -> b.getCheckInDate().isAfter(today)
+                            || (!b.getCheckInDate().isAfter(today) && !b.getCheckOutDate().isBefore(today)))
+                    .filter(b -> b.getStatus() != BookingStatus.CANCELLED)
+                    .collect(Collectors.toList());
+            case TAB_PAST -> allBookings.stream()
+                    .filter(b -> b.getCheckOutDate().isBefore(today))
+                    .filter(b -> b.getStatus() != BookingStatus.CANCELLED)
+                    .collect(Collectors.toList());
+            case TAB_CANCELLED -> allBookings.stream()
+                    .filter(b -> b.getStatus() == BookingStatus.CANCELLED)
+                    .collect(Collectors.toList());
+            default -> new ArrayList<>();
+        };
     }
 
     private Button createPayButtonIfNeeded(Booking booking) {
@@ -213,8 +194,8 @@ public class MyBookingsView extends VerticalLayout {
                 .filter(p -> p.getStatus() == Invoice.PaymentStatus.PENDING)
                 .toList();
 
-        boolean shouldShowButton = !pendingPayments.isEmpty() ||
-                (booking.getStatus() == BookingStatus.PENDING && allPayments.isEmpty());
+        boolean shouldShowButton = !pendingPayments.isEmpty()
+                || (booking.getStatus() == BookingStatus.PENDING && allPayments.isEmpty());
 
         if (!shouldShowButton) {
             return null;
@@ -241,8 +222,6 @@ public class MyBookingsView extends VerticalLayout {
                     Notification.show("Payment completed! Thank you.", 3000, Notification.Position.TOP_CENTER);
                     updateContent();
                 } catch (Exception ex) {
-                    System.err.println("DEBUG: Error processing payment: " + ex.getMessage());
-                    ex.printStackTrace();
                     Notification.show("Error processing payment. Please try again.", 5000, Notification.Position.TOP_CENTER);
                 }
             });
@@ -253,8 +232,6 @@ public class MyBookingsView extends VerticalLayout {
                     Notification.show("Payment postponed. You can pay later in 'My Bookings'.", 3000, Notification.Position.TOP_CENTER);
                     updateContent();
                 } catch (Exception ex) {
-                    System.err.println("DEBUG: Error processing deferred payment: " + ex.getMessage());
-                    ex.printStackTrace();
                     Notification.show("Error processing payment. Please try again.", 5000, Notification.Position.TOP_CENTER);
                 }
             });
@@ -272,34 +249,28 @@ public class MyBookingsView extends VerticalLayout {
         boolean isPast = booking.getCheckOutDate().isBefore(LocalDate.now());
 
         boolean canEdit = status == BookingStatus.PENDING || status == BookingStatus.MODIFIED;
-        boolean canPay = canEdit;
-        boolean canCancel = !isPast &&
-                (status == BookingStatus.PENDING
-                        || status == BookingStatus.CONFIRMED
-                        || status == BookingStatus.MODIFIED);
+        boolean canCancel = !isPast && (status == BookingStatus.PENDING || status == BookingStatus.CONFIRMED || status == BookingStatus.MODIFIED);
 
         if (TAB_UPCOMING.equals(tab)) {
-            if (canPay) {
-                Button pay = createPayButtonIfNeeded(booking);
-                if (pay != null) layout.add(pay);
+            Button pay = createPayButtonIfNeeded(booking);
+            if (pay != null) {
+                layout.add(pay);
             }
 
             if (canEdit) {
-                Button edit = new Button("Edit", e ->
-                        editBookingDialog.open(booking, () -> {
-                            reloadBookings();
-                            updateContent();
-                        }));
+                Button edit = new Button("Edit", e -> editBookingDialog.open(booking, () -> {
+                    reloadBookings();
+                    updateContent();
+                }));
                 edit.addClassName("primary-button");
                 layout.add(edit);
             }
 
             if (canCancel) {
-                Button cancel = new Button("Cancel", e ->
-                        cancellationDialog.open(booking, () -> {
-                            reloadBookings();
-                            updateContent();
-                        }));
+                Button cancel = new Button("Cancel", e -> cancellationDialog.open(booking, () -> {
+                    reloadBookings();
+                    updateContent();
+                }));
                 cancel.addClassName("secondary-button");
                 layout.add(cancel);
             }
@@ -320,12 +291,5 @@ public class MyBookingsView extends VerticalLayout {
         empty.getStyle().set("text-align", "center");
         empty.getStyle().set("color", "var(--color-text-secondary)");
         return empty;
-    }
-
-    private List<Booking> loadAllBookingsForCurrentUser() {
-        User user = sessionService.getCurrentUser();
-        return user == null
-                ? List.of()
-                : bookingService.findAllBookingsForGuest(user.getId());
     }
 }
