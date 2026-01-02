@@ -2,18 +2,19 @@ package com.hotel.booking.view;
 
 import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.BookingStatus;
-import com.hotel.booking.entity.Invoice;
+import com.hotel.booking.entity.RoomStatus;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.entity.BookingCancellation;
 import com.hotel.booking.entity.BookingExtra;
+import com.hotel.booking.entity.BookingModification;
 import com.hotel.booking.entity.User;
 import com.hotel.booking.service.BookingCancellationService;
 import com.hotel.booking.service.BookingFormService;
+import com.hotel.booking.service.BookingModificationService;
 import com.hotel.booking.service.BookingService;
-import com.hotel.booking.service.PaymentService;
-import com.hotel.booking.service.InvoiceService;
 import com.hotel.booking.service.RoomCategoryService;
+import com.hotel.booking.service.RoomService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.datepicker.DatePicker;
@@ -34,16 +35,24 @@ import com.vaadin.flow.router.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import jakarta.annotation.security.RolesAllowed;
 
-//Matthias Lohr
+/**
+ * Main view for managing hotel bookings.
+ * <p>
+ * Provides search, filtering, creation, modification, cancellation,
+ * check-in/check-out handling and detailed inspection of bookings.
+ */
 @Route(value = "bookings", layout = MainLayout.class)
 @PageTitle("Booking Management")
 @CssImport("./themes/hotel/styles.css")
@@ -54,12 +63,14 @@ public class BookingManagementView extends VerticalLayout {
     private final SessionService sessionService;
     private final BookingService bookingService;
     private final BookingFormService formService;
-    private final com.hotel.booking.service.BookingModificationService modificationService;
+    private final RoomService roomService;
+    private final BookingModificationService modificationService;
     private final BookingCancellationService bookingCancellationService;
-    private final InvoiceService invoiceService;
 
     private static final DateTimeFormatter GERMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+    private final LocalDate today = LocalDate.now();
 
+    private final Grid<Booking> checkgrid = new Grid<>(Booking.class, false);
     private final Grid<Booking> grid = new Grid<>(Booking.class, false);
     private final List<Booking> bookings = new ArrayList<>();
     private TextField searchField;
@@ -69,13 +80,14 @@ public class BookingManagementView extends VerticalLayout {
     private List<String> categoryNames;
     private final String ALL_STATUS = "All Status";
 
-    public BookingManagementView(SessionService sessionService, BookingService bookingService, BookingFormService formService, com.hotel.booking.service.BookingModificationService modificationService, RoomCategoryService roomCategoryService, BookingCancellationService bookingCancellationService, PaymentService paymentService, InvoiceService invoiceService) {
+    //Matthias Lohr
+    public BookingManagementView(SessionService sessionService, BookingService bookingService, BookingFormService formService, BookingModificationService modificationService, RoomCategoryService roomCategoryService, BookingCancellationService bookingCancellationService, RoomService roomService) {
         this.sessionService = sessionService;
         this.bookingService = bookingService;
         this.formService = formService;
         this.modificationService = modificationService;
         this.bookingCancellationService = bookingCancellationService;
-        this.invoiceService = invoiceService;
+        this.roomService = roomService;
 
         setSpacing(true);
         setPadding(true);
@@ -87,9 +99,16 @@ public class BookingManagementView extends VerticalLayout {
         categoryNames.add("All Rooms");
         roomCategoryService.getAllRoomCategories().forEach(cat -> categoryNames.add(cat.getName()));
 
-        add(createHeader(), createFilters(), createBookingsCard());
+        add(createHeader());
+
+        Component checkInOutGrid = createCheckInOutCard();
+        if(checkInOutGrid != null) {
+            add(checkInOutGrid);
+        }
+        add(createFilters(), createBookingsCard());
     }
 
+    //Matthias Lohr
     private Component createHeader() {
         H1 title = new H1("Booking Management");
         
@@ -104,44 +123,34 @@ public class BookingManagementView extends VerticalLayout {
         
         HorizontalLayout header = new HorizontalLayout(headerLeft, newBooking);
         header.setWidthFull();
-        header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-        header.setAlignItems(FlexComponent.Alignment.CENTER);
+        header.setJustifyContentMode(JustifyContentMode.BETWEEN);
+        header.setAlignItems(Alignment.CENTER);
         
         return header;
     }
 
-    //Ruslan
+    /**
+     * Opens the booking form dialog for creating a new booking or editing an existing one.
+     * <p>
+     * For existing bookings:
+     * <ul>
+     *   <li>Paid bookings cannot be edited.</li>
+     *   <li>Original values are captured before modification.</li>
+     *   <li>A preview dialog shows a before/after comparison.</li>
+     *   <li>Changes are persisted and logged via {@link BookingModificationService}.</li>
+     * </ul>
+     *
+     * @param existingBooking booking to edit, or {@code null} to create a new booking
+     */
     private void openAddBookingDialog(Booking existingBooking) {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle(existingBooking != null ? "Edit Booking" : "New Booking");
         dialog.setWidth("600px");
 
-        // Wenn vorhandene Buchung bezahlt ist, keine Änderungen erlauben
-        // Use InvoiceService to handle inverted relationship (Invoice owns booking_id FK)
-        if (existingBooking != null && existingBooking.getId() != null) {
-            boolean isPaid = invoiceService.findByBookingId(existingBooking.getId())
-                    .map(inv -> inv.getInvoiceStatus() == Invoice.PaymentStatus.PAID)
-                    .orElse(false);
-            if (isPaid) {
-                Notification.show("Änderung nicht möglich: Buchung bereits bezahlt.", 4000, Notification.Position.MIDDLE);
-                return;
-            }
-        }
-
-        /**
-         * Öffnet das Booking-Formular (Neu/ Edit).
-         *
-         * Verhalten:
-         * - Fügt eine zweistufige Speicherung hinzu: Formular -> Preview (Vorher/Nachher) -> Confirm.
-         * - Bei Bestätigung werden alte Werte protokolliert (über `BookingModificationService`)
-         *   und die Änderung gespeichert. Fehler beim Speichern werden in einer
-         *   Notification mit der konkreten Fehlermeldung angezeigt.
-         */
         createNewBookingForm form = new createNewBookingForm(sessionService.getCurrentUser(), sessionService, existingBooking, formService);
 
         Button saveButton = new Button("Save", e -> {
             try {
-                // Bei bestehenden Buchungen vorherige Werte als Snapshot merken
                 final AtomicReference<LocalDate> prevCheckInRef = new AtomicReference<>();
                 final AtomicReference<LocalDate> prevCheckOutRef = new AtomicReference<>();
                 final AtomicReference<Integer> prevAmountRef = new AtomicReference<>();
@@ -155,13 +164,11 @@ public class BookingManagementView extends VerticalLayout {
                     prevExtrasRef.set(existingBooking.getExtras());
                 }
 
-                form.writeBean(); // Überträgt die Formulardaten in das Booking-Objekt
+                form.writeBean(); 
                 Booking updated = form.getBooking();
 
-                // Preis neu berechnen (nutze vorhandene Methode)
                 bookingService.calculateBookingPrice(updated);
 
-                // Preview Dialog (Vorher / Nachher)
                 Dialog preview = new Dialog();
                 preview.setHeaderTitle(existingBooking != null ? "Confirm Booking Changes" : "Confirm New Booking");
                 VerticalLayout content = new VerticalLayout();
@@ -196,7 +203,6 @@ public class BookingManagementView extends VerticalLayout {
 
                 Button confirm = new Button("Confirm", ev -> {
                     try {
-                        // Falls vorhanden, protokolliere alte Werte
                         if (existingBooking != null) {
                                 modificationService.recordChangesFromSnapshot(existingBooking,
                                     prevCheckInRef.get(), prevCheckOutRef.get(), prevAmountRef.get(), prevTotalRef.get(), prevExtrasRef.get(),
@@ -206,14 +212,15 @@ public class BookingManagementView extends VerticalLayout {
                         bookingService.save(updated);
                         dialog.close();
                         preview.close();
-                        // Refresh Grid
                         grid.setItems(bookingService.findAll());
+                        checkgrid.getDataProvider().refreshItem(updated);
                         Notification.show("Booking saved successfully.", 3000, Notification.Position.BOTTOM_START);
                     } catch (Exception ex) {
-                        String msg = ex.getMessage() != null ? ex.getMessage() : "Fehler beim Speichern der Buchung.";
+                        String msg = ex.getMessage() != null ? ex.getMessage() : "Save failed.";
                         Notification.show(msg, 6000, Notification.Position.MIDDLE);
                     }
                 });
+                confirm.addClassName("primary-button");
 
                 Button back = new Button("Back", ev -> preview.close());
                 HorizontalLayout actions = new HorizontalLayout(confirm, back);
@@ -234,6 +241,20 @@ public class BookingManagementView extends VerticalLayout {
         dialog.open();
     }
 
+    /**
+     * Creates the filter section used to search and narrow down bookings.
+     * <p>
+     * Supports filtering by:
+     * <ul>
+     *   <li>Booking number or guest name</li>
+     *   <li>Booking status</li>
+     *   <li>Creation date</li>
+     *   <li>Room category</li>
+     * </ul>
+     *
+     * @return filter UI component
+     * @author Matthias Lohr
+     */
     private Component createFilters() {
         Div card = new Div();
         card.addClassName("card");
@@ -279,6 +300,62 @@ public class BookingManagementView extends VerticalLayout {
         return card;
     }
 
+    /**
+     * Creates a compact grid displaying today's check-in and check-out actions.
+     * <p>
+     * The grid is only rendered if at least one actionable booking exists
+     * and automatically adjusts its height to its content.
+     *
+     * @return the today actions card or {@code null} if no actions exist
+     * @author Matthias Lohr
+     */
+    private Component createCheckInOutCard() {
+        List<Booking> actionable = bookings.stream()
+                .filter(this::isActionableToday)
+                .toList();
+
+        if (actionable.isEmpty()) {
+            return null;
+        }
+
+        Div card = new Div();
+        card.addClassName("card");
+        card.setWidthFull();
+
+        H3 title = new H3("Today: Check-in / Check-out");
+        title.addClassName("booking-section-title");
+
+        checkgrid.addColumn(Booking::getBookingNumber)
+                .setHeader("Booking ID")
+                .setAutoWidth(true);
+
+        checkgrid.addColumn(b -> b.getGuest().getFullName())
+                .setHeader("Guest");
+
+        checkgrid.addColumn(b -> b.getRoom().getRoomNumber())
+                .setHeader("Room");
+        checkgrid.addComponentColumn(this::createStatusBadge)
+                .setHeader("Status")
+                .setAutoWidth(true)
+                .setFlexGrow(0);
+        checkgrid.addComponentColumn(this::createCheckInOutButtons)
+                .setHeader("Action")
+                .setAutoWidth(true);
+
+        checkgrid.setItems(actionable);
+        checkgrid.setWidthFull();
+        checkgrid.setMaxHeight("210px");
+
+        card.add(title, checkgrid);
+        return card;
+    }
+
+    /**
+     * Builds the bookings overview card containing the main bookings grid.
+     *
+     * @return bookings overview component
+     * @author Matthias Lohr
+     */
     private Component createBookingsCard() {
         Div card = new Div();
         card.addClassName("card");
@@ -288,23 +365,23 @@ public class BookingManagementView extends VerticalLayout {
         grid.removeAllColumns();
         grid.addColumn(Booking::getBookingNumber)
             .setHeader("Booking ID")
-            .setWidth("130px")
-            .setFlexGrow(0);
+            .setWidth("100px")
+            .setFlexGrow(1);
         grid.addColumn(Booking::getAmount)
             .setHeader("People")
             .setAutoWidth(true)
-            .setFlexGrow(2);
+            .setFlexGrow(1);
         grid.addColumn(booking -> booking.getRoom().getRoomNumber())
             .setHeader("Room")
             .setAutoWidth(true)
-            .setFlexGrow(2);
+            .setFlexGrow(1);
         grid.addColumn(booking -> booking.getGuest().getFullName())
             .setHeader("Guest Name")
             .setAutoWidth(true)
-            .setFlexGrow(1);
+            .setFlexGrow(0);
         grid.addColumn(booking -> booking.getCheckInDate().format(GERMAN_DATE_FORMAT))
             .setHeader("Check-in Date")
-            .setWidth("140px")
+            .setAutoWidth(true)
             .setFlexGrow(0);
         grid.addColumn(booking -> booking.getCheckOutDate().format(GERMAN_DATE_FORMAT))
             .setHeader("Check-out")
@@ -328,6 +405,13 @@ public class BookingManagementView extends VerticalLayout {
         return card;
     }
 
+    /**
+     * Creates a visual status badge for a booking.
+     *
+     * @param booking booking whose status is rendered
+     * @return styled status badge component
+     * @author Matthias Lohr
+     */
     private Component createStatusBadge(Booking booking) {
         Span badge = new Span(booking.getStatus().name());
         badge.addClassName("status-badge");
@@ -335,33 +419,30 @@ public class BookingManagementView extends VerticalLayout {
         return badge;
     }
 
-    // private Component createPaymentBadge(Booking booking) {
-    //     Span badge = new Span(booking.paymentStatus());
-    //     badge.addClassName("status-badge");
-    //     badge.addClassName("status-" + booking.paymentStatus());
-    //     return badge;
-    // }
-
+    /**
+     * Creates action buttons (view, edit, cancel) for a booking row.
+     * <p>
+     * The cancel action is only available for bookings
+     * with {@code PENDING} or {@code MODIFIED} status.
+     *
+     * @param booking booking instance
+     * @return action button layout
+     * @author Matthias Lohr
+     */
     private Component createActionButtons(Booking booking) {
         HorizontalLayout actions = new HorizontalLayout();
         actions.setSpacing(true);
         
         Button viewBtn = new Button("View", VaadinIcon.EYE.create());
         viewBtn.addClickListener(e -> openDetails(booking));
-        
-        Button editBtn = new Button("Edit", VaadinIcon.EDIT.create());
-        editBtn.addClickListener(e -> openAddBookingDialog(booking));
-        
-        actions.add(viewBtn, editBtn);
-        
-        if (booking.getStatus() != null && "CONFIRMED".equals(booking.getStatus().name())) {
-            Button checkInBtn = new Button("Check In", VaadinIcon.SIGN_IN.create());
-            checkInBtn.addClickListener(e -> Notification.show("Checked in " + booking.getBookingNumber()));
-            actions.add(checkInBtn);
+        if (booking.getStatus() == BookingStatus.PENDING || booking.getStatus() == BookingStatus.MODIFIED) {
+            Button editBtn = new Button("Edit", VaadinIcon.EDIT.create());
+            editBtn.addClickListener(e -> openAddBookingDialog(booking));
+            actions.add(viewBtn, editBtn);
         }
 
         // Cancel button: visible/usable for PENDING or MODIFIED bookings
-        if (booking.getStatus() != null && (booking.getStatus() == com.hotel.booking.entity.BookingStatus.PENDING || booking.getStatus() == com.hotel.booking.entity.BookingStatus.MODIFIED)) {
+        if (booking.getStatus() != null && (booking.getStatus() == BookingStatus.PENDING || booking.getStatus() == BookingStatus.MODIFIED)) {
             Button cancelBtn = new Button("Cancel", VaadinIcon.CLOSE.create());
             cancelBtn.addClickListener(e -> confirmAndCancelBooking(booking));
             actions.add(cancelBtn);
@@ -370,10 +451,95 @@ public class BookingManagementView extends VerticalLayout {
         return actions;
     }
 
-    // Führt die Stornierung mit Bestätigungsdialog, Berechnung der gestaffelten Gebühren
+    /**
+     * Creates contextual check-in / check-out buttons depending on:
+     * <ul>
+     *   <li>Current date</li>
+     *   <li>Booking status</li>
+     * </ul>
+     *
+     * @param booking booking instance
+     * @return component containing check-in / check-out actions, or empty span
+     * @author Matthias Lohr
+     */
+    private Component createCheckInOutButtons(Booking booking) {
+        HorizontalLayout layout = new HorizontalLayout();
+        layout.setSpacing(true);
+
+        boolean hasButton = false;
+
+        if (today.equals(booking.getCheckInDate())
+                && (booking.getStatus() == BookingStatus.PENDING || booking.getStatus() == BookingStatus.CONFIRMED || booking.getStatus() == BookingStatus.MODIFIED)) {
+
+            Button checkInBtn = new Button(
+                    VaadinIcon.SIGN_IN.create(),
+                    e -> {
+                        booking.setStatus(BookingStatus.CHECKED_IN);
+                        booking.getRoom().setStatus(RoomStatus.OCCUPIED);
+                        roomService.save(booking.getRoom());
+                        bookingService.save(booking);
+                        grid.getDataProvider().refreshItem(booking);
+                        checkgrid.getDataProvider().refreshItem(booking);
+                    });
+            checkInBtn.getElement().setAttribute("title", "Check In");
+            layout.add(checkInBtn);
+            hasButton = true;
+        }
+
+        if (today.equals(booking.getCheckOutDate())
+                && booking.getStatus() == BookingStatus.CHECKED_IN) {
+
+            Button checkOutBtn = new Button(
+                    VaadinIcon.SIGN_OUT.create(),
+                    e -> {
+                        booking.setStatus(BookingStatus.COMPLETED);
+                        booking.getRoom().setStatus(RoomStatus.AVAILABLE);
+                        roomService.save(booking.getRoom());
+                        bookingService.save(booking);
+                        grid.getDataProvider().refreshItem(booking);
+                    });
+            checkOutBtn.getElement().setAttribute("title", "Check Out");
+            layout.add(checkOutBtn);
+            hasButton = true;
+        }
+
+        return hasButton ? layout : new Span();
+    }
+
+    /**
+     * Determines whether a booking can be checked in or checked out today.
+     * <p>
+     * A booking is actionable if:
+     * <ul>
+     *   <li>Today is the check-in date and status is PENDING, CONFIRMED or MODIFIED</li>
+     *   <li>Today is the check-out date and status is CHECKED_IN</li>
+     * </ul>
+     *
+     * @param booking booking to evaluate
+     * @return {@code true} if the booking can be processed today
+     * @author Matthias Lohr
+     */
+    private boolean isActionableToday(Booking b) {
+    return (today.equals(b.getCheckInDate()) && (b.getStatus() == BookingStatus.PENDING || b.getStatus() == BookingStatus.CONFIRMED || b.getStatus() == BookingStatus.MODIFIED))
+        || (today.equals(b.getCheckOutDate()) && b.getStatus() == BookingStatus.CHECKED_IN);
+    }
+
+
+    /**
+     * Cancels a booking after user confirmation.
+     * <p>
+     * Business rules:
+     * <ul>
+     *   <li>Only {@code PENDING} or {@code MODIFIED} bookings can be cancelled</li>
+     *   <li>If cancelled within 48 hours before check-in, a 50% penalty applies</li>
+     *   <li>Cancellation details are persisted via {@link BookingCancellationService}</li>
+     * </ul>
+     *
+     * @param booking booking to cancel
+     */
     private void confirmAndCancelBooking(Booking b) {
         // Only allow cancellation via this action for bookings with PENDING or MODIFIED status
-        if (b.getStatus() == null || (b.getStatus() != com.hotel.booking.entity.BookingStatus.PENDING && b.getStatus() != com.hotel.booking.entity.BookingStatus.MODIFIED)) {
+        if (b.getStatus() == null || (b.getStatus() != BookingStatus.PENDING && b.getStatus() != BookingStatus.MODIFIED)) {
             Notification.show("Nur Buchungen mit Status 'Pending' oder 'Modified' können hier storniert werden.", 4000, Notification.Position.MIDDLE);
             return;
         }
@@ -436,6 +602,19 @@ public class BookingManagementView extends VerticalLayout {
         }
     }
 
+    /**
+     * Opens a dialog displaying detailed booking information.
+     * <p>
+     * Includes:
+     * <ul>
+     *   <li>Booking details</li>
+     *   <li>Payment placeholder</li>
+     *   <li>Modification history grouped by timestamp</li>
+     *   <li>Extras overview</li>
+     * </ul>
+     *
+     * @param booking booking to inspect
+     */
     private void openDetails(Booking b) {
         Dialog d = new Dialog();
         d.setHeaderTitle("Booking Details - " + b.getBookingNumber());
@@ -449,11 +628,11 @@ public class BookingManagementView extends VerticalLayout {
         details.add(new Paragraph("Total Price: €" + b.getTotalPrice()));
         details.add(new Paragraph("Check-in: " + b.getCheckInDate().format(GERMAN_DATE_FORMAT)));
         details.add(new Paragraph("Check-out: " + b.getCheckOutDate().format(GERMAN_DATE_FORMAT)));
+        details.add(new Paragraph("Room: " + (b.getRoom() != null ? b.getRoom().getRoomNumber() : "N/A")));
         details.add(new Paragraph("Guests: " + b.getAmount()));
         details.add(new Paragraph("Status: " + b.getStatus()));
 
-        // Wenn storniert: zeige die zuletzt gespeicherte Stornogebühr und Grund an
-        if (b.getStatus() == com.hotel.booking.entity.BookingStatus.CANCELLED && b.getId() != null) {
+        if (b.getStatus() == BookingStatus.CANCELLED && b.getId() != null) {
             try {
                 bookingCancellationService.findLatestByBookingId(b.getId()).ifPresent(bc -> {
                     if (bc.getCancellationFee() != null) {
@@ -471,30 +650,27 @@ public class BookingManagementView extends VerticalLayout {
         Div payments = new Div(new Paragraph("Payment information not available"));
 
         Div history = new Div();
-        // Lade Modifikationen für diese Buchung und zeige sie gruppiert an (nach modifiedAt)
         if (b.getId() != null) {
-            java.util.List<com.hotel.booking.entity.BookingModification> mods = modificationService.findByBookingId(b.getId());
+            List<BookingModification> mods = modificationService.findByBookingId(b.getId());
             if (mods.isEmpty()) {
                 history.add(new Paragraph("No modification history available."));
             } else {
-                // Gruppiere nach modifiedAt (erzeugt pro Batch eine Gruppe)
-                java.util.Map<java.time.LocalDateTime, java.util.List<com.hotel.booking.entity.BookingModification>> grouped =
-                        mods.stream().collect(java.util.stream.Collectors.groupingBy(com.hotel.booking.entity.BookingModification::getModifiedAt, java.util.LinkedHashMap::new, java.util.stream.Collectors.toList()));
+                Map<LocalDateTime, List<BookingModification>> grouped =
+                        mods.stream().collect(Collectors.groupingBy(BookingModification::getModifiedAt, LinkedHashMap::new, Collectors.toList()));
 
-                java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+                DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
 
-                for (java.util.Map.Entry<java.time.LocalDateTime, java.util.List<com.hotel.booking.entity.BookingModification>> entry : grouped.entrySet()) {
-                    java.time.LocalDateTime ts = entry.getKey();
-                    java.util.List<com.hotel.booking.entity.BookingModification> group = entry.getValue();
+                for (Map.Entry<LocalDateTime, List<BookingModification>> entry : grouped.entrySet()) {
+                    LocalDateTime ts = entry.getKey();
+                    List<BookingModification> group = entry.getValue();
 
                     VerticalLayout groupBox = new VerticalLayout();
                     groupBox.getStyle().set("padding", "8px");
                     groupBox.getStyle().set("margin-bottom", "6px");
                     groupBox.getStyle().set("border", "1px solid #eee");
 
-                    // Kopfzeile: Zeitpunkt + Bearbeiter (erster nicht-null)
                     String who = "system";
-                    for (com.hotel.booking.entity.BookingModification m : group) {
+                    for (BookingModification m : group) {
                         if (m.getHandledBy() != null) {
                             who = (m.getHandledBy().getFullName() != null && !m.getHandledBy().getFullName().isBlank()) ? m.getHandledBy().getFullName() : m.getHandledBy().getEmail();
                             break;
@@ -502,8 +678,7 @@ public class BookingManagementView extends VerticalLayout {
                     }
                     groupBox.add(new Paragraph(ts.format(dtf) + " — " + who));
 
-                    // Liste der Feld-Änderungen in der Gruppe
-                    for (com.hotel.booking.entity.BookingModification m : group) {
+                    for (BookingModification m : group) {
                         HorizontalLayout row = new HorizontalLayout();
                         row.setWidthFull();
                         Paragraph field = new Paragraph(m.getFieldChanged() + ": ");
@@ -526,7 +701,6 @@ public class BookingManagementView extends VerticalLayout {
             history.add(new Paragraph("No modification history available."));
         }
 
-        // Wenn es eine Stornierung gab, zeige diese prominent in der History (wer, wann, Grund, Gebühr)
         if (b.getId() != null) {
             try {
                 bookingCancellationService.findLatestByBookingId(b.getId()).ifPresent(bc -> {
@@ -535,7 +709,7 @@ public class BookingManagementView extends VerticalLayout {
                     cancelBox.getStyle().set("margin-bottom", "6px");
                     cancelBox.getStyle().set("border", "1px solid #f5c6cb");
 
-                    java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+                    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
                     String who = "system";
                     if (bc.getHandledBy() != null) {
                         who = bc.getHandledBy().getFullName() != null && !bc.getHandledBy().getFullName().isBlank() ? bc.getHandledBy().getFullName() : bc.getHandledBy().getEmail();
@@ -550,7 +724,6 @@ public class BookingManagementView extends VerticalLayout {
                         cancelBox.add(new Paragraph("Cancellation fee: " + String.format("%.2f €", bc.getCancellationFee())));
                     }
 
-                    // Füge die Storno-Eintragung an den Anfang der History ein
                     history.addComponentAtIndex(0, cancelBox);
                 });
             } catch (Exception ex) {
@@ -581,7 +754,11 @@ public class BookingManagementView extends VerticalLayout {
         d.open();
     }
 
-    // Filtert die Buchungen nach den gesetzten Filtern
+    /**
+     * Applies all active filter criteria to the booking list
+     * and updates the grid accordingly.
+     * @author Matthias Lohr
+     */
     private void filterBookings() {
         String search = searchField.getValue() != null ? searchField.getValue().trim().toLowerCase() : "";
         String selectedStatus = statusFilter.getValue();
