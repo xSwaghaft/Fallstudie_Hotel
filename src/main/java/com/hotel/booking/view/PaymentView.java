@@ -30,7 +30,32 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Payment View - Display and manage payments based on user role.
+ * View for displaying and managing payment transactions.
+ * 
+ * This view provides payment tracking and management functionality with role-based access:
+ * - GUEST: View only their own payments
+ * - RECEPTIONIST & MANAGER: View and manage all payments
+ * 
+ * Features:
+ * - Display payments in a sortable grid with columns for amount, method, status,
+ *   transaction reference, and payment date
+ * - Search payments by transaction reference
+ * - Filter payments by status, payment method, and date paid
+ * - Visual status badges with color coding
+ * - Formatted currency amounts in German locale
+ * - Multi-level sorting support
+ * 
+ * The view automatically filters data based on the current user's role,
+ * ensuring guests see only their own payment transactions while staff see all payments.
+ * 
+ * Payment statuses (PENDING, PAID, FAILED, REFUNDED, PARTIAL) are displayed with
+ * visual indicators to quickly identify payment states.
+ * 
+ * @author Arman Özcanli
+ * @see Payment
+ * @see PaymentService
+ * @see SessionService
+ * @see Invoice
  */
 @Route(value = "payment", layout = MainLayout.class)
 @PageTitle("Payments")
