@@ -87,7 +87,7 @@ public class RoomService {
      * @param room the Room entity to save
      * @return the saved Room
      */
-    public Room saveRoom(Room room) {
+    public Room save(Room room) {
         return roomRepository.save(room);
     }
 

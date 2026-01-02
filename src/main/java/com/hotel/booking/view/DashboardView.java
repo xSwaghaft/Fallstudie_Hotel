@@ -79,7 +79,7 @@ public class DashboardView extends VerticalLayout {
         String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", Locale.ENGLISH));
 
         H1 title = new H1("Dashboard");
-        Paragraph subtitle = new Paragraph("Overview of hotel operations - " + dateStr);
+        Paragraph subtitle = new Paragraph("Overview of KPIs and Bookings - " + dateStr);
 
         Div headerLeft = new Div(title, subtitle);
         HorizontalLayout headerRight = new HorizontalLayout();

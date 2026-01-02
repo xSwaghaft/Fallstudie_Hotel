@@ -1,7 +1,12 @@
 package com.hotel.booking.view;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.BookingExtra;
@@ -26,7 +31,22 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
 
-//Matthias Lohr
+/**
+ * Form component for creating and editing hotel bookings.
+ * <p>
+ * This Vaadin {@link FormLayout} encapsulates all input fields, validation logic
+ * and data binding required to manage a {@link Booking}.
+ *
+ * <p>
+ * The form can be instantiated empty for new bookings or pre-filled for editing
+ * or portal-driven booking flows.
+ *
+ * <p>
+ * This class is UI-focused and delegates all business logic and persistence
+ * checks to {@link BookingFormService}.
+ * @author Matthias Lohr
+ */
+
 @CssImport("./themes/hotel/views/booking-management.css")
 public class createNewBookingForm extends FormLayout{
 
@@ -44,19 +64,20 @@ public class createNewBookingForm extends FormLayout{
     private DatePicker checkInDate = new DatePicker("Check-In Date");
     private DatePicker checkOutDate = new DatePicker("Check-Out Date");
     private CheckboxGroup<BookingExtra> extras = new CheckboxGroup<>();
-    // cache the available extras so we reuse the same instances for selection matching
-    // Cache aller verfügbaren `BookingExtra`-Instanzen.
-    // Zweck: Die Checkbox-Gruppe wird mit genau diesen Instanzen gefüllt und
-    // beim Vorauswählen wieder auf diese Objekte gemappt. Das vermeidet
-    // Instance-Equality-Probleme (detached vs. managed Instanzen) und sorgt
-    // dafür, dass bereits zugeordnete Extras korrekt als ausgewählt angezeigt werden.
-    private java.util.List<BookingExtra> availableExtras = new java.util.ArrayList<>();
+    private List<BookingExtra> availableExtras = new ArrayList<>();
 
-    // Flag, das angibt, ob das Formular im Editier-Modus ist.
-    // - `false`: Erstellen einer neuen Buchung — strengere Validierung (z. B. keine Past-Dates).
-    // - `true`: Bearbeiten einer bestehenden Buchung — erlaubt das Beibehalten alter Werte.
     private boolean editing = false;
 
+    /**
+     * Creates a booking form for creating a new booking or editing an existing one.
+     * <p>
+     * Initializes fields, binder configuration and optional editing state.
+     *
+     * @param user current user creating or editing the booking
+     * @param sessionService session context and role information
+     * @param existingBooking booking to edit, or {@code null} for a new booking
+     * @param formService service providing booking-related data and validation
+     */
     public createNewBookingForm(User user, SessionService sessionService, Booking existingBooking, BookingFormService formService) {
 
         this.user = user;
@@ -68,7 +89,6 @@ public class createNewBookingForm extends FormLayout{
         this.configureBinder();
         this.setBooking(existingBooking);
 
-        // Extras-CheckboxGroup und statische Liste nebeneinander - Horizontal Layout (Einfacher als mit Spalten des Formulars)
         HorizontalLayout extrasRow = new HorizontalLayout();
         extrasRow.setWidthFull();
         extrasRow.setAlignItems(Alignment.END);
@@ -79,7 +99,21 @@ public class createNewBookingForm extends FormLayout{
         this.add(displayCategoryField, userByEmailField, roomCategorySelect, checkInDate, checkOutDate, guestNumber, extrasRow);
     }
 
-    // Constructor for pre-filled booking forms (e.g., from GuestPortalView)
+    /**
+     * Creates a booking form pre-filled with booking data.
+     * <p>
+     * Intended for scenarios where booking parameters are already known
+     * (e.g. booking initiated from another view).
+     *
+     * @param user current user
+     * @param sessionService session context
+     * @param existingBooking booking to edit, or {@code null} for a new booking
+     * @param formService service providing booking-related data and validation
+     * @param category preselected room category
+     * @param checkIn predefined check-in date
+     * @param checkOut predefined check-out date
+     * @param occupancy predefined number of guests
+     */
     public createNewBookingForm(User user, SessionService sessionService, Booking existingBooking, BookingFormService formService, 
                                  RoomCategory category, LocalDate checkIn, LocalDate checkOut, Integer occupancy) {
         this.user = user;
@@ -101,10 +135,8 @@ public class createNewBookingForm extends FormLayout{
 
         this.add(displayCategoryField, userByEmailField, roomCategorySelect, checkInDate, checkOutDate, guestNumber, extrasRow);
 
-        // Get maxOccupancy once if category is provided
         Integer maxOccupancy = category != null ? category.getMaxOccupancy() : null;
 
-        // Wenn eine feste Kategorie übergeben wurde, zeige sie im Feld an
         if (category != null) {
             roomCategorySelect.setVisible(false);
             displayCategoryField.setVisible(true);
@@ -113,17 +145,13 @@ public class createNewBookingForm extends FormLayout{
             if (formBooking != null) {
                 formBooking.setRoomCategory(category);
             }
-            // Ensure the Select field has the value as well so Binder validation passes
-            // even if the Select is hidden. This keeps binder.asRequired(...) happy.
             roomCategorySelect.setValue(category);
             
-            // Setze Maximum basierend auf MaxOccupancy der Kategorie
             if (maxOccupancy != null && maxOccupancy > 0) {
                 guestNumber.setMax(maxOccupancy);
             }
         }
 
-        // Setze CheckIn und CheckOut direkt in den DatePickern
         if (checkIn != null) {
             checkInDate.setValue(checkIn);
             if (formBooking != null) {
@@ -137,7 +165,6 @@ public class createNewBookingForm extends FormLayout{
             }
         }
         
-        // Setze Occupancy, wenn übergeben
         if (occupancy != null && occupancy > 0) {
             int guestsToSet = occupancy;
             if (maxOccupancy != null && occupancy > maxOccupancy) {
@@ -148,35 +175,28 @@ public class createNewBookingForm extends FormLayout{
                 formBooking.setAmount(guestsToSet);
             }
         }
-        
-        // Aktualisiere das Booking-Objekt im Binder
-        // `setBooking` führt bereits `binder.readBean(formBooking)` aus,
-        // deshalb hier kein erneuter Aufruf, um UI-Überschreibungen zu vermeiden.
     }
 
+    /**
+     * Configures all form fields including defaults, visibility,
+     * available options and value change listeners.
+     */
     private void configureFields() {
-        //Anzeigefeld, wenn die Kategorie nicht änderbar ist
         displayCategoryField.setVisible(false);
 
-        //Select Category
         roomCategorySelect.setLabel("Room Category");
         roomCategorySelect.setItems(formService.getAllRoomCategories());
         roomCategorySelect.setItemLabelGenerator(RoomCategory::getName);
 
-        // Gästezahl
         guestNumber.setValue(2);
         guestNumber.setMin(1);
         guestNumber.setStepButtonsVisible(true);
 
-        // Extras
         extras.setLabel("Extras");
-        // load once and keep the same instances for the CheckboxGroup
         availableExtras = formService.getAllBookingExtras();
         extras.setItems(availableExtras);
         extras.setItemLabelGenerator(BookingExtra::getName);
 
-        // ValueChangeListener für Verfügbarkeitsprüfung an die Datepicker, damit auch
-        //  bei Änderung im jeweils anderen Feld neu validiert wird
         checkInDate.addValueChangeListener(e -> {
             binder.validate();
         });
@@ -185,15 +205,15 @@ public class createNewBookingForm extends FormLayout{
         });
     }
 
+    /**
+     * Configures the Vaadin Binder including validation rules
+     * and field-to-entity bindings.
+     * <p>
+     * Handles business validation such as date constraints,
+     * room availability and guest capacity.
+     */
     private void configureBinder() {
 
-        // Binder-Konfiguration
-        // Wichtige Punkte:
-        // - Validators unterscheiden zwischen Erstellen und Bearbeiten (siehe `editing`).
-        // - Availability-Validatoren rufen bei Editieren die Variante mit `excludeBookingId`
-        //   auf, damit die aktuell bearbeitete Buchung sich nicht selbst blockiert.
-
-        // Guests
         binder.forField(guestNumber)
             .asRequired("Guests required")
             .withValidator(n -> n > 0, "Guests must be > 0")
@@ -206,7 +226,6 @@ public class createNewBookingForm extends FormLayout{
             }, "Too many guests for selected category")
             .bind(Booking::getAmount, Booking::setAmount);
 
-        // Check-In
         binder.forField(checkInDate)
                 .asRequired("Check-In required")
                 .withValidator(date -> {
@@ -215,7 +234,6 @@ public class createNewBookingForm extends FormLayout{
                     if (editing && formBooking != null && formBooking.getCheckInDate() != null && date.equals(formBooking.getCheckInDate())) {
                         return true;
                     }
-                    // Check-in darf nicht in der Vergangenheit liegen für neue Buchungen oder Änderungen
                     return !date.isBefore(LocalDate.now());
                 }, "Check-In darf nicht in der Vergangenheit liegen")
                 .withValidator(date -> {
@@ -223,8 +241,7 @@ public class createNewBookingForm extends FormLayout{
                     RoomCategory category = roomCategorySelect.getValue();
 
                     if (date == null || checkOut == null || category == null)
-                        return true; // noch nicht prüfbar
-
+                        return true; // Not checkable yet
                     // If editing an existing booking, ignore that booking when checking availability
                     if (editing && formBooking != null && formBooking.getId() != null) {
                         return formService.isRoomAvailable(category, date, checkOut, formBooking.getId());
@@ -233,7 +250,6 @@ public class createNewBookingForm extends FormLayout{
                 }, "No Room available for selected dates")
                 .bind(Booking::getCheckInDate, Booking::setCheckInDate);
 
-        // Check-Out
         binder.forField(checkOutDate)
                 .asRequired("Check-Out required")
                 .withValidator(date -> {
@@ -243,20 +259,16 @@ public class createNewBookingForm extends FormLayout{
                     if (editing && formBooking != null && formBooking.getCheckOutDate() != null && date.equals(formBooking.getCheckOutDate())) {
                         return true;
                     }
-                    // Check-out muss nach Check-in liegen
                     if (checkIn != null && !date.isAfter(checkIn)) return false;
-                    // Check-out darf nicht in der Vergangenheit liegen für neue Buchungen oder Änderungen
                     return !date.isBefore(LocalDate.now());
                 }, "Check-Out must be after Check-In")
-                // Zimmer-Verfügbarkeitsprüfung
-                .withValidator(date -> {
+                .withValidator(date -> {                    // Is Room available
                     LocalDate checkIn = checkInDate.getValue();
                     RoomCategory category = roomCategorySelect.getValue();
 
                     if (checkIn == null || date == null || category == null)
-                        return true; // noch nicht prüfbar
+                        return true; // Not checkable yet
 
-                    // If editing an existing booking, ignore that booking when checking availability
                     if (editing && formBooking != null && formBooking.getId() != null) {
                         return formService.isRoomAvailable(category, checkIn, date, formBooking.getId());
                     }
@@ -264,29 +276,35 @@ public class createNewBookingForm extends FormLayout{
                 }, "No Room available for selected dates")
                 .bind(Booking::getCheckOutDate, Booking::setCheckOutDate);
 
-        // Room Category
         binder.forField(roomCategorySelect)
                 .asRequired("Room category is required")
                 .bind(Booking::getRoomCategory, Booking::setRoomCategory);
 
-        // Extras: Many-To-Many
         binder.forField(extras)
             .bind(
-                 booking -> {
-            if (booking.getExtras() == null)
-                booking.setExtras(new HashSet<>()); 
-            return booking.getExtras();
-        },
+                booking -> {
+                if (booking.getExtras() == null) {
+                    booking.setExtras(new HashSet<>()); 
+                }
+                return booking.getExtras();
+                },
                 (booking, selectedExtras) -> booking.setExtras(selectedExtras)
             );
     }
 
+    /**
+     * Initializes the form with the given booking.
+     * <p>
+     * Determines whether the form is in create or edit mode,
+     * adjusts field visibility and reads booking data into the binder.
+     *
+     * @param existingBooking booking to edit, or {@code null} for a new booking
+     */
     public void setBooking(Booking existingBooking) {
     boolean isNew = existingBooking == null;
     this.editing = !isNew;
     if (isNew) {
         formBooking = new Booking("", LocalDate.now(), LocalDate.now().plusDays(1), BookingStatus.PENDING, user, null);
-        //Feld nur für Manager oder Receptionist sichtbar, nur beim neu anlegen
         userByEmailField.setVisible(
         (sessionService.getCurrentRole() == UserRole.MANAGER 
         || sessionService.getCurrentRole() == UserRole.RECEPTIONIST));
@@ -300,56 +318,48 @@ public class createNewBookingForm extends FormLayout{
         userByEmailField.setVisible(false);
     }
 
-    // Set bean (initial values anzeigen)       
     binder.readBean(formBooking);
 
-    // Ensure that extras which are already part of the booking are shown as checked
-    try {
-        java.util.Map<Long, BookingExtra> byId = new java.util.HashMap<>();
-        for (BookingExtra be : availableExtras) {
-            if (be != null && be.getBookingExtra_id() != null) {
-                byId.put(be.getBookingExtra_id(), be);
-            }
+    Map<Long, BookingExtra> byId = new HashMap<>();
+    for (BookingExtra be : availableExtras) {
+        if (be != null && be.getBookingExtra_id() != null) {
+            byId.put(be.getBookingExtra_id(), be);
         }
-
-        java.util.Set<BookingExtra> toSelect = new java.util.HashSet<>();
-        if (formBooking.getExtras() != null) {
-            for (BookingExtra be : formBooking.getExtras()) {
-                if (be == null)
-                    continue;
-                // Prefer matching by id
-                Long id = be.getBookingExtra_id();
-                    if (id != null && byId.containsKey(id)) {
-                        toSelect.add(byId.get(id));
-                } else {
-                    // Fallback: match by name
-                    String name = be.getName();
-                    if (name != null) {
-                        for (BookingExtra candidate : availableExtras) {
-                            if (name.equals(candidate.getName())) {
-                                toSelect.add(candidate);
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Apply selection to the CheckboxGroup so items are shown as checked
-        // Always set the value (empty set if none) to ensure UI reflects current booking
-        extras.setValue(toSelect);
-    } catch (Exception e) {
-        // silently ignore UI mapping issues; binder still holds the booking
-    }
     }
 
+    Set<BookingExtra> toSelect = new HashSet<>();
+    if (formBooking.getExtras() != null) {
+        for (BookingExtra be : formBooking.getExtras()) {
+            if (be == null) {
+                continue;
+            }
+            Long id = be.getBookingExtra_id();
+                if (id != null && byId.containsKey(id)) {
+                    toSelect.add(byId.get(id));
+            }
+        }
+    }
+    extras.setValue(toSelect);
+    }
+
+    /**
+     * Returns the booking instance currently bound to the form.
+     *
+     * @return booking being edited or created
+     */
     public Booking getBooking() {
         return formBooking;
     }
 
+    /**
+     * Writes validated form values into the bound booking entity.
+     * <p>
+     * Resolves the guest by email if provided and ensures
+     * a valid guest is always assigned.
+     *
+     * @throws ValidationException if binder validation fails
+     */
     public void writeBean() throws ValidationException {
-        //Prüft und validiert die E-Mail, sodass auf den eigenen User gebucht wird, wenn die E-Mail frei oder falsch ist
         if (userByEmailField.isVisible()) {
         String email = userByEmailField.getValue();
         if (email != null && !email.isBlank() && formService.existsByEmail(email)) {
@@ -358,19 +368,24 @@ public class createNewBookingForm extends FormLayout{
             }}
         binder.writeBean(formBooking);
         
-        // Stelle sicher, dass der Gast immer gesetzt ist
         if (formBooking.getGuest() == null) {
             formBooking.setGuest(user);
         }
     }
 
+    /**
+     * Creates a static list component displaying available booking extras
+     * with pricing information.
+     *
+     * @return layout containing the extras information list
+     */
     private VerticalLayout createExtrasListBox() {
         VerticalLayout listBox = new VerticalLayout();
         listBox.addClassName("extras-list-box");
         listBox.setSpacing(false);
         listBox.setPadding(false);
         
-        Span title = new Span("Verfügbare Extras:");
+        Span title = new Span("Available Extras:");
         title.getStyle().set("font-weight", "bold");
         title.getStyle().set("margin-bottom", "8px");
         listBox.add(title);
@@ -386,5 +401,4 @@ public class createNewBookingForm extends FormLayout{
         
         return listBox;
     }
-    
 }

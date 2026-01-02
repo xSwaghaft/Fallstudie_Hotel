@@ -407,7 +407,7 @@ p {
   color: var(--color-warning);
 }
 
-.status-checked-in {
+.status-checked_in {
   background-color: var(--color-info-bg);
   color: var(--color-info);
 }

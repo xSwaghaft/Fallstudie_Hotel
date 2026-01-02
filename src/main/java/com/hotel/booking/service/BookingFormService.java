@@ -58,6 +58,7 @@ public class BookingFormService {
      * </p>
      */
     public boolean isRoomAvailable(RoomCategory category, LocalDate start, LocalDate end, Long excludeBookingId) {
+        
         return bookingService.isRoomAvailable(category, start, end, excludeBookingId);
     }
 

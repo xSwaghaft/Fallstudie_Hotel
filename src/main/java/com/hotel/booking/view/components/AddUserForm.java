@@ -12,6 +12,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.hotel.booking.service.UserService;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
+import com.vaadin.flow.data.binder.ValidationResult;
 import com.vaadin.flow.data.validator.StringLengthValidator;
 
 /**
@@ -108,12 +109,12 @@ public class AddUserForm extends FormLayout {
 			.asRequired("Email is required")
 			.withValidator((email, context) -> {
 				if (email == null || email.isBlank()) {
-					return com.vaadin.flow.data.binder.ValidationResult.ok();
+					return ValidationResult.ok();
 				}
 				if (email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
-					return com.vaadin.flow.data.binder.ValidationResult.ok();
+					return ValidationResult.ok();
 				}
-				return com.vaadin.flow.data.binder.ValidationResult.error("Email must be in format: username@domain.com");
+				return ValidationResult.error("Email must be in format: username@domain.com");
 			})
 			.withValidator(email -> isEmailAvailable(email, formUser), "Email already in use")
 			.bind(User::getEmail, User::setEmail);
@@ -176,31 +177,22 @@ public class AddUserForm extends FormLayout {
 	 * @param existingUser the user to edit, or null to create a new user
 	 */
 	public void setUser(User existingUser) {
+		// Configure password validation depending on new/edit mode
+		binder.removeBinding(passwordField);
 		boolean isNew = existingUser == null;
 		if (isNew) {
 			formUser = new User("", "", "", new AdressEmbeddable(), "", "", UserRole.GUEST, true);
-		} else {
-			formUser = existingUser;
-		}
-
-		// Configure password field visibility based on edit mode
-		if (existingUser != null) {
-			passwordField.setVisible(false); // Hide password field when editing
-		} else {
 			passwordField.setVisible(true); // Show password field when creating a new user
-		}
-
-		// Configure password validation depending on new/edit mode
-		binder.removeBinding(passwordField);
-		if (isNew) {
 			binder.forField(passwordField)
 				.asRequired("Password is required")
 				.withValidator(pw -> pw != null && pw.length() >= 6, "Password must be at least 6 characters")
 				.bind(User::getPassword, User::setPassword);
 		} else {
+			formUser = existingUser;
+			passwordField.setVisible(false); // Hide password field when editing
 			binder.forField(passwordField)
 				.withValidator(pw -> pw == null || pw.isEmpty() || pw.length() >= 6, "Password must be at least 6 characters")
-				.bind(u -> "", (u, v) -> { if (v != null && !v.isEmpty()) u.setPassword(v); });
+				.bind(u -> "", (u, v) -> { if (v != null && !v.isEmpty()) u.setPassword(v); }); // Only set password if not empty - should not be empty
 		}
 
 		// Make required indicators visible for required fields
