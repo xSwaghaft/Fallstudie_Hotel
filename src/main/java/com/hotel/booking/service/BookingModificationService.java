@@ -16,12 +16,15 @@ public class BookingModificationService {
     // Repositories für Datenbankzugriffe werden über den Konstruktor injiziert
     private final BookingModificationRepository modificationRepository;
     private final EmailService emailService;
+    private final PaymentService paymentService;
 
     public BookingModificationService(
             BookingModificationRepository modificationRepository,
-            EmailService emailService) {
+            EmailService emailService,
+            PaymentService paymentService) {
         this.modificationRepository = modificationRepository;
         this.emailService = emailService;
+        this.paymentService = paymentService;
     }
 
     // Gibt alle Buchungsänderungen als Liste zurück
@@ -113,6 +116,9 @@ public class BookingModificationService {
             m.setReason(reason);
             BookingModification saved = modificationRepository.save(m);
             if (firstModification == null) firstModification = saved;
+
+            // Inform payment service about price change
+            paymentService.handlePriceChange(before, before.getTotalPrice(), after.getTotalPrice());
         }
 
         // Extras comparison
@@ -231,6 +237,9 @@ public class BookingModificationService {
             m.setReason(reason);
             BookingModification saved = modificationRepository.save(m);
             if (firstModification == null) firstModification = saved;
+
+            // Inform payment service about price change
+            paymentService.handlePriceChange(bookingEntity, previousTotalPrice, after.getTotalPrice());
         }
 
         // Extras comparison: vergleiche nach Namen

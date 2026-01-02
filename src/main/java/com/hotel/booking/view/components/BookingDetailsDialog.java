@@ -13,7 +13,6 @@ import com.hotel.booking.entity.BookingModification;
 import com.hotel.booking.entity.BookingStatus;
 import com.hotel.booking.service.BookingCancellationService;
 import com.hotel.booking.service.BookingModificationService;
-import com.hotel.booking.service.InvoiceService;
 
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -26,28 +25,29 @@ import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
 
 /**
- * Dialog component displaying detailed booking information with tabs for Details, Payments, History, and Extras.
+ * Dialog component displaying detailed booking information with tabs for Details, History, and Extras.
  * 
- * @author Arman Özcanli
+ * NOTE:
+ * Payments are handled via "Pay Now" actions in the booking views (e.g. MyBookingsView / ManageBookingsView),
+ * therefore the Payments tab has been removed to avoid duplicated UI and logic.
+ * 
+ * @author Ruslan Krause
  */
 @Component
 public class BookingDetailsDialog {
-    
+
     private static final DateTimeFormatter GERMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     private static final DateTimeFormatter GERMAN_DATETIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
-    
+
     private final BookingModificationService modificationService;
     private final BookingCancellationService bookingCancellationService;
-    private final InvoiceService invoiceService;
-    
+
     public BookingDetailsDialog(BookingModificationService modificationService,
-                                BookingCancellationService bookingCancellationService,
-                                InvoiceService invoiceService) {
+                                BookingCancellationService bookingCancellationService) {
         this.modificationService = modificationService;
         this.bookingCancellationService = bookingCancellationService;
-        this.invoiceService = invoiceService;
     }
-    
+
     /**
      * Opens a dialog with detailed booking information.
      * 
@@ -58,13 +58,11 @@ public class BookingDetailsDialog {
         dialog.setHeaderTitle("Booking Details - " + booking.getBookingNumber());
         dialog.setWidth("800px");
 
-        Tabs tabs = new Tabs(new Tab("Details"), new Tab("Payments"), new Tab("History"), new Tab("Extras"));
+        // Tabs: Payments tab removed (handled via action buttons in views)
+        Tabs tabs = new Tabs(new Tab("Details"), new Tab("History"), new Tab("Extras"));
 
         // Details tab content
         Div details = createDetailsTab(booking);
-
-        // Payments tab
-        Div payments = createPaymentsTab(booking);
 
         // History tab
         Div history = createHistoryTab(booking);
@@ -72,17 +70,17 @@ public class BookingDetailsDialog {
         // Extras tab
         Div extras = createExtrasTab(booking);
 
-        Div pages = new Div(details, payments, history, extras);
+        Div pages = new Div(details, history, extras);
         pages.addClassName("booking-details-container");
-        payments.setVisible(false);
+
+        // Default: show Details
         history.setVisible(false);
         extras.setVisible(false);
 
         tabs.addSelectedChangeListener(ev -> {
             details.setVisible(tabs.getSelectedIndex() == 0);
-            payments.setVisible(tabs.getSelectedIndex() == 1);
-            history.setVisible(tabs.getSelectedIndex() == 2);
-            extras.setVisible(tabs.getSelectedIndex() == 3);
+            history.setVisible(tabs.getSelectedIndex() == 1);
+            extras.setVisible(tabs.getSelectedIndex() == 2);
         });
 
         Button close = new Button("Close", e -> dialog.close());
@@ -92,7 +90,7 @@ public class BookingDetailsDialog {
         dialog.getFooter().add(close);
         dialog.open();
     }
-    
+
     /**
      * Creates the Details tab content.
      */
@@ -117,16 +115,16 @@ public class BookingDetailsDialog {
         Div cancellationPolicy = new Div();
         cancellationPolicy.addClassName("booking-detail-section");
         cancellationPolicy.addClassName("booking-cancellation-policy");
-        
+
         Paragraph policyTitle = new Paragraph("Cancellation Policy");
         policyTitle.addClassName("booking-detail-title");
         cancellationPolicy.add(policyTitle);
-        
+
         cancellationPolicy.add(new Paragraph("• More than 30 days before check-in: Free cancellation"));
         cancellationPolicy.add(new Paragraph("• 7-29 days before check-in: 20% cancellation fee"));
         cancellationPolicy.add(new Paragraph("• 1-6 days before check-in: 50% cancellation fee"));
         cancellationPolicy.add(new Paragraph("• On check-in day: 100% cancellation fee (no refund)"));
-        
+
         details.add(cancellationPolicy);
 
         // Show cancellation info if already cancelled
@@ -144,36 +142,10 @@ public class BookingDetailsDialog {
                 // ignore read errors to keep dialog usable
             }
         }
-        
+
         return details;
     }
-    
-    /**
-     * Creates the Payments tab content.
-     */
-    private Div createPaymentsTab(Booking booking) {
-        Div payments = new Div();
-        // Use InvoiceService to handle inverted relationship (Invoice owns booking_id FK)
-        if (booking.getId() != null) {
-            invoiceService.findByBookingId(booking.getId()).ifPresentOrElse(
-                invoice -> {
-                    payments.add(new Paragraph("Invoice Number: " + invoice.getInvoiceNumber()));
-                    payments.add(new Paragraph("Amount: " + String.format("%.2f €", invoice.getAmount())));
-                    payments.add(new Paragraph("Status: " + invoice.getInvoiceStatus().toString()));
-                    payments.add(new Paragraph("Payment Method: " + invoice.getPaymentMethod().toString()));
-                    if (invoice.getIssuedAt() != null) {
-                        payments.add(new Paragraph("Issued: " + invoice.getIssuedAt().format(
-                                DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"))));
-                    }
-                },
-                () -> payments.add(new Paragraph("Payment information not available"))
-            );
-        } else {
-            payments.add(new Paragraph("Payment information not available"));
-        }
-        return payments;
-    }
-    
+
     /**
      * Creates the History tab content.
      */
@@ -219,6 +191,7 @@ public class BookingDetailsDialog {
                         values.addClassName("booking-history-value");
                         row.add(field, values);
                         groupBox.add(row);
+
                         if (m.getReason() != null && !m.getReason().isBlank()) {
                             Span note = new Span("Reason: " + m.getReason());
                             note.addClassName("booking-history-reason");
@@ -263,10 +236,10 @@ public class BookingDetailsDialog {
                 // ignore any errors when loading cancellation info
             }
         }
-        
+
         return history;
     }
-    
+
     /**
      * Creates the Extras tab content.
      */
@@ -288,14 +261,14 @@ public class BookingDetailsDialog {
         }
         return extras;
     }
-    
+
     /**
      * Calculates price per night for display.
      */
     private String calculatePricePerNight(Booking booking) {
         if (booking.getRoomCategory() != null && booking.getRoomCategory().getPricePerNight() != null) {
             return String.format("%.2f €", booking.getRoomCategory().getPricePerNight());
-        } else if (booking.getRoom() != null && booking.getRoom().getCategory() != null 
+        } else if (booking.getRoom() != null && booking.getRoom().getCategory() != null
                 && booking.getRoom().getCategory().getPricePerNight() != null) {
             return String.format("%.2f €", booking.getRoom().getCategory().getPricePerNight());
         }
