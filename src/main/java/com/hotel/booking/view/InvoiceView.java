@@ -152,6 +152,7 @@ public class InvoiceView extends VerticalLayout {
         grid = new Grid<>(Invoice.class, false);
 
         grid.addColumn(Invoice::getInvoiceNumber).setHeader("Invoice No.").setSortable(true).setAutoWidth(true).setFlexGrow(1);
+        grid.addColumn(invoice -> invoice.getBooking() != null ? invoice.getBooking().getBookingNumber() : "").setHeader("Booking No.").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.addColumn(invoice -> {
             NumberFormat nf = NumberFormat.getInstance(Locale.GERMANY);
             nf.setMinimumFractionDigits(2);
