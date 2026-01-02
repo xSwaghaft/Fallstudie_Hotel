@@ -14,8 +14,13 @@ import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
 import com.hotel.booking.service.BookingService;
 import com.hotel.booking.service.PaymentService;
-import com.hotel.booking.view.components.*;
-
+import com.hotel.booking.view.components.BookingCard;
+import com.hotel.booking.view.components.BookingDetailsDialog;
+import com.hotel.booking.view.components.CancellationDialog;
+import com.hotel.booking.view.components.EditBookingDialog;
+import com.hotel.booking.view.components.PaymentDialog;
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
@@ -25,7 +30,6 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
-import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouterLink;
@@ -78,76 +82,108 @@ public class MyBookingsView extends VerticalLayout {
         setPadding(true);
         setSpacing(true);
 
-        allBookings = loadAllBookingsForCurrentUser();
+        reloadBookings();
 
-        add(new H1("My Bookings"));
+        add(
+                createHeader(),
+                createTabsBar(),
+                createBookingsCard()
+        );
 
-        if (allBookings.isEmpty()) {
-            add(new Paragraph("No bookings found."));
-        } else {
-            createTabsAndContent();
-        }
+        updateContent();
     }
 
-    private void createTabsAndContent() {
-        tabs = new Tabs(
-                new Tab(TAB_UPCOMING),
-                new Tab(TAB_PAST),
-                new Tab(TAB_CANCELLED)
-        );
+    private Component createHeader() {
+        return new H1("My Bookings");
+    }
+
+    private Component createTabsBar() {
+        Tab upcomingTab = new Tab(TAB_UPCOMING);
+        Tab pastTab = new Tab(TAB_PAST);
+        Tab cancelledTab = new Tab(TAB_CANCELLED);
+
+        tabs = new Tabs(upcomingTab, pastTab, cancelledTab);
+        tabs.addClassName("bookings-tabs");
         tabs.addSelectedChangeListener(e -> updateContent());
+        tabs.setWidthFull();
 
-        contentArea = new Div();
-        contentArea.setWidthFull();
-        contentArea.addClassName("bookings-content-area");
+        return tabs;
+    }
 
-        add(tabs, contentArea);
-        updateContent();
+    private Component createBookingsCard() {
+        Div card = new Div();
+        card.addClassName("card");
+        card.setWidthFull();
+
+        Div body = new Div();
+        body.addClassName("bookings-content-area");
+        body.setWidthFull();
+
+        contentArea = body;
+
+        card.add(body);
+        return card;
+    }
+
+    private void reloadBookings() {
+        User currentUser = sessionService.getCurrentUser();
+        if (currentUser == null) {
+            allBookings = List.of();
+            return;
+        }
+        allBookings = bookingService.findAllBookingsForGuest(currentUser.getId());
+        allBookings.forEach(bookingService::calculateBookingPrice);
     }
 
     private void updateContent() {
         contentArea.removeAll();
 
-        Tab selectedTab = tabs.getSelectedTab();
-        if (selectedTab == null) return;
-
-        User user = sessionService.getCurrentUser();
-        if (user != null) {
-            allBookings = bookingService.findAllBookingsForGuest(user.getId());
-            allBookings.forEach(bookingService::calculateBookingPrice);
-        }
-
-        List<Booking> filtered = filterBookingsByTabType(selectedTab.getLabel());
-
-        if (filtered.isEmpty()) {
-            contentArea.add(new Paragraph("No bookings in this category."));
+        if (tabs == null || tabs.getSelectedTab() == null) {
+            contentArea.add(createEmptyMessage("No tab selected."));
             return;
         }
 
-        Div container = new Div();
-        container.addClassName("bookings-container");
-
-        for (Booking booking : filtered) {
-            HorizontalLayout actions = createActionButtons(booking, selectedTab.getLabel());
-            container.add(
-                    bookingCard.create(
-                            booking,
-                            () -> bookingDetailsDialog.open(booking),
-                            actions
-                    )
-            );
+        User user = sessionService.getCurrentUser();
+        if (user == null) {
+            contentArea.add(createEmptyMessage("No user session."));
+            return;
         }
 
-        contentArea.add(container);
+        allBookings = bookingService.findAllBookingsForGuest(user.getId());
+        allBookings.forEach(bookingService::calculateBookingPrice);
+
+        String tabLabel = tabs.getSelectedTab().getLabel();
+        List<Booking> filteredBookings = filterBookingsByTabType(tabLabel);
+
+        if (filteredBookings.isEmpty()) {
+            contentArea.add(createEmptyMessage("No bookings in this category."));
+            return;
+        }
+
+        Div bookingsContainer = new Div();
+        bookingsContainer.addClassName("bookings-container");
+
+        for (Booking booking : filteredBookings) {
+            HorizontalLayout actionButtons = createActionButtons(booking, tabLabel);
+            Div card = bookingCard.create(
+                    booking,
+                    () -> bookingDetailsDialog.open(booking),
+                    actionButtons
+            );
+            bookingsContainer.add(card);
+        }
+
+        contentArea.add(bookingsContainer);
     }
 
-    private List<Booking> filterBookingsByTabType(String tab) {
+    private List<Booking> filterBookingsByTabType(String tabLabel) {
         LocalDate today = LocalDate.now();
 
-        switch (tab) {
+        switch (tabLabel) {
             case TAB_UPCOMING:
                 return allBookings.stream()
-                        .filter(b -> !b.getCheckOutDate().isBefore(today))
+                        .filter(b -> b.getCheckInDate().isAfter(today)
+                                || (!b.getCheckInDate().isAfter(today) && !b.getCheckOutDate().isBefore(today)))
                         .filter(b -> b.getStatus() != BookingStatus.CANCELLED)
                         .collect(Collectors.toList());
 
@@ -168,48 +204,65 @@ public class MyBookingsView extends VerticalLayout {
     }
 
     private Button createPayButtonIfNeeded(Booking booking) {
-        List<Payment> payments = paymentService.findByBookingId(booking.getId());
-
-        boolean hasPendingPayment = payments.stream()
-                .anyMatch(p -> p.getStatus() == Invoice.PaymentStatus.PENDING);
-
-        boolean noPaymentsYet = payments.isEmpty();
-        boolean statusAllowsPay = booking.getStatus() == BookingStatus.PENDING
-                || booking.getStatus() == BookingStatus.MODIFIED;
-
-        if (!hasPendingPayment && !(statusAllowsPay && noPaymentsYet)) {
+        if (booking.getId() == null || booking.getTotalPrice() == null) {
             return null;
         }
 
-        Button pay = new Button("Pay Now", e -> openPaymentDialog(booking));
-        pay.addClassName("primary-button");
-        return pay;
+        List<Payment> allPayments = paymentService.findByBookingId(booking.getId());
+        List<Payment> pendingPayments = allPayments.stream()
+                .filter(p -> p.getStatus() == Invoice.PaymentStatus.PENDING)
+                .toList();
+
+        boolean shouldShowButton = !pendingPayments.isEmpty() ||
+                (booking.getStatus() == BookingStatus.PENDING && allPayments.isEmpty());
+
+        if (!shouldShowButton) {
+            return null;
+        }
+
+        Button payBtn = new Button("Pay Now", e -> openPaymentDialog(booking));
+        payBtn.addClassName("primary-button");
+        return payBtn;
     }
 
     private void openPaymentDialog(Booking booking) {
-        PaymentDialog dialog = new PaymentDialog(booking.getTotalPrice());
+        try {
+            if (booking.getTotalPrice() == null) {
+                Notification.show("Error: Total price is missing", 5000, Notification.Position.TOP_CENTER);
+                return;
+            }
 
-        dialog.setOnPaymentSuccess(() -> {
-            paymentService.processPaymentForBooking(
-                    booking.getId(),
-                    null,
-                    dialog.getSelectedPaymentMethod(),
-                    Invoice.PaymentStatus.PAID
-            );
-            updateContent();
-        });
+            Long bookingId = booking.getId();
+            PaymentDialog paymentDialog = new PaymentDialog(booking.getTotalPrice());
 
-        dialog.setOnPaymentDeferred(() -> {
-            paymentService.processPaymentForBooking(
-                    booking.getId(),
-                    null,
-                    dialog.getSelectedPaymentMethod(),
-                    Invoice.PaymentStatus.PENDING
-            );
-            updateContent();
-        });
+            paymentDialog.setOnPaymentSuccess(() -> {
+                try {
+                    paymentService.processPaymentForBooking(bookingId, null, paymentDialog.getSelectedPaymentMethod(), Invoice.PaymentStatus.PAID);
+                    Notification.show("Payment completed! Thank you.", 3000, Notification.Position.TOP_CENTER);
+                    updateContent();
+                } catch (Exception ex) {
+                    System.err.println("DEBUG: Error processing payment: " + ex.getMessage());
+                    ex.printStackTrace();
+                    Notification.show("Error processing payment. Please try again.", 5000, Notification.Position.TOP_CENTER);
+                }
+            });
 
-        dialog.open();
+            paymentDialog.setOnPaymentDeferred(() -> {
+                try {
+                    paymentService.processPaymentForBooking(bookingId, null, paymentDialog.getSelectedPaymentMethod(), Invoice.PaymentStatus.PENDING);
+                    Notification.show("Payment postponed. You can pay later in 'My Bookings'.", 3000, Notification.Position.TOP_CENTER);
+                    updateContent();
+                } catch (Exception ex) {
+                    System.err.println("DEBUG: Error processing deferred payment: " + ex.getMessage());
+                    ex.printStackTrace();
+                    Notification.show("Error processing payment. Please try again.", 5000, Notification.Position.TOP_CENTER);
+                }
+            });
+
+            paymentDialog.open();
+        } catch (Exception ex) {
+            Notification.show("Error opening payment dialog", 5000, Notification.Position.TOP_CENTER);
+        }
     }
 
     private HorizontalLayout createActionButtons(Booking booking, String tab) {
@@ -226,7 +279,6 @@ public class MyBookingsView extends VerticalLayout {
                         || status == BookingStatus.MODIFIED);
 
         if (TAB_UPCOMING.equals(tab)) {
-
             if (canPay) {
                 Button pay = createPayButtonIfNeeded(booking);
                 if (pay != null) layout.add(pay);
@@ -234,14 +286,20 @@ public class MyBookingsView extends VerticalLayout {
 
             if (canEdit) {
                 Button edit = new Button("Edit", e ->
-                        editBookingDialog.open(booking, this::updateContent));
+                        editBookingDialog.open(booking, () -> {
+                            reloadBookings();
+                            updateContent();
+                        }));
                 edit.addClassName("primary-button");
                 layout.add(edit);
             }
 
             if (canCancel) {
                 Button cancel = new Button("Cancel", e ->
-                        cancellationDialog.open(booking, this::updateContent));
+                        cancellationDialog.open(booking, () -> {
+                            reloadBookings();
+                            updateContent();
+                        }));
                 cancel.addClassName("secondary-button");
                 layout.add(cancel);
             }
@@ -254,6 +312,14 @@ public class MyBookingsView extends VerticalLayout {
         }
 
         return layout;
+    }
+
+    private Component createEmptyMessage(String message) {
+        Paragraph empty = new Paragraph(message);
+        empty.getStyle().set("padding", "var(--spacing-xl)");
+        empty.getStyle().set("text-align", "center");
+        empty.getStyle().set("color", "var(--color-text-secondary)");
+        return empty;
     }
 
     private List<Booking> loadAllBookingsForCurrentUser() {

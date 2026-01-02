@@ -71,8 +71,12 @@ class BookingServiceTest {
         when(room.getId()).thenReturn(11L);
         when(roomRepository.findByCategory(cat)).thenReturn(List.of(room));
 
+<<<<<<< HEAD
         when(bookingRepository.existsByRoom_IdAndCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(
             eq(11L), any(LocalDate.class), any(LocalDate.class), eq(BookingStatus.CANCELLED))).thenReturn(false);
+=======
+        when(bookingRepository.existsByRoom_IdAndCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(eq(11L), any(LocalDate.class), any(LocalDate.class))).thenReturn(false);
+>>>>>>> 3d19ee6 (Zwischenstand)
 
         // Make the booking mock reflect setRoom(...) by returning the passed value from getRoom()
         doAnswer(inv -> {
@@ -126,14 +130,23 @@ class BookingServiceTest {
         when(roomRepository.findByCategory(cat)).thenReturn(List.of(r1, r2));
 
         // first room overlaps, second is free
+<<<<<<< HEAD
         when(bookingRepository.existsByRoom_IdAndCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(eq(1L), any(), any(), eq(BookingStatus.CANCELLED))).thenReturn(true);
         when(bookingRepository.existsByRoom_IdAndCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(eq(2L), any(), any(), eq(BookingStatus.CANCELLED))).thenReturn(false);
+=======
+        when(bookingRepository.existsByRoom_IdAndCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(eq(1L), any(), any())).thenReturn(true);
+        when(bookingRepository.existsByRoom_IdAndCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(eq(2L), any(), any())).thenReturn(false);
+>>>>>>> 3d19ee6 (Zwischenstand)
 
         boolean avail = service.isRoomAvailable(cat, LocalDate.now(), LocalDate.now().plusDays(1));
         assertTrue(avail);
 
         // if both overlap -> false
+<<<<<<< HEAD
         when(bookingRepository.existsByRoom_IdAndCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(eq(2L), any(), any(), eq(BookingStatus.CANCELLED))).thenReturn(true);
+=======
+        when(bookingRepository.existsByRoom_IdAndCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(eq(2L), any(), any())).thenReturn(true);
+>>>>>>> 3d19ee6 (Zwischenstand)
         boolean avail2 = service.isRoomAvailable(cat, LocalDate.now(), LocalDate.now().plusDays(1));
         assertFalse(avail2);
     }

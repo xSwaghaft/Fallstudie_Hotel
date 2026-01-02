@@ -15,7 +15,6 @@ import com.hotel.booking.service.BookingService;
 import com.hotel.booking.service.RoomCategoryService;
 import com.hotel.booking.service.RoomService;
 
-
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.datepicker.DatePicker;
@@ -41,16 +40,31 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import java.util.stream.Collectors;
 
+// Author: Matthias Lohr
 @Route(value = "bookings", layout = MainLayout.class)
 @PageTitle("Booking Management")
 @CssImport("./themes/hotel/styles.css")
 @CssImport("./themes/hotel/views/booking-management.css")
 @CssImport("./themes/hotel/views/my-bookings.css")
 @RolesAllowed({UserRole.RECEPTIONIST_VALUE, UserRole.MANAGER_VALUE})
+/**
+ * BookingManagementView
+ *
+ * Main Vaadin view for managing bookings. Shows a searchable/filterable grid
+ * of bookings and provides actions for viewing, editing and cancelling bookings.
+ * Responsibilities:
+ * - List bookings in a grid with custom columns and actions
+ * - Provide add/edit dialog with preview + confirm step
+ * - Handle cancellation flow and record modification history
+ */
 public class BookingManagementView extends VerticalLayout {
 
     private final SessionService sessionService;
@@ -76,21 +90,12 @@ public class BookingManagementView extends VerticalLayout {
     private List<String> categoryNames;
 
     private final String ALL_STATUS = "All Status";
-    private static final String ALL_ROOMS = "All Rooms";
 
-    private Div checkInOutCard;
-    private H3 checkInOutTitle;
-
-    // Simple immutable snapshot holder for previous booking values (your style)
+    // Simple immutable snapshot holder for previous booking values.
+    // Declared at class level to avoid local-record issues with some compiler setups.
     private static record PrevBooking(LocalDate checkIn, LocalDate checkOut, Integer amount, BigDecimal total, Set<BookingExtra> extras) {}
 
-    public BookingManagementView(SessionService sessionService,
-                                 BookingService bookingService,
-                                 BookingFormService formService,
-                                 BookingModificationService modificationService,
-                                 BookingCancellationService bookingCancellationService,
-                                 RoomCategoryService roomCategoryService,
-                                 RoomService roomService) {
+    public BookingManagementView(SessionService sessionService, BookingService bookingService, BookingFormService formService, com.hotel.booking.service.BookingModificationService modificationService, RoomCategoryService roomCategoryService, BookingCancellationService bookingCancellationService, RoomService roomService) {
         this.sessionService = sessionService;
         this.bookingService = bookingService;
         this.formService = formService;
@@ -108,33 +113,10 @@ public class BookingManagementView extends VerticalLayout {
 
         add(createHeader());
 
-        // Check-in/out card (master view feature)
-        checkInOutCard = createCheckInOutCard();
-        add(checkInOutCard);
-
         add(createFilters(), createBookingsCard());
-
-        refreshCheckInOutCardVisibility();
     }
 
-    private void initCategories() {
-        categoryNames = new ArrayList<>();
-        categoryNames.add(ALL_ROOMS);
-        roomCategoryService.getAllRoomCategories().forEach(cat -> categoryNames.add(cat.getName()));
-    }
-
-    private void reloadBookings() {
-        bookings.clear();
-        bookings.addAll(bookingService.findAll());
-    }
-
-    private void reloadAndRefresh() {
-        reloadBookings();
-        filterBookings(); // keeps current filter state
-        refreshCheckGrid();
-        refreshCheckInOutCardVisibility();
-    }
-
+    // Create the top header area containing page title, subtitle and action button.
     private Component createHeader() {
         H1 title = new H1("Booking Management");
 
@@ -155,6 +137,119 @@ public class BookingManagementView extends VerticalLayout {
         return header;
     }
 
+    // Edited/maintained by: Ruslan
+    private void openAddBookingDialog(Booking existingBooking) {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle(existingBooking != null ? "Edit Booking" : "New Booking");
+        dialog.setWidth("600px");
+
+       
+
+        /**
+         * Opens the booking form (new / edit).
+         *
+         * Behavior:
+         * - Adds a two-step save flow: Form -> Preview (before/after) -> Confirm.
+         * - On confirmation, previous values are recorded via `BookingModificationService`
+         *   and the update is saved. Any save errors are shown in a Notification with details.
+         */
+        createNewBookingForm form = new createNewBookingForm(sessionService.getCurrentUser(), sessionService, existingBooking, formService);
+
+        Button saveButton = new Button("Save", e -> {
+            try {
+                // For existing bookings, capture previous values as a snapshot.
+                // Use the `PrevBooking` nested record declared at class level
+                // instead of multiple `AtomicReference` instances — clearer and safe.
+                final PrevBooking prevSnapshot = existingBooking != null
+                        ? new PrevBooking(existingBooking.getCheckInDate(), existingBooking.getCheckOutDate(), existingBooking.getAmount(), existingBooking.getTotalPrice(), existingBooking.getExtras())
+                        : null;
+
+                form.writeBean(); // Transfers form values into the Booking object
+                Booking updated = form.getBooking();
+
+                // Recalculate the booking price using the service method
+                bookingService.calculateBookingPrice(updated);
+
+                // Preview dialog (before / after) to let the user confirm changes
+                Dialog preview = new Dialog();
+                preview.setHeaderTitle(existingBooking != null ? "Confirm Booking Changes" : "Confirm New Booking");
+                VerticalLayout content = new VerticalLayout();
+                if (existingBooking != null) {
+                    content.add(new Paragraph("-- Before --"));
+                    PrevBooking prev = prevSnapshot;
+                    LocalDate prevCheckIn = prev != null ? prev.checkIn() : null;
+                    LocalDate prevCheckOut = prev != null ? prev.checkOut() : null;
+                    Integer prevAmount = prev != null ? prev.amount() : null;
+                    BigDecimal prevTotal = prev != null ? prev.total() : null;
+                    Set<BookingExtra> prevExtras = prev != null ? prev.extras() : null;
+                    content.add(new Paragraph("Check-in: " + (prevCheckIn != null ? prevCheckIn.format(GERMAN_DATE_FORMAT) : "N/A")));
+                    content.add(new Paragraph("Check-out: " + (prevCheckOut != null ? prevCheckOut.format(GERMAN_DATE_FORMAT) : "N/A")));
+                    content.add(new Paragraph("Guests: " + (prevAmount != null ? prevAmount : "N/A")));
+                    content.add(new Paragraph("Total Price: " + (prevTotal != null ? prevTotal.toString() : "N/A")));
+                    String prevExtrasStr = "none";
+                    if (prevExtras != null && !prevExtras.isEmpty()) {
+                        prevExtrasStr = prevExtras.stream().map(x -> x.getName()).collect(Collectors.joining(", "));
+                    }
+                    content.add(new Paragraph("Extras: " + prevExtrasStr));
+                }
+
+                content.add(new Paragraph("-- After --"));
+                content.add(new Paragraph("Check-in: " + (updated.getCheckInDate() != null ? updated.getCheckInDate().format(GERMAN_DATE_FORMAT) : "N/A")));
+                content.add(new Paragraph("Check-out: " + (updated.getCheckOutDate() != null ? updated.getCheckOutDate().format(GERMAN_DATE_FORMAT) : "N/A")));
+                content.add(new Paragraph("Guests: " + (updated.getAmount() != null ? updated.getAmount() : "N/A")));
+                content.add(new Paragraph("Total Price: " + (updated.getTotalPrice() != null ? updated.getTotalPrice().toString() : "N/A")));
+                String newExtrasStr = "none";
+                if (updated.getExtras() != null && !updated.getExtras().isEmpty()) {
+                    newExtrasStr = updated.getExtras().stream().map(x -> x.getName()).collect(Collectors.joining(", "));
+                }
+                content.add(new Paragraph("Extras: " + newExtrasStr));
+
+                Button confirm = new Button("Confirm", ev -> {
+                    try {
+                        // If present, record previous values
+                        if (existingBooking != null) {
+                                modificationService.recordChangesFromSnapshot(existingBooking,
+                                    (prevSnapshot != null ? prevSnapshot.checkIn() : null),
+                                    (prevSnapshot != null ? prevSnapshot.checkOut() : null),
+                                    (prevSnapshot != null ? prevSnapshot.amount() : null),
+                                    (prevSnapshot != null ? prevSnapshot.total() : null),
+                                    (prevSnapshot != null ? prevSnapshot.extras() : null),
+                                    updated, sessionService.getCurrentUser(), null);
+                        }
+
+                        bookingService.save(updated);
+                        dialog.close();
+                        preview.close();
+                        grid.setItems(bookingService.findAll());
+                        checkGrid.getDataProvider().refreshItem(updated);
+                        Notification.show("Booking saved successfully.", 3000, Notification.Position.BOTTOM_START);
+                    } catch (Exception ex) {
+                        String msg = ex.getMessage() != null ? ex.getMessage() : "Error saving booking.";
+                        Notification.show(msg, 6000, Notification.Position.MIDDLE);
+                    }
+                });
+                confirm.addClassName("primary-button");
+
+                Button back = new Button("Back", ev -> preview.close());
+                HorizontalLayout actions = new HorizontalLayout(confirm, back);
+                preview.add(content, actions);
+                preview.open();
+
+            } catch (ValidationException ex) {
+                Notification.show("Please fix validation errors before saving.", 3000, Notification.Position.MIDDLE);
+            }
+        });
+        saveButton.addClassName("primary-button");
+
+        Button cancelButton = new Button("Cancel", e -> dialog.close());
+
+        HorizontalLayout buttonLayout = new HorizontalLayout(saveButton, cancelButton);
+
+        dialog.add(form, buttonLayout);
+        dialog.open();
+    }
+
+    // Build search and filter controls (text, status, date, category).
     private Component createFilters() {
         Div card = new Div();
         card.addClassName("card");
@@ -203,6 +298,8 @@ public class BookingManagementView extends VerticalLayout {
         return card;
     }
 
+    // Assemble the bookings card: grid setup and column configuration.
+    // Columns are defined manually to control widths and responsive behavior.
     private Component createBookingsCard() {
         Div card = new Div();
         card.addClassName("card");
@@ -254,13 +351,11 @@ public class BookingManagementView extends VerticalLayout {
                 .setFlexGrow(1);
 
         grid.addComponentColumn(this::createActionButtons)
-                .setHeader("Actions")
-                .setAutoWidth(true)
-                .setFlexGrow(4);
-
-        grid.setWidthFull();
+            .setHeader("Actions")
+            .setAutoWidth(true)
+            .setFlexGrow(0);
         grid.setItems(bookings);
-
+        grid.setWidthFull();
         card.add(title, grid);
         return card;
     }
@@ -325,11 +420,15 @@ public class BookingManagementView extends VerticalLayout {
         return badge;
     }
 
-    /**
-     * Status-Regeln von dir:
-     * Edit nur wenn Status NICHT CONFIRMED/CANCELLED/COMPLETED ist.
-     * Cancel-Regeln von dir: PENDING/MODIFIED/CONFIRMED.
-     */
+    // private Component createPaymentBadge(Booking booking) {
+    //     Span badge = new Span(booking.paymentStatus());
+    //     badge.addClassName("status-badge");
+    //     badge.addClassName("status-" + booking.paymentStatus());
+    //     return badge;
+    // }
+
+    // Create the action buttons shown in the grid for each booking.
+    // Buttons vary depending on booking status (e.g. Check In only for CONFIRMED).
     private Component createActionButtons(Booking booking) {
         HorizontalLayout actions = new HorizontalLayout();
         actions.setSpacing(true);
@@ -337,12 +436,22 @@ public class BookingManagementView extends VerticalLayout {
 
         Button viewBtn = new Button("View", VaadinIcon.EYE.create());
         viewBtn.addClickListener(e -> openDetails(booking));
-        actions.add(viewBtn);
-
-        if (isEditableByStatus(booking)) {
-            Button editBtn = new Button("Edit", VaadinIcon.EDIT.create());
+        
+        // Edit button: only enabled when booking is not CONFIRMED
+        Button editBtn = new Button("Edit", VaadinIcon.EDIT.create());
+        if (booking.getStatus() == null || booking.getStatus() != BookingStatus.CONFIRMED) {
             editBtn.addClickListener(e -> openAddBookingDialog(booking));
-            actions.add(editBtn);
+        } else {
+            editBtn.setEnabled(false);
+            editBtn.getElement().setProperty("title", "Cannot edit a confirmed booking");
+        }
+
+        actions.add(viewBtn, editBtn);
+        
+        if (booking.getStatus() != null && "CONFIRMED".equals(booking.getStatus().name())) {
+            Button checkInBtn = new Button("Check In", VaadinIcon.SIGN_IN.create());
+            checkInBtn.addClickListener(e -> Notification.show("Checked in " + booking.getBookingNumber()));
+            actions.add(checkInBtn);
         }
 
         if (isCancellableByStatus(booking)) {
@@ -354,204 +463,11 @@ public class BookingManagementView extends VerticalLayout {
         return actions;
     }
 
-    private boolean isEditableByStatus(Booking booking) {
-        if (booking == null || booking.getStatus() == null) return true;
-        return booking.getStatus() != BookingStatus.CONFIRMED
-                && booking.getStatus() != BookingStatus.CANCELLED
-                && booking.getStatus() != BookingStatus.COMPLETED;
-    }
-
-    private boolean isCancellableByStatus(Booking booking) {
-        if (booking == null || booking.getStatus() == null) return false;
-        return booking.getStatus() == BookingStatus.PENDING
-                || booking.getStatus() == BookingStatus.MODIFIED
-                || booking.getStatus() == BookingStatus.CONFIRMED;
-    }
-
-    // Check-in/out logic (kept from master view)
-    private Component createCheckInOutButtons(Booking booking) {
-        HorizontalLayout layout = new HorizontalLayout();
-        layout.setSpacing(true);
-
-        boolean hasButton = false;
-
-        // Check-in: today is check-in and status is PENDING/CONFIRMED/MODIFIED
-        if (booking != null
-                && booking.getCheckInDate() != null
-                && today.equals(booking.getCheckInDate())
-                && (booking.getStatus() == BookingStatus.PENDING
-                    || booking.getStatus() == BookingStatus.CONFIRMED
-                    || booking.getStatus() == BookingStatus.MODIFIED)) {
-
-            Button checkInBtn = new Button(VaadinIcon.SIGN_IN.create(), e -> {
-                try {
-                    booking.setStatus(BookingStatus.CHECKED_IN);
-                    if (booking.getRoom() != null) {
-                        booking.getRoom().setStatus(RoomStatus.OCCUPIED);
-                        roomService.save(booking.getRoom());
-                    }
-                    bookingService.save(booking);
-                    reloadAndRefresh();
-                } catch (Exception ex) {
-                    Notification.show(ex.getMessage() != null ? ex.getMessage() : "Check-in failed", 5000, Notification.Position.MIDDLE);
-                }
-            });
-            checkInBtn.getElement().setAttribute("title", "Check In");
-            layout.add(checkInBtn);
-            hasButton = true;
-        }
-
-        // Check-out: today is check-out and status is CHECKED_IN
-        if (booking != null
-                && booking.getCheckOutDate() != null
-                && today.equals(booking.getCheckOutDate())
-                && booking.getStatus() == BookingStatus.CHECKED_IN) {
-
-            Button checkOutBtn = new Button(VaadinIcon.SIGN_OUT.create(), e -> {
-                try {
-                    booking.setStatus(BookingStatus.COMPLETED);
-                    if (booking.getRoom() != null) {
-                        booking.getRoom().setStatus(RoomStatus.AVAILABLE);
-                        roomService.save(booking.getRoom());
-                    }
-                    bookingService.save(booking);
-                    reloadAndRefresh();
-                } catch (Exception ex) {
-                    Notification.show(ex.getMessage() != null ? ex.getMessage() : "Check-out failed", 5000, Notification.Position.MIDDLE);
-                }
-            });
-            checkOutBtn.getElement().setAttribute("title", "Check Out");
-            layout.add(checkOutBtn);
-            hasButton = true;
-        }
-
-        return hasButton ? layout : new Span();
-    }
-
-    private boolean isActionableToday(Booking b) {
-        if (b == null) return false;
-
-        boolean canCheckIn = b.getCheckInDate() != null
-                && today.equals(b.getCheckInDate())
-                && (b.getStatus() == BookingStatus.PENDING
-                    || b.getStatus() == BookingStatus.CONFIRMED
-                    || b.getStatus() == BookingStatus.MODIFIED);
-
-        boolean canCheckOut = b.getCheckOutDate() != null
-                && today.equals(b.getCheckOutDate())
-                && b.getStatus() == BookingStatus.CHECKED_IN;
-
-        return canCheckIn || canCheckOut;
-    }
-
-    private void openAddBookingDialog(Booking existingBooking) {
-        Dialog dialog = new Dialog();
-        dialog.setHeaderTitle(existingBooking != null ? "Edit Booking" : "New Booking");
-        dialog.setWidth("600px");
-
-        createNewBookingForm form = new createNewBookingForm(
-                sessionService.getCurrentUser(),
-                sessionService,
-                existingBooking,
-                formService
-        );
-
-        Button saveButton = new Button("Save", e -> {
-            try {
-                final PrevBooking prevSnapshot = existingBooking != null
-                        ? new PrevBooking(
-                            existingBooking.getCheckInDate(),
-                            existingBooking.getCheckOutDate(),
-                            existingBooking.getAmount(),
-                            existingBooking.getTotalPrice(),
-                            existingBooking.getExtras())
-                        : null;
-
-                form.writeBean();
-                Booking updated = form.getBooking();
-
-                bookingService.calculateBookingPrice(updated);
-
-                Dialog preview = new Dialog();
-                preview.setHeaderTitle(existingBooking != null ? "Confirm Booking Changes" : "Confirm New Booking");
-
-                VerticalLayout content = new VerticalLayout();
-                content.addClassName("booking-edit-preview");
-
-                if (existingBooking != null) {
-                    content.add(createPreviewSection(
-                            "Before",
-                            prevSnapshot != null ? prevSnapshot.checkIn() : null,
-                            prevSnapshot != null ? prevSnapshot.checkOut() : null,
-                            prevSnapshot != null ? prevSnapshot.amount() : null,
-                            prevSnapshot != null ? prevSnapshot.total() : null,
-                            prevSnapshot != null ? prevSnapshot.extras() : null
-                    ));
-                }
-
-                content.add(createPreviewSection(
-                        "After",
-                        updated.getCheckInDate(),
-                        updated.getCheckOutDate(),
-                        updated.getAmount(),
-                        updated.getTotalPrice(),
-                        updated.getExtras()
-                ));
-
-                Button confirm = new Button("Confirm", ev -> {
-                    try {
-                        if (existingBooking != null) {
-                            modificationService.recordChangesFromSnapshot(
-                                    existingBooking,
-                                    (prevSnapshot != null ? prevSnapshot.checkIn() : null),
-                                    (prevSnapshot != null ? prevSnapshot.checkOut() : null),
-                                    (prevSnapshot != null ? prevSnapshot.amount() : null),
-                                    (prevSnapshot != null ? prevSnapshot.total() : null),
-                                    (prevSnapshot != null ? prevSnapshot.extras() : null),
-                                    updated,
-                                    sessionService.getCurrentUser(),
-                                    null
-                            );
-                        }
-
-                        bookingService.save(updated);
-                        preview.close();
-                        dialog.close();
-
-                        reloadAndRefresh();
-                        Notification.show("Booking saved successfully.", 3000, Notification.Position.BOTTOM_START);
-                    } catch (Exception ex) {
-                        Notification.show(ex.getMessage() != null ? ex.getMessage() : "Error saving booking.", 6000, Notification.Position.MIDDLE);
-                    }
-                });
-                confirm.addClassName("primary-button");
-
-                Button back = new Button("Back", ev -> preview.close());
-                HorizontalLayout actions = new HorizontalLayout(confirm, back);
-
-                preview.add(content, actions);
-                preview.open();
-
-            } catch (ValidationException ex) {
-                Notification.show("Please fix validation errors before saving.", 3000, Notification.Position.MIDDLE);
-            }
-        });
-        saveButton.addClassName("primary-button");
-
-        Button cancelButton = new Button("Cancel", e -> dialog.close());
-
-        HorizontalLayout buttonLayout = new HorizontalLayout(saveButton, cancelButton);
-        dialog.add(form, buttonLayout);
-        dialog.open();
-    }
-
-    // Cancellation rules from your file (PENDING/MODIFIED/CONFIRMED)
+    // Performs cancellation with a confirmation dialog and calculates tiered fees
     private void confirmAndCancelBooking(Booking b) {
-        if (b == null || b.getStatus() == null
-                || (b.getStatus() != BookingStatus.PENDING
-                && b.getStatus() != BookingStatus.MODIFIED
-                && b.getStatus() != BookingStatus.CONFIRMED)) {
-            Notification.show("Only bookings with status 'Pending', 'Modified' or 'Confirmed' can be cancelled here.", 4000, Notification.Position.MIDDLE);
+        // Only allow cancellation via this action for bookings with PENDING or MODIFIED status
+        if (b.getStatus() == null || (b.getStatus() != com.hotel.booking.entity.BookingStatus.PENDING && b.getStatus() != com.hotel.booking.entity.BookingStatus.MODIFIED)) {
+            Notification.show("Only bookings with status 'Pending' or 'Modified' can be cancelled here.", 4000, Notification.Position.MIDDLE);
             return;
         }
 
@@ -564,30 +480,36 @@ public class BookingManagementView extends VerticalLayout {
             String timeframe;
             if (daysBefore >= 30) {
                 timeframe = "more than 30 days";
+                timeframe = "more than 30 days";
             } else if (daysBefore >= 7) {
+                timeframe = "7-29 days";
                 timeframe = "7-29 days";
             } else if (daysBefore >= 1) {
                 timeframe = "1-6 days";
+                timeframe = "1-6 days";
             } else {
+                timeframe = "on arrival day";
                 timeframe = "on arrival day";
             }
 
             Dialog confirm = new Dialog();
             confirm.setHeaderTitle("Confirm cancellation");
-
             VerticalLayout cnt = new VerticalLayout();
             cnt.add(new Paragraph("Cancellation window: " + timeframe + " before check-in"));
             cnt.add(new Paragraph("Cancellation fee: " + String.format("%.2f €", penalty)));
             cnt.add(new Paragraph("Refund: " + String.format("%.2f €", b.getTotalPrice().subtract(penalty))));
             cnt.add(new Paragraph("Do you want to confirm the cancellation?"));
+            cnt.add(new Paragraph("Cancellation window: " + timeframe + " before check-in"));
+            cnt.add(new Paragraph("Cancellation fee: " + String.format("%.2f €", penalty)));
+            cnt.add(new Paragraph("Refund: " + String.format("%.2f €", b.getTotalPrice().subtract(penalty))));
+            cnt.add(new Paragraph("Do you want to confirm the cancellation?"));
 
-            final BigDecimal penaltyFinal = penalty;
-
+            final java.math.BigDecimal penaltyFinal = penalty;
             Button confirmBtn = new Button("Confirm", ev -> {
                 try {
                     BookingCancellation bc = new BookingCancellation();
                     bc.setBooking(b);
-                    bc.setCancelledAt(LocalDateTime.now());
+                    bc.setCancelledAt(java.time.LocalDateTime.now());
                     bc.setReason("Cancelled by management");
                     bc.setCancellationFee(penaltyFinal);
 
@@ -602,27 +524,26 @@ public class BookingManagementView extends VerticalLayout {
                     bookingCancellationService.processCancellation(b, bc, refundedAmount);
 
                     confirm.close();
-                    reloadAndRefresh();
-
-                    Notification.show(
-                            "Booking cancelled. Refund: " + String.format("%.2f €", refundedAmount) + " | Fee: " + String.format("%.2f €", penaltyFinal),
-                            4000,
-                            Notification.Position.BOTTOM_START
-                    );
+                    grid.setItems(bookingService.findAll());
+                    Notification.show("Booking cancelled. Refund: " + String.format("%.2f €", refundedAmount) + " | Fee: " + String.format("%.2f €", penaltyFinal), 4000, Notification.Position.BOTTOM_START);
                 } catch (Exception ex) {
+                    Notification.show(ex.getMessage() != null ? ex.getMessage() : "Error canceling booking", 5000, Notification.Position.MIDDLE);
                     Notification.show(ex.getMessage() != null ? ex.getMessage() : "Error canceling booking", 5000, Notification.Position.MIDDLE);
                 }
             });
-
+            
             Button backBtn = new Button("Back", ev -> confirm.close());
             confirm.add(cnt, new HorizontalLayout(confirmBtn, backBtn));
             confirm.open();
 
         } catch (Exception ex) {
             Notification.show(ex.getMessage() != null ? ex.getMessage() : "Error canceling booking", 5000, Notification.Position.MIDDLE);
+            Notification.show(ex.getMessage() != null ? ex.getMessage() : "Error canceling booking", 5000, Notification.Position.MIDDLE);
         }
     }
 
+    // Open a details dialog for a booking. Shows tabs for details, payments, history and extras.
+    // History tab aggregates BookingModification entries grouped by modification timestamp.
     private void openDetails(Booking b) {
         Dialog d = new Dialog();
         d.setHeaderTitle("Booking Details - " + (b != null ? b.getBookingNumber() : ""));
@@ -640,14 +561,16 @@ public class BookingManagementView extends VerticalLayout {
         details.add(new Paragraph("Guests: " + formatValue(b.getAmount())));
         details.add(new Paragraph("Status: " + (b.getStatus() != null ? b.getStatus().name() : "UNKNOWN")));
 
-        // If cancelled: show cancellation fee and reason if available
-        if (b.getStatus() == BookingStatus.CANCELLED && b.getId() != null) {
+        // If cancelled: show the most recently saved cancellation fee and reason
+        if (b.getStatus() == com.hotel.booking.entity.BookingStatus.CANCELLED && b.getId() != null) {
             try {
                 bookingCancellationService.findLatestByBookingId(b.getId()).ifPresent(bc -> {
                     if (bc.getCancellationFee() != null) {
                         details.add(new Paragraph("Cancellation fee: " + String.format("%.2f €", bc.getCancellationFee())));
+                        details.add(new Paragraph("Cancellation fee: " + String.format("%.2f €", bc.getCancellationFee())));
                     }
                     if (bc.getReason() != null && !bc.getReason().isBlank()) {
+                        details.add(new Paragraph("Cancellation reason: " + bc.getReason()));
                         details.add(new Paragraph("Cancellation reason: " + bc.getReason()));
                     }
                 });
@@ -689,18 +612,15 @@ public class BookingManagementView extends VerticalLayout {
 
     private Div buildHistoryTab(Booking b) {
         Div history = new Div();
-
+        // Load modifications for this booking and display them grouped by `modifiedAt` timestamp
         if (b.getId() != null) {
             List<com.hotel.booking.entity.BookingModification> mods = modificationService.findByBookingId(b.getId());
             if (mods.isEmpty()) {
                 history.add(new Paragraph("No modification history available."));
             } else {
-                Map<LocalDateTime, List<com.hotel.booking.entity.BookingModification>> grouped =
-                        mods.stream().collect(Collectors.groupingBy(
-                                com.hotel.booking.entity.BookingModification::getModifiedAt,
-                                LinkedHashMap::new,
-                                Collectors.toList()
-                        ));
+                // Group by modifiedAt to produce one batch group per modification timestamp
+                java.util.Map<java.time.LocalDateTime, java.util.List<com.hotel.booking.entity.BookingModification>> grouped =
+                        mods.stream().collect(java.util.stream.Collectors.groupingBy(com.hotel.booking.entity.BookingModification::getModifiedAt, java.util.LinkedHashMap::new, java.util.stream.Collectors.toList()));
 
                 DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
 
@@ -710,7 +630,9 @@ public class BookingManagementView extends VerticalLayout {
 
                     VerticalLayout groupBox = new VerticalLayout();
                     groupBox.addClassName("history-group");
+                    groupBox.addClassName("history-group");
 
+                    // Header: timestamp + handler (first non-null handler in the group)
                     String who = "system";
                     for (com.hotel.booking.entity.BookingModification m : group) {
                         if (m.getHandledBy() != null) {
@@ -723,25 +645,21 @@ public class BookingManagementView extends VerticalLayout {
 
                     groupBox.add(new Paragraph(ts.format(dtf) + " — " + who));
 
+                    // List of field changes for this group
                     for (com.hotel.booking.entity.BookingModification m : group) {
                         HorizontalLayout row = new HorizontalLayout();
                         row.setWidthFull();
 
                         Paragraph field = new Paragraph(m.getFieldChanged() + ": ");
                         field.addClassName("history-field");
-
-                        Paragraph values = new Paragraph(
-                                (m.getOldValue() != null ? m.getOldValue() : "<null>")
-                                        + " → "
-                                        + (m.getNewValue() != null ? m.getNewValue() : "<null>")
-                        );
+                        Paragraph values = new Paragraph((m.getOldValue() != null ? m.getOldValue() : "<null>") + " → " + (m.getNewValue() != null ? m.getNewValue() : "<null>"));
                         values.addClassName("history-values");
-
                         row.add(field, values);
                         groupBox.add(row);
 
                         if (m.getReason() != null && !m.getReason().isBlank()) {
                             Span note = new Span("Reason: " + m.getReason());
+                            note.addClassName("history-note");
                             note.addClassName("history-note");
                             groupBox.add(note);
                         }
@@ -754,11 +672,12 @@ public class BookingManagementView extends VerticalLayout {
             history.add(new Paragraph("No modification history available."));
         }
 
-        // If a cancellation exists, display it prominently at top
+        // If a cancellation exists, display it prominently in the history (who, when, reason, fee)
         if (b.getId() != null) {
             try {
                 bookingCancellationService.findLatestByBookingId(b.getId()).ifPresent(bc -> {
                     VerticalLayout cancelBox = new VerticalLayout();
+                    cancelBox.addClassName("cancel-box");
                     cancelBox.addClassName("cancel-box");
 
                     DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
@@ -779,38 +698,64 @@ public class BookingManagementView extends VerticalLayout {
                         cancelBox.add(new Paragraph("Cancellation fee: " + String.format("%.2f €", bc.getCancellationFee())));
                     }
 
+                    // Prepend the cancellation entry to the top of the history list
                     history.addComponentAtIndex(0, cancelBox);
                 });
-            } catch (Exception ignored) {
+            } catch (Exception ex) {
+                // ignore any errors when loading cancellation info
             }
         }
 
-        return history;
-    }
-
-    private Div buildExtrasTab(Booking b) {
         Div extras = new Div();
-
+        // Show extras the same way as in MyBookings view: each extra with name, price and optional description
         if (b.getExtras() == null || b.getExtras().isEmpty()) {
             extras.add(new Paragraph("No additional services requested"));
-            return extras;
-        }
-
-        for (BookingExtra extra : b.getExtras()) {
-            Div extraItem = new Div();
-            extraItem.add(new Paragraph(extra.getName() + " - " + String.format("%.2f €", extra.getPrice())));
-            if (extra.getDescription() != null && !extra.getDescription().isBlank()) {
-                Paragraph desc = new Paragraph(extra.getDescription());
-                desc.getStyle().set("font-size", "var(--font-size-sm)");
-                desc.getStyle().set("color", "var(--color-text-secondary)");
-                extraItem.add(desc);
+        } else {
+            for (BookingExtra extra : b.getExtras()) {
+                Div extraItem = new Div();
+                extraItem.add(new Paragraph(extra.getName() + " - " + String.format("%.2f €", extra.getPrice())));
+                if (extra.getDescription() != null && !extra.getDescription().isBlank()) {
+                    Paragraph desc = new Paragraph(extra.getDescription());
+                    desc.getStyle().set("font-size", "var(--font-size-sm)");
+                    desc.getStyle().set("color", "var(--color-text-secondary)");
+                    extraItem.add(desc);
+                }
+                extras.add(extraItem);
             }
-            extras.add(extraItem);
         }
 
-        return extras;
+        Div pages = new Div(details, payments, history, extras);
+        pages.addClassName("booking-details-container");
+        payments.setVisible(false); 
+        history.setVisible(false); 
+        extras.setVisible(false);
+
+        tabs.addSelectedChangeListener(ev -> {
+            details.setVisible(tabs.getSelectedIndex() == 0);
+            payments.setVisible(tabs.getSelectedIndex() == 1);
+            history.setVisible(tabs.getSelectedIndex() == 2);
+            extras.setVisible(tabs.getSelectedIndex() == 3);
+        });
+
+        Button edit = new Button("Edit Booking");
+        if (b.getStatus() == null || b.getStatus() != BookingStatus.CONFIRMED) {
+            edit.addClickListener(e -> { d.close(); openAddBookingDialog(b); });
+        } else {
+            edit.setEnabled(false);
+            edit.getElement().setProperty("title", "Cannot edit a confirmed booking");
+        }
+        Button cancel = new Button("Cancel", e -> d.close());
+
+        d.add(new VerticalLayout(tabs, pages));
+        d.getFooter().add(new HorizontalLayout(edit, cancel));
+        d.open();
     }
 
+    /**
+     * Applies all active filter criteria to the booking list
+     * and updates the grid accordingly.
+     * @author Matthias Lohr
+     */
     private void filterBookings() {
         String search = searchField != null && searchField.getValue() != null
                 ? searchField.getValue().trim().toLowerCase()

@@ -9,6 +9,7 @@ import com.hotel.booking.repository.BookingCancellationRepository;
 import com.hotel.booking.service.RoomService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,7 @@ public class BookingCancellationService {
     private final EmailService emailService;
     private final RoomService roomService;
 
+    // Konstruktor-Injektion der benötigten Services
     @Autowired
     public BookingCancellationService(
             BookingCancellationRepository cancellationRepository,
@@ -45,6 +47,10 @@ public class BookingCancellationService {
         this.roomService = roomService;
     }
 
+    /**
+     * Backwards-compatible constructor for existing wiring that doesn't provide RoomService.
+     * Delegates to main constructor with a null RoomService.
+     */
     public BookingCancellationService(
             BookingCancellationRepository cancellationRepository,
             BookingService bookingService,
@@ -167,14 +173,16 @@ public class BookingCancellationService {
                 }
 
                 invoiceService.save(inv);
-                log.debug("Invoice {} status changed to {}", inv.getId(), inv.getInvoiceStatus());
+                System.out.println("DEBUG: Invoice " + inv.getId() + " status changed to " + inv.getInvoiceStatus());
             });
 
+            // After invoice/payment adjustments, attempt to release the booked room for the cancelled period
             try {
                 if (roomService != null && booking.getRoom() != null && booking.getRoom().getId() != null) {
                     roomService.releaseRoomIfFree(booking.getRoom().getId(), booking.getCheckInDate(), booking.getCheckOutDate());
                 }
             } catch (Exception ex) {
+                // Don't fail cancellation due to room-release issues; just log
                 System.err.println("Failed to release room after cancellation: " + ex.getMessage());
             }
         }
