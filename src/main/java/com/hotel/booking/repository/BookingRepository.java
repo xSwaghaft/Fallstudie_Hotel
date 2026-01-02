@@ -51,6 +51,12 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
             LocalDate endInclusive,
             LocalDate startInclusive);
 
+    boolean existsByRoom_IdAndCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqualAndStatusNot(
+            Long roomId,
+            LocalDate endInclusive,
+            LocalDate startInclusive,
+            BookingStatus statusToExclude);
+
     // --- Time period queries --------------------------------------------------
 
      // Alle Buchungen, in einem Zeitraum erstellt wurden:

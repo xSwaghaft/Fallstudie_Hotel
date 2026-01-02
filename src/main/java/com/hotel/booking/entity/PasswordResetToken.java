@@ -41,6 +41,12 @@ public class PasswordResetToken {
     @Column(nullable = false, unique = true, length = 64)
     private String token;
 
+    /**
+     * Cached email address for convenience/testing; populated from user and not persisted.
+     */
+    @jakarta.persistence.Transient
+    private String email;
+
     /** User requesting the password reset. */
     @ManyToOne(optional = false)
     @JoinColumn(name = "user_id", nullable = false,
@@ -62,6 +68,7 @@ public class PasswordResetToken {
         this.token = token;
         this.user = user;
         this.expiresAt = expiresAt;
+        this.email = user != null ? user.getEmail() : null;
     }
 
     public Long getId() {
@@ -80,11 +87,18 @@ public class PasswordResetToken {
         this.user = user;
     }
 
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
     /**
      * Convenience method to get the email address of the user.
      * @return the user's email address, or null if user is null
      */
     public String getEmail() {
+        if (email != null) {
+            return email;
+        }
         return user != null ? user.getEmail() : null;
     }
 
