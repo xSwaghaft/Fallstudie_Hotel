@@ -4,20 +4,22 @@ USE hotelbooking;
 -- Note: Replace password hashes (bcrypt) as needed. For admin, you can use your generated hash for "admin123" for example.
 
 -- Clean up: Delete all data (for clean restart)
-SET FOREIGN_KEY_CHECKS=0;
-TRUNCATE TABLE feedback;
-TRUNCATE TABLE booking_cancellation;
-TRUNCATE TABLE booking_modification;
-TRUNCATE TABLE payments;
-TRUNCATE TABLE booking_extra;
-TRUNCATE TABLE bookings;
-TRUNCATE TABLE invoices;
-TRUNCATE TABLE rooms;
-TRUNCATE TABLE room_images;
-TRUNCATE TABLE room_category;
-TRUNCATE TABLE room_extras;
-TRUNCATE TABLE users;
-SET FOREIGN_KEY_CHECKS=1;
+-- Note: TRUNCATE commands removed for first-time setup
+-- Uncomment and use only if you need to clear existing data:
+-- SET FOREIGN_KEY_CHECKS=0;
+-- TRUNCATE TABLE feedback;
+-- TRUNCATE TABLE booking_cancellation;
+-- TRUNCATE TABLE booking_modification;
+-- TRUNCATE TABLE payments;
+-- TRUNCATE TABLE booking_extra;
+-- TRUNCATE TABLE bookings;
+-- TRUNCATE TABLE invoices;
+-- TRUNCATE TABLE rooms;
+-- TRUNCATE TABLE room_images;
+-- TRUNCATE TABLE room_category;
+-- TRUNCATE TABLE room_extras;
+-- TRUNCATE TABLE users;
+-- SET FOREIGN_KEY_CHECKS=1;
 
 -- ---------- Users (at least 5 entries) ----------
 INSERT IGNORE INTO users 

@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   app:
     build: .
@@ -8,13 +7,19 @@ services:
       mailpit:
         condition: service_started
     environment:
+      SPRING_PROFILES_ACTIVE: production
       SPRING_DATASOURCE_URL: jdbc:mariadb://db:3306/hotelbooking
       SPRING_DATASOURCE_USERNAME: hotel
       SPRING_DATASOURCE_PASSWORD: hotelpass
+      SPRING_JPA_DDL_AUTO: update
+      SPRING_JPA_DEFER_DATASOURCE_INITIALIZATION: "true"
+      SPRING_JPA_SHOW_SQL: "false"
       SPRING_MAIL_HOST: mailpit
       SPRING_MAIL_PORT: 1025
       VAADIN_PRODUCTION_MODE: "true"
       APP_IMAGES_ROOT_DIR: /app/data/images
+      # Set to 'always' only for first-time setup, then change to 'never'
+      SPRING_SQL_INIT_MODE: always
     ports:
       - "8080:8080"
     volumes:
