@@ -14,6 +14,31 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Service class for managing payment operations.
+ * 
+ * This service handles all business logic related to payment processing, including:
+ * - Retrieving payments by various criteria (booking, transaction reference, status, method)
+ * - Processing new payments for bookings
+ * - Converting payment method strings from UI to enum values
+ * - Creating associated invoices when payments are processed
+ * - Updating booking status based on payment status
+ * 
+ * Payment processing is atomic and transactional, ensuring that payment records,
+ * booking status updates, and invoice creation are consistent.
+ * 
+ * The service supports multiple payment methods (Card, Bank Transfer) and tracks
+ * different payment statuses (Pending, Paid, Failed, Refunded, Partial).
+ * 
+ * All operations are transactional to maintain data consistency.
+ * 
+ * @author Arman Özcanli
+ * @see Payment
+ * @see PaymentRepository
+ * @see InvoiceService
+ * @see BookingService
+ * @see Booking
+ */
 @Service
 @Transactional
 public class PaymentService {

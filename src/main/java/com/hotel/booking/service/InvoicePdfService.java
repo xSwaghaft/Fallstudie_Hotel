@@ -28,6 +28,27 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
+/**
+ * Service class for generating invoice PDF documents.
+ * 
+ * This service is responsible for creating professional PDF invoices from invoice entity data.
+ * It uses the iText library to generate formatted PDF documents containing:
+ * - Hotel and company information
+ * - Guest and booking details
+ * - Invoice items and amounts
+ * - Payment status information
+ * - Professional styling and branding
+ * 
+ * The generated PDFs follow German formatting conventions (date format, currency, etc.)
+ * and include visual elements such as hotel logos and color schemes.
+ * 
+ * PDF documents are generated in-memory and returned as byte arrays for downloading.
+ * 
+ * @author Arman Özcanli
+ * @see Invoice
+ * @see Booking
+ * @see InvoiceService
+ */
 @Service
 public class InvoicePdfService {
 

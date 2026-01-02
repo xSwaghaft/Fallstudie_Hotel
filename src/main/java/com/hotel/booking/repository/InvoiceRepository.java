@@ -11,8 +11,16 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Repository interface for Invoice entity
+ * Repository interface for Invoice entity persistence operations.
+ * 
+ * This repository provides database access methods for invoice data.
+ * It supports querying invoices by number, status, booking, date range, and associated room.
+ * Includes methods for finding unpaid invoices and retrieving invoices by various criteria.
+ * Extends JpaRepository to provide standard CRUD operations.
+ * 
  * @author Arman Özcanli
+ * @see Invoice
+ * @see InvoiceService
  */
 @Repository
 public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
