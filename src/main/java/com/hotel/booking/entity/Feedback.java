@@ -10,7 +10,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Max;
@@ -49,11 +48,6 @@ public class Feedback {
     @OneToOne
     @JoinColumn(name = "booking_id")
     private Booking booking;
-    
-    // Beziehung zum Guest (User, der die Bewertung erstellt)
-    @ManyToOne
-    @JoinColumn(name = "guest_id")
-    private User guest;
     
     // Default constructor
     public Feedback() {
@@ -109,13 +103,14 @@ public class Feedback {
      public void setBooking(Booking booking) {
          this.booking = booking;
      }
-    
+     
+     /**
+      * Convenience method to get the guest who created this feedback.
+      * Since only the booking's guest can give feedback, this returns booking.guest.
+      * @return the guest user, or null if booking is null
+      */
      public User getGuest() {
-         return guest;
-     }
-    
-     public void setGuest(User guest) {
-         this.guest = guest;
+         return booking != null ? booking.getGuest() : null;
      }
     
     @Override
@@ -125,7 +120,7 @@ public class Feedback {
                 ", rating=" + rating +
                 ", comment='" + comment + '\'' +
                 ", createdAt=" + createdAt +
-                ", bookingId=" + booking +
-                ", guestId=" + guest +'}';
+                ", bookingId=" + (booking != null ? booking.getId() : null) +
+                ", guestId=" + (getGuest() != null ? getGuest().getId() : null) +'}';
     }
 }

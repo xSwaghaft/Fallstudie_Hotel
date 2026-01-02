@@ -66,6 +66,7 @@ public class BookingManagementView extends VerticalLayout {
     private final BookingFormService formService;
     private final com.hotel.booking.service.BookingModificationService modificationService;
     private final BookingCancellationService bookingCancellationService;
+    private final InvoiceService invoiceService;
 
     private static final DateTimeFormatter GERMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
@@ -88,6 +89,7 @@ public class BookingManagementView extends VerticalLayout {
         this.formService = formService;
         this.modificationService = modificationService;
         this.bookingCancellationService = bookingCancellationService;
+        this.invoiceService = invoiceService;
 
         setSpacing(true);
         setPadding(true);
@@ -129,11 +131,16 @@ public class BookingManagementView extends VerticalLayout {
         dialog.setHeaderTitle(existingBooking != null ? "Edit Booking" : "New Booking");
         dialog.setWidth("600px");
 
-        // If the existing booking is paid, do not allow edits
-        if (existingBooking != null && existingBooking.getInvoice() != null
-                && existingBooking.getInvoice().getInvoiceStatus() == Invoice.PaymentStatus.PAID) {
-            Notification.show("Cannot modify: booking already paid.", 4000, Notification.Position.MIDDLE);
-            return;
+        // Wenn vorhandene Buchung bezahlt ist, keine Änderungen erlauben
+        // Use InvoiceService to handle inverted relationship (Invoice owns booking_id FK)
+        if (existingBooking != null && existingBooking.getId() != null) {
+            boolean isPaid = invoiceService.findByBookingId(existingBooking.getId())
+                    .map(inv -> inv.getInvoiceStatus() == Invoice.PaymentStatus.PAID)
+                    .orElse(false);
+            if (isPaid) {
+                Notification.show("Änderung nicht möglich: Buchung bereits bezahlt.", 4000, Notification.Position.MIDDLE);
+                return;
+            }
         }
 
         /**

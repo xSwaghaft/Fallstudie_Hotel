@@ -78,6 +78,7 @@
     background-position: center;
     background-repeat: no-repeat;
     position: relative;
+    background-image: var(--card-image-url, none);
 }
 
 .room-card__image--empty {
@@ -191,6 +192,18 @@
     display: flex;
     align-items: center;
     gap: 0;
+}
+
+.room-card__rating-clickable {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.room-card__rating-clickable:hover {
+    opacity: 0.8;
 }
 
 .room-card__rating .filled {
@@ -418,4 +431,89 @@
     width: 100%;
     height: auto;
     object-fit: contain;
+}
+
+/* =========================================================
+   REVIEWS STYLES
+   ========================================================= */
+.reviews-empty {
+    text-align: center;
+    padding: var(--spacing-xl);
+}
+
+.reviews-avg-container {
+    text-align: center;
+    padding: var(--spacing-md);
+    background: var(--color-bg-secondary, #f5f5f5);
+    border-radius: var(--radius-md, 8px);
+    margin-bottom: var(--spacing-lg);
+}
+
+.reviews-avg-text {
+    font-size: var(--font-size-lg, 18px);
+    font-weight: 600;
+    margin: 0;
+}
+
+.reviews-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.review-card {
+    padding: var(--spacing-md);
+    border: 1px solid var(--color-border, #ddd);
+    border-radius: var(--radius-md, 8px);
+    background: var(--color-bg-white, #fff);
+}
+
+.review-card__header {
+    margin-bottom: var(--spacing-sm);
+}
+
+.review-card__category {
+    font-size: var(--font-size-md, 16px);
+    font-weight: 600;
+    margin: 0;
+    color: var(--color-text-primary, #333);
+}
+
+.review-card__stars {
+    margin: var(--spacing-sm) 0;
+}
+
+.review-card__comment {
+    margin: var(--spacing-sm) 0;
+    white-space: pre-wrap;
+}
+
+.review-card__date {
+    font-size: var(--font-size-sm, 12px);
+    color: var(--color-text-secondary, #999);
+    margin: var(--spacing-xs) 0 0 0;
+}
+
+.review-stars {
+    display: flex;
+    gap: 2px;
+}
+
+.review-star {
+    font-size: 18px;
+    color: #d1d5db; /* Default: grau (leer) */
+    display: inline-block;
+}
+
+.review-star.filled {
+    color: #fbbf24 !important; /* Gelb (gefüllt) */
+}
+
+.review-star.empty {
+    color: #d1d5db !important; /* Grau (leer) */
+}
+
+.room-gallery-reviews-content {
+    max-height: 60vh;
+    overflow-y: auto;
 }

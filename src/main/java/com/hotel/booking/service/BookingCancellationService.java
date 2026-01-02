@@ -7,6 +7,8 @@ import com.hotel.booking.entity.Invoice;
 import com.hotel.booking.entity.Payment;
 import com.hotel.booking.repository.BookingCancellationRepository;
 import com.hotel.booking.service.RoomService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +19,8 @@ import java.util.Optional;
 
 @Service
 public class BookingCancellationService {
+
+    private static final Logger log = LoggerFactory.getLogger(BookingCancellationService.class);
 
     private final BookingCancellationRepository cancellationRepository;
     private final BookingService bookingService;
@@ -70,7 +74,7 @@ public class BookingCancellationService {
                 emailService.sendBookingCancellation(saved.getBooking(), saved);
             } catch (Exception e) {
                 // Log error but don't fail the cancellation save
-                System.err.println("Failed to send booking cancellation email: " + e.getMessage());
+                log.error("Failed to send booking cancellation email for booking {}", saved.getBooking().getId(), e);
             }
         }
         
@@ -132,11 +136,11 @@ public class BookingCancellationService {
         // 1. Booking zu CANCELLED
         booking.setStatus(com.hotel.booking.entity.BookingStatus.CANCELLED);
         bookingService.save(booking);
-        System.out.println("DEBUG: Booking " + booking.getId() + " status changed to CANCELLED");
+        log.debug("Booking {} status changed to CANCELLED", booking.getId());
         
         // 2. BookingCancellation speichern
         save(cancellation);
-        System.out.println("DEBUG: BookingCancellation saved for booking " + booking.getId());
+        log.debug("BookingCancellation saved for booking {}", booking.getId());
 
         final BigDecimal safeRefund = refundedAmount == null
             ? BigDecimal.ZERO
@@ -154,15 +158,17 @@ public class BookingCancellationService {
                     p.setStatus(Invoice.PaymentStatus.PAID);
                     p.setRefundedAmount(null);
                 } else if (appliedRefund.compareTo(paidAmount) >= 0) {
+                    // Full refund (appliedRefund equals or exceeds paidAmount)
                     p.setStatus(Invoice.PaymentStatus.REFUNDED);
                     p.setRefundedAmount(appliedRefund);
                 } else {
+                    // Partial refund (appliedRefund < paidAmount)
                     p.setStatus(Invoice.PaymentStatus.PARTIAL);
                     p.setRefundedAmount(appliedRefund);
                 }
 
                 paymentService.save(p);
-                System.out.println("DEBUG: Payment " + p.getId() + " status changed to " + p.getStatus() + ", refundAmount: " + p.getRefundedAmount());
+                log.debug("Payment {} status changed to {}, refundAmount: {}", p.getId(), p.getStatus(), p.getRefundedAmount());
                 break;
             }
         }
@@ -174,15 +180,18 @@ public class BookingCancellationService {
                 BigDecimal appliedRefund = safeRefund.min(invoiceAmount);
 
                 if (appliedRefund.compareTo(BigDecimal.ZERO) == 0) {
+                    // No refund (100% cancellation fee)
                     inv.setInvoiceStatus(Invoice.PaymentStatus.PAID);
                 } else if (appliedRefund.compareTo(invoiceAmount) >= 0) {
+                    // Full refund (appliedRefund equals or exceeds invoiceAmount)
                     inv.setInvoiceStatus(Invoice.PaymentStatus.REFUNDED);
                 } else {
+                    // Partial refund (appliedRefund < invoiceAmount)
                     inv.setInvoiceStatus(Invoice.PaymentStatus.PARTIAL);
                 }
 
                 invoiceService.save(inv);
-                System.out.println("DEBUG: Invoice " + inv.getId() + " status changed to " + inv.getInvoiceStatus());
+                log.debug("Invoice {} status changed to {}", inv.getId(), inv.getInvoiceStatus());
             });
             // After invoice/payment adjustments, attempt to release the booked room for the cancelled period
             try {

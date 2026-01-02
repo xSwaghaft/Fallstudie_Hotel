@@ -53,9 +53,7 @@ public class BookingService {
         return bookingRepository.findById(id);
     }
 
-    public Optional<Booking> findByBookingNumber(String bookingNumber) {
-        return bookingRepository.findByBookingNumber(bookingNumber);
-    }
+ 
 
     // Average rating for a category (0 if no ratings)
     public double getAverageRatingForCategory(RoomCategory category) {
@@ -166,10 +164,6 @@ public class BookingService {
         }
         
         return savedBooking;
-    }
-
-    public void delete(Long id) {
-        bookingRepository.deleteById(id);
     }
 
     // Matthias Lohr
@@ -356,7 +350,8 @@ public class BookingService {
         return bookingRepository.findByCreatedAtLessThanEqualAndCreatedAtGreaterThanEqual(to, from);
     }
 
-    //Viktor Götting Sucht alle vergangenen CONFIRMED Buchungen für einen Gast
+    //Viktor Götting Sucht alle vergangenen COMPLETED Buchungen für einen Gast
+    // Nur COMPLETED Buchungen erlauben Reviews (nicht CONFIRMED)
     public List<Booking> findPastBookingsForGuest(Long guestId) {
         if (guestId == null) {
             return List.of();
