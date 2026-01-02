@@ -171,7 +171,7 @@ public class DashboardView extends VerticalLayout {
         } else if (role == UserRole.MANAGER) {
             Div card1 = CardFactory.createStatCard("Occupied Rooms", String.valueOf(occupiedRooms), VaadinIcon.BED);
             Div card2 = CardFactory.createStatCard("Available Rooms", String.valueOf(availableRooms), VaadinIcon.BED);
-            Div card3 = CardFactory.createStatCard("Revenue Today", String.valueOf(revenueToday), VaadinIcon.DOLLAR);
+            Div card3 = CardFactory.createStatCard("Revenue Today", String.valueOf(revenueToday) + " €", VaadinIcon.EURO);
             Div card4 = CardFactory.createStatCard("Current Guests", String.valueOf(currentGuests), VaadinIcon.USERS);
 
             row.add(card1, card2, card3, card4);

@@ -11,7 +11,6 @@ import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.BookingExtra;
 import com.hotel.booking.entity.BookingModification;
 import com.hotel.booking.entity.BookingStatus;
-import com.hotel.booking.entity.Invoice;
 import com.hotel.booking.service.BookingCancellationService;
 import com.hotel.booking.service.BookingModificationService;
 import com.hotel.booking.service.InvoiceService;
