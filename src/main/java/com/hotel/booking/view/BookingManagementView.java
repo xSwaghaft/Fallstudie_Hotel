@@ -14,7 +14,7 @@ import com.hotel.booking.service.BookingModificationService;
 import com.hotel.booking.service.BookingService;
 import com.hotel.booking.service.RoomCategoryService;
 import com.hotel.booking.service.RoomService;
-import com.hotel.booking.view.createNewBookingForm;
+
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
@@ -42,7 +42,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
+
 import java.util.stream.Collectors;
 
 @Route(value = "bookings", layout = MainLayout.class)
@@ -216,7 +216,7 @@ public class BookingManagementView extends VerticalLayout {
         grid.addColumn(Booking::getBookingNumber)
                 .setHeader("Booking ID")
                 .setWidth("130px")
-                .setFlexGrow(0);
+                .setFlexGrow(2);
 
         grid.addColumn(Booking::getAmount)
                 .setHeader("People")
@@ -240,23 +240,23 @@ public class BookingManagementView extends VerticalLayout {
 
         grid.addColumn(b -> formatDate(b.getCheckOutDate()))
                 .setHeader("Check-out")
-                .setAutoWidth(true)
+                .setWidth("140px")
                 .setFlexGrow(0);
 
         grid.addColumn(b -> "€" + (b.getTotalPrice() != null ? b.getTotalPrice() : BigDecimal.ZERO))
                 .setHeader("Amount")
                 .setAutoWidth(true)
-                .setFlexGrow(0);
+                .setFlexGrow(1);
 
         grid.addComponentColumn(this::createStatusBadge)
                 .setHeader("Status")
                 .setAutoWidth(true)
-                .setFlexGrow(0);
+                .setFlexGrow(1);
 
         grid.addComponentColumn(this::createActionButtons)
                 .setHeader("Actions")
                 .setAutoWidth(true)
-                .setFlexGrow(1);
+                .setFlexGrow(4);
 
         grid.setWidthFull();
         grid.setItems(bookings);
