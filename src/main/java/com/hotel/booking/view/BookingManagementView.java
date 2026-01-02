@@ -108,8 +108,7 @@ public class BookingManagementView extends VerticalLayout {
         this.roomService = roomService;
         this.paymentService = paymentService;
         this.invoiceService = invoiceService;
-        this.paymentService = paymentService;
-        this.invoiceService = invoiceService;
+        
 
         setSpacing(true);
         setPadding(true);
@@ -838,4 +837,104 @@ public class BookingManagementView extends VerticalLayout {
 
         return history;
     }
-    
+
+    private Div buildExtrasTab(Booking b) {
+        Div extras = new Div();
+
+        if (b.getExtras() == null || b.getExtras().isEmpty()) {
+            extras.add(new Paragraph("No additional services requested"));
+            return extras;
+        }
+
+        for (BookingExtra extra : b.getExtras()) {
+            Div extraItem = new Div();
+            extraItem.add(new Paragraph(extra.getName() + " - " + String.format("%.2f €", extra.getPrice())));
+            if (extra.getDescription() != null && !extra.getDescription().isBlank()) {
+                Paragraph desc = new Paragraph(extra.getDescription());
+                desc.getStyle().set("font-size", "var(--font-size-sm)");
+                desc.getStyle().set("color", "var(--color-text-secondary)");
+                extraItem.add(desc);
+            }
+            extras.add(extraItem);
+        }
+
+        return extras;
+    }
+
+    private void filterBookings() {
+        String search = searchField != null && searchField.getValue() != null
+                ? searchField.getValue().trim().toLowerCase()
+                : "";
+
+        String selectedStatus = statusFilter != null ? statusFilter.getValue() : ALL_STATUS;
+        LocalDate date = dateFilter != null ? dateFilter.getValue() : null;
+        String selectedCategory = categoryFilter != null ? categoryFilter.getValue() : ALL_ROOMS;
+
+        List<Booking> filtered = bookings.stream()
+                .filter(b -> {
+                    boolean matchesSearch = search.isEmpty()
+                            || (b.getBookingNumber() != null && b.getBookingNumber().toLowerCase().contains(search))
+                            || (b.getGuest() != null && b.getGuest().getFullName() != null
+                                && b.getGuest().getFullName().toLowerCase().contains(search));
+
+                    boolean matchesStatus = ALL_STATUS.equals(selectedStatus)
+                            || (b.getStatus() != null && b.getStatus().name().equals(selectedStatus));
+
+                    boolean matchesDate = (date == null)
+                            || (b.getCreatedAt() != null && b.getCreatedAt().isAfter(date));
+
+                    boolean matchesCategory = ALL_ROOMS.equals(selectedCategory)
+                            || (b.getRoomCategory() != null
+                                && b.getRoomCategory().getName() != null
+                                && b.getRoomCategory().getName().equalsIgnoreCase(selectedCategory));
+
+                    return matchesSearch && matchesStatus && matchesDate && matchesCategory;
+                })
+                .toList();
+
+        grid.setItems(filtered);
+    }
+
+    private VerticalLayout createPreviewSection(String title,
+                                               LocalDate checkIn,
+                                               LocalDate checkOut,
+                                               Integer amount,
+                                               BigDecimal totalPrice,
+                                               Set<BookingExtra> extras) {
+        VerticalLayout section = new VerticalLayout();
+        section.addClassName("booking-edit-preview-section");
+
+        Paragraph titlePara = new Paragraph(title);
+        titlePara.addClassName("booking-edit-preview-title");
+        section.add(titlePara);
+
+        section.add(new Paragraph("Check-in: " + formatDate(checkIn)));
+        section.add(new Paragraph("Check-out: " + formatDate(checkOut)));
+        section.add(new Paragraph("Guests: " + formatValue(amount)));
+        section.add(new Paragraph("Total Price: " + formatPrice(totalPrice)));
+        section.add(new Paragraph("Extras: " + formatExtras(extras)));
+
+        return section;
+    }
+
+    private String formatDate(LocalDate date) {
+        return date != null ? date.format(GERMAN_DATE_FORMAT) : "N/A";
+    }
+
+    private String formatValue(Object value) {
+        return value != null ? value.toString() : "N/A";
+    }
+
+    private String formatPrice(BigDecimal price) {
+        return price != null ? String.format("%.2f €", price) : "N/A";
+    }
+
+    private String formatExtras(Set<BookingExtra> extras) {
+        if (extras == null || extras.isEmpty()) {
+            return "none";
+        }
+        return extras.stream()
+                .map(BookingExtra::getName)
+                .collect(Collectors.joining(", "));
+    }
+}
