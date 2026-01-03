@@ -77,6 +77,7 @@ public class RoomImageServiceTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void updateImage_unmarksOtherPrimaries_andSavesAll() {
         RoomImageService svc = this.svc;
 

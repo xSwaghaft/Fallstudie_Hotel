@@ -45,6 +45,9 @@ class InvoicePdfServiceTest {
     @Mock
     com.hotel.booking.repository.BookingCancellationRepository bookingCancellationRepository;
 
+    @Mock
+    com.hotel.booking.repository.PaymentRepository paymentRepository;
+
     @InjectMocks
     InvoicePdfService service;
 

@@ -41,7 +41,4 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     
     // Find all payments by status and method
     List<Payment> findByStatusAndMethod(Invoice.PaymentStatus status, Invoice.PaymentMethod method);
-    
-    // TODO: Activate when Booking entity is created
-    // List<Payment> findByBooking(Booking booking);
 }

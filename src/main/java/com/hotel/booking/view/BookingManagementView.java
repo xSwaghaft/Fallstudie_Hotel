@@ -18,8 +18,6 @@ import com.hotel.booking.service.InvoiceService;
 import com.hotel.booking.service.PaymentService;
 import com.hotel.booking.service.RoomCategoryService;
 import com.hotel.booking.service.RoomService;
-import com.hotel.booking.view.createNewBookingForm;
-
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.datepicker.DatePicker;
@@ -46,7 +44,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 @Route(value = "bookings", layout = MainLayout.class)
@@ -395,7 +392,16 @@ public class BookingManagementView extends VerticalLayout {
 
             Button checkInBtn = new Button(
                     VaadinIcon.SIGN_IN.create(),
-                    e -> openPaymentDialog(booking));
+                    e -> {
+                        // Only show payment dialog if status is PENDING
+                        if (booking.getStatus() == BookingStatus.PENDING) {
+                            openPaymentDialog(booking);
+                        } else {
+                            // For CONFIRMED and MODIFIED, proceed directly to check-in
+                            performCheckIn(booking);
+                            Notification.show("Check-in successful.", 3000, Notification.Position.BOTTOM_START);
+                        }
+                    });
             checkInBtn.getElement().setAttribute("title", "Check In");
             layout.add(checkInBtn);
             hasButton = true;
@@ -681,17 +687,19 @@ public class BookingManagementView extends VerticalLayout {
         Tabs tabs = new Tabs(new Tab("Details"), new Tab("History"), new Tab("Extras"));
 
         Div details = new Div();
-        details.add(new Paragraph("Guest Name: " + (b.getGuest() != null ? b.getGuest().getFullName() : "N/A")));
-        details.add(new Paragraph("Booking Number: " + (b.getBookingNumber() != null ? b.getBookingNumber() : "N/A")));
-        details.add(new Paragraph("Total Price: €" + (b.getTotalPrice() != null ? b.getTotalPrice() : BigDecimal.ZERO)));
-        details.add(new Paragraph("Check-in: " + formatDate(b.getCheckInDate())));
-        details.add(new Paragraph("Check-out: " + formatDate(b.getCheckOutDate())));
-        details.add(new Paragraph("Room: " + (b.getRoom() != null ? b.getRoom().getRoomNumber() : "N/A")));
-        details.add(new Paragraph("Guests: " + formatValue(b.getAmount())));
-        details.add(new Paragraph("Status: " + (b.getStatus() != null ? b.getStatus().name() : "UNKNOWN")));
+        if (b != null) {
+            details.add(new Paragraph("Guest Name: " + (b.getGuest() != null ? b.getGuest().getFullName() : "N/A")));
+            details.add(new Paragraph("Booking Number: " + (b.getBookingNumber() != null ? b.getBookingNumber() : "N/A")));
+            details.add(new Paragraph("Total Price: €" + (b.getTotalPrice() != null ? b.getTotalPrice() : BigDecimal.ZERO)));
+            details.add(new Paragraph("Check-in: " + formatDate(b.getCheckInDate())));
+            details.add(new Paragraph("Check-out: " + formatDate(b.getCheckOutDate())));
+            details.add(new Paragraph("Room: " + (b.getRoom() != null ? b.getRoom().getRoomNumber() : "N/A")));
+            details.add(new Paragraph("Guests: " + formatValue(b.getAmount())));
+            details.add(new Paragraph("Status: " + (b.getStatus() != null ? b.getStatus().name() : "UNKNOWN")));
+        }
 
         // If cancelled: show cancellation fee and reason if available
-        if (b.getStatus() == BookingStatus.CANCELLED && b.getId() != null) {
+        if (b != null && b.getStatus() == BookingStatus.CANCELLED && b.getId() != null) {
             try {
                 bookingCancellationService.findLatestByBookingId(b.getId()).ifPresent(bc -> {
                     if (bc.getCancellationFee() != null) {
@@ -740,7 +748,7 @@ public class BookingManagementView extends VerticalLayout {
     private Div buildHistoryTab(Booking b) {
         Div history = new Div();
 
-        if (b.getId() != null) {
+        if (b != null && b.getId() != null) {
             List<com.hotel.booking.entity.BookingModification> mods = modificationService.findByBookingId(b.getId());
             if (mods.isEmpty()) {
                 history.add(new Paragraph("No modification history available."));
@@ -805,7 +813,7 @@ public class BookingManagementView extends VerticalLayout {
         }
 
         // If a cancellation exists, display it prominently at top
-        if (b.getId() != null) {
+        if (b != null && b.getId() != null) {
             try {
                 bookingCancellationService.findLatestByBookingId(b.getId()).ifPresent(bc -> {
                     VerticalLayout cancelBox = new VerticalLayout();
@@ -841,7 +849,7 @@ public class BookingManagementView extends VerticalLayout {
     private Div buildExtrasTab(Booking b) {
         Div extras = new Div();
 
-        if (b.getExtras() == null || b.getExtras().isEmpty()) {
+        if (b == null || b.getExtras() == null || b.getExtras().isEmpty()) {
             extras.add(new Paragraph("No additional services requested"));
             return extras;
         }

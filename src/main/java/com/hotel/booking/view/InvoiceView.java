@@ -2,8 +2,10 @@ package com.hotel.booking.view;
 
 import com.hotel.booking.entity.Invoice;
 import com.hotel.booking.entity.UserRole;
+import com.hotel.booking.service.BookingCancellationService;
 import com.hotel.booking.service.InvoiceService;
 import com.hotel.booking.service.InvoicePdfService;
+import com.hotel.booking.service.PaymentService;
 import com.hotel.booking.security.SessionService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Key;
@@ -74,13 +76,17 @@ public class InvoiceView extends VerticalLayout {
     private final InvoiceService invoiceService;
     @SuppressWarnings("unused")
     private final InvoicePdfService invoicePdfService;
+    private final PaymentService paymentService;
+    private final BookingCancellationService bookingCancellationService;
     private Grid<Invoice> grid;
     private static final DateTimeFormatter GERMAN_DATETIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
-    public InvoiceView(SessionService sessionService, InvoiceService invoiceService, InvoicePdfService invoicePdfService) {
+    public InvoiceView(SessionService sessionService, InvoiceService invoiceService, InvoicePdfService invoicePdfService, PaymentService paymentService, BookingCancellationService bookingCancellationService) {
         this.sessionService = sessionService;
         this.invoiceService = invoiceService;
         this.invoicePdfService = invoicePdfService;
+        this.paymentService = paymentService;
+        this.bookingCancellationService = bookingCancellationService;
 
         setSpacing(true);
         setPadding(true);
@@ -127,7 +133,7 @@ public class InvoiceView extends VerticalLayout {
         subtitle.addClassName("invoice-subtitle");
 
         TextField search = new TextField("Search");
-        search.setPlaceholder("Invoice Number...");
+        search.setPlaceholder("Invoice Number or Booking Number...");
         search.setPrefixComponent(VaadinIcon.SEARCH.create());
 
         Select<String> status = new Select<>();
@@ -177,12 +183,7 @@ public class InvoiceView extends VerticalLayout {
 
         grid.addColumn(Invoice::getInvoiceNumber).setHeader("Invoice No.").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.addColumn(invoice -> invoice.getBooking() != null ? invoice.getBooking().getBookingNumber() : "").setHeader("Booking No.").setSortable(true).setAutoWidth(true).setFlexGrow(1);
-        grid.addColumn(invoice -> {
-            NumberFormat nf = NumberFormat.getInstance(Locale.GERMANY);
-            nf.setMinimumFractionDigits(2);
-            nf.setMaximumFractionDigits(2);
-            return nf.format(invoice.getAmount()) + " €";
-        }).setHeader("Amount").setSortable(true).setAutoWidth(true).setFlexGrow(1);
+        grid.addColumn(invoice -> formatInvoiceAmount(invoice)).setHeader("Amount").setSortable(true).setFlexGrow(3);
         grid.addColumn(Invoice::getPaymentMethod).setHeader("Payment Method").setSortable(true).setAutoWidth(true).setFlexGrow(1);
         grid.addComponentColumn(invoice -> createStatusBadge(invoice.getInvoiceStatus()))
             .setHeader("Status").setSortable(true).setAutoWidth(true).setFlexGrow(1);
@@ -254,13 +255,24 @@ public class InvoiceView extends VerticalLayout {
         if (query == null || query.isBlank()) {
             return items;
         }
+        String queryLower = query.toLowerCase().trim();
+        
+        // Try exact match by invoice number first
         var byNumber = invoiceService.findByInvoiceNumber(query);
         if (byNumber.isPresent()) {
             return Collections.singletonList(byNumber.get());
         }
+        
+        // Search by invoice number (substring) or booking number
         return items.stream()
-                .filter(inv -> inv.getInvoiceNumber() != null && 
-                        inv.getInvoiceNumber().toLowerCase().contains(query.toLowerCase()))
+                .filter(inv -> {
+                    boolean matchesInvoiceNumber = inv.getInvoiceNumber() != null && 
+                            inv.getInvoiceNumber().toLowerCase().contains(queryLower);
+                    boolean matchesBookingNumber = inv.getBooking() != null && 
+                            inv.getBooking().getBookingNumber() != null && 
+                            inv.getBooking().getBookingNumber().toLowerCase().contains(queryLower);
+                    return matchesInvoiceNumber || matchesBookingNumber;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -302,5 +314,41 @@ public class InvoiceView extends VerticalLayout {
             logger.error("Error initiating PDF download", e);
             Notification.show("Error downloading invoice: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
         }
+    }
+
+    private String formatInvoiceAmount(Invoice invoice) {
+        NumberFormat nf = NumberFormat.getInstance(Locale.GERMANY);
+        nf.setMinimumFractionDigits(2);
+        nf.setMaximumFractionDigits(2);
+        String amount = nf.format(invoice.getAmount()) + " €";
+        
+        // Check if this is a PARTIAL invoice for a cancelled booking
+        if (invoice.getInvoiceStatus() == com.hotel.booking.entity.Invoice.PaymentStatus.PARTIAL &&
+            invoice.getBooking() != null && 
+            invoice.getBooking().getStatus() == com.hotel.booking.entity.BookingStatus.CANCELLED) {
+            
+            java.util.List<com.hotel.booking.entity.Payment> payments = paymentService.findByBookingId(invoice.getBooking().getId());
+            java.util.Optional<com.hotel.booking.entity.Payment> partialPayment = 
+                payments.stream()
+                    .filter(p -> p.getStatus() == com.hotel.booking.entity.Invoice.PaymentStatus.PARTIAL)
+                    .findFirst();
+            
+            if (partialPayment.isPresent() && partialPayment.get().getRefundedAmount() != null) {
+                // Determine if payment was made before cancellation (show "Refunded")
+                // or if this is a cancellation fee (show "Fee")
+                String feeLabel = "Fee"; // Default: show "Fee" for cancellation fees
+                com.hotel.booking.entity.Payment payment = partialPayment.get();
+                java.util.Optional<com.hotel.booking.entity.BookingCancellation> cancellation = 
+                    bookingCancellationService.findLatestByBookingId(invoice.getBooking().getId());
+                
+                if (payment.getPaidAt() != null && cancellation.isPresent() &&
+                    payment.getPaidAt().isBefore(cancellation.get().getCancelledAt())) {
+                    // Payment was made before cancellation - this is a refund
+                    feeLabel = "Refunded";
+                }
+                amount += " (" + nf.format(payment.getRefundedAmount()) + " € " + feeLabel + ")";
+            }
+        }
+        return amount;
     }
 }

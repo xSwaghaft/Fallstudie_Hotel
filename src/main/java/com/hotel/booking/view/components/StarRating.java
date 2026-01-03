@@ -3,7 +3,6 @@ package com.hotel.booking.view.components;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
 
 /**
  * Component for displaying a star rating with half-star support.
@@ -33,7 +32,6 @@ public class StarRating extends HorizontalLayout {
     private static final String RATING_TEXT_CLASS = "room-card__rating-text";
     
     private final Div clickableStarsWrapper;
-    private Runnable onClickCallback;
     
     /**
      * Creates a new StarRating component.
@@ -42,7 +40,6 @@ public class StarRating extends HorizontalLayout {
      * @param onClick callback to execute when stars are clicked (can be null)
      */
     public StarRating(double average, Runnable onClick) {
-        this.onClickCallback = onClick;
         
         addClassName(RATING_CLASS);
         setSpacing(false);
@@ -80,7 +77,6 @@ public class StarRating extends HorizontalLayout {
      * @param callback Runnable to execute on click
      */
     public void setOnClick(Runnable callback) {
-        this.onClickCallback = callback;
         if (callback != null) {
             clickableStarsWrapper.addClickListener(e -> callback.run());
         }
