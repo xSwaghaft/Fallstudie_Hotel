@@ -152,8 +152,9 @@ public class DashboardView extends VerticalLayout {
         int currentGuests = bookingService.getNumberOfGuestsPresent();
         int checkoutsToday = bookingService.getNumberOfCheckoutsToday();
         int checkinsToday = bookingService.getNumberOfCheckinsToday();
-        int occupiedRooms = bookingService.getActiveBookings(LocalDate.now(), LocalDate.now()).size();
-        int availableRooms = roomService.getAllRooms().size() - occupiedRooms;
+        RoomService.RoomStatistics roomStats = roomService.calculateStatistics();
+        int occupiedRooms = (int) roomStats.occupiedRooms;
+        int availableRooms = (int) roomStats.availableRooms;
         BigDecimal revenueToday = bookingService.getRevenueToday();
         int pendingInvoices = invoiceService.getNumberOfPendingInvoices();
         // Verwende HorizontalLayout statt FlexLayout für gleichmäßige Verteilung
@@ -171,7 +172,7 @@ public class DashboardView extends VerticalLayout {
         } else if (role == UserRole.MANAGER) {
             Div card1 = CardFactory.createStatCard("Occupied Rooms", String.valueOf(occupiedRooms), VaadinIcon.BED);
             Div card2 = CardFactory.createStatCard("Available Rooms", String.valueOf(availableRooms), VaadinIcon.BED);
-            Div card3 = CardFactory.createStatCard("Revenue Today", String.valueOf(revenueToday), VaadinIcon.DOLLAR);
+            Div card3 = CardFactory.createStatCard("Revenue Today", String.valueOf(revenueToday) + " €", VaadinIcon.EURO);
             Div card4 = CardFactory.createStatCard("Current Guests", String.valueOf(currentGuests), VaadinIcon.USERS);
 
             row.add(card1, card2, card3, card4);

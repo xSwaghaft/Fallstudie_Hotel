@@ -24,7 +24,6 @@ import com.hotel.booking.entity.BookingExtra;
 import com.hotel.booking.entity.BookingModification;
 import com.hotel.booking.entity.User;
 import com.hotel.booking.repository.BookingModificationRepository;
-import com.hotel.booking.service.PaymentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;

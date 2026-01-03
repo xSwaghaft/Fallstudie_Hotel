@@ -1,8 +1,10 @@
 package com.hotel.booking.view;
 
 import com.hotel.booking.entity.Payment;
+import com.hotel.booking.entity.Invoice;
 import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.security.SessionService;
+import com.hotel.booking.service.BookingCancellationService;
 import com.hotel.booking.service.PaymentService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Key;
@@ -66,12 +68,14 @@ public class PaymentView extends VerticalLayout {
 
     private final SessionService sessionService;
     private final PaymentService paymentService;
+    private final BookingCancellationService bookingCancellationService;
     private Grid<Payment> grid;
     private static final DateTimeFormatter GERMAN_DATETIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
-    public PaymentView(SessionService sessionService, PaymentService paymentService) {
+    public PaymentView(SessionService sessionService, PaymentService paymentService, BookingCancellationService bookingCancellationService) {
         this.sessionService = sessionService;
         this.paymentService = paymentService;
+        this.bookingCancellationService = bookingCancellationService;
 
         setSpacing(true);
         setPadding(true);
@@ -215,9 +219,39 @@ public class PaymentView extends VerticalLayout {
     // ===== FILTER AND FORMATTING HELPER METHODS =====
     
     private String formatPaymentAmount(Payment payment) {
-        if (payment.getRefundedAmount() != null && 
+        // Check if it's a PARTIAL payment
+        if (payment.getStatus() == Invoice.PaymentStatus.PARTIAL) {
+            // For PARTIAL status on cancelled bookings, check if booking was confirmed before cancellation
+            if (payment.getBooking() != null && 
+                payment.getBooking().getStatus() == com.hotel.booking.entity.BookingStatus.CANCELLED) {
+                // Show total amount with fee/refunded in brackets
+                if (payment.getRefundedAmount() != null && 
+                    payment.getRefundedAmount().compareTo(java.math.BigDecimal.ZERO) > 0) {
+                    // Determine the label: show "Refunded" if payment was made before cancellation (confirmed booking that was paid then cancelled)
+                    // Show "Fee" if this is a cancellation fee for an unpaid booking
+                    String label = "Fee"; // Default: show "Fee" for cancellation fees
+                    java.util.Optional<com.hotel.booking.entity.BookingCancellation> cancellation = 
+                        bookingCancellationService.findLatestByBookingId(payment.getBooking().getId());
+                    
+                    if (payment.getPaidAt() != null && cancellation.isPresent() &&
+                        payment.getPaidAt().isBefore(cancellation.get().getCancelledAt())) {
+                        // Payment was made before cancellation - this is a refund
+                        label = "Refunded";
+                    }
+                    return String.format("%.2f € (%.2f € %s)", payment.getAmount(), payment.getRefundedAmount(), label);
+                }
+            }
+            // For other PARTIAL payments, show refunded amount if available
+            if (payment.getRefundedAmount() != null && 
+                payment.getRefundedAmount().compareTo(java.math.BigDecimal.ZERO) > 0) {
+                return String.format("%.2f € (%.2f € Refunded)", payment.getAmount(), payment.getRefundedAmount());
+            }
+        }
+        // For REFUNDED status, show the refunded amount
+        if (payment.getStatus() == Invoice.PaymentStatus.REFUNDED &&
+            payment.getRefundedAmount() != null && 
             payment.getRefundedAmount().compareTo(java.math.BigDecimal.ZERO) > 0) {
-            return String.format("%.2f € (refunded)", payment.getRefundedAmount());
+            return String.format("%.2f € (%.2f € Refunded)", payment.getAmount(), payment.getRefundedAmount());
         }
         return String.format("%.2f €", payment.getAmount());
     }

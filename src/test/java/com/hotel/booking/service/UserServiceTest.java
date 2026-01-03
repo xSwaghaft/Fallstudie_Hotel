@@ -21,7 +21,6 @@ package com.hotel.booking.service;
 
 import com.hotel.booking.entity.AdressEmbeddable;
 import com.hotel.booking.entity.User;
-import com.hotel.booking.entity.UserRole;
 import com.hotel.booking.repository.BookingRepository;
 import com.hotel.booking.repository.BookingCancellationRepository;
 import com.hotel.booking.repository.BookingModificationRepository;

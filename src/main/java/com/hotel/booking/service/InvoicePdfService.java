@@ -4,6 +4,7 @@ import com.hotel.booking.entity.Invoice;
 import com.hotel.booking.entity.Booking;
 import com.hotel.booking.entity.User;
 import com.hotel.booking.repository.BookingCancellationRepository;
+import com.hotel.booking.repository.PaymentRepository;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
@@ -57,9 +58,12 @@ public class InvoicePdfService {
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm").withLocale(Locale.GERMANY);
 
     private final BookingCancellationRepository bookingCancellationRepository;
+    private final PaymentRepository paymentRepository;
 
-    public InvoicePdfService(BookingCancellationRepository bookingCancellationRepository) {
+    public InvoicePdfService(BookingCancellationRepository bookingCancellationRepository,
+                             PaymentRepository paymentRepository) {
         this.bookingCancellationRepository = bookingCancellationRepository;
+        this.paymentRepository = paymentRepository;
     }
 
     public byte[] generateInvoicePdf(Invoice invoice) {
@@ -282,8 +286,27 @@ public class InvoicePdfService {
                     .filter(v -> v != null && v.compareTo(BigDecimal.ZERO) > 0)
                     .ifPresent(refund -> {
                         BigDecimal refundScaled = refund.setScale(2, RoundingMode.HALF_UP);
+                        
+                        // Determine if this is a refund or a fee
+                        var paymentWithRefund = paymentRepository.findByBookingId(booking.getId())
+                                .stream()
+                                .filter(p -> p.getRefundedAmount() != null && p.getRefundedAmount().compareTo(BigDecimal.ZERO) > 0)
+                                .findFirst();
+                        
+                        String amountLabel = "Refund Amount:"; // Default label
+                        
+                        // Check if this is a fee (payment made after or at same time as cancellation)
+                        if (paymentWithRefund.isPresent() && paymentWithRefund.get().getPaidAt() != null) {
+                            var cancellation = bookingCancellationRepository.findTopByBookingIdOrderByCancelledAtDesc(booking.getId());
+                            if (cancellation.isPresent() && 
+                                !paymentWithRefund.get().getPaidAt().isBefore(cancellation.get().getCancelledAt())) {
+                                // Payment was made at or after cancellation - this is a fee
+                                amountLabel = "Fee Amount:";
+                            }
+                        }
+                        
                         Cell refundLabel = new Cell()
-                            .add(new Paragraph("Refund Amount:").setBold().setFontSize(9))
+                            .add(new Paragraph(amountLabel).setBold().setFontSize(9))
                             .setBorder(null).setPadding(5);
                         Cell refundVal = new Cell()
                             .add(new Paragraph("-€" + String.format(Locale.GERMANY, "%.2f", refundScaled))
@@ -346,7 +369,8 @@ public class InvoicePdfService {
             totalLabel.setBackgroundColor(headerColor).setFontColor(ColorConstants.WHITE);
             totalTable.addCell(totalLabel);
             
-            Cell totalAmount = new Cell().add(new Paragraph("€" + (invoice.getAmount() != null ? String.format("%.2f", invoice.getAmount()) : "N/A")).setFontSize(12).setBold()).setPadding(5);
+            BigDecimal displayAmount = getTotalDisplayAmount(invoice, booking);
+            Cell totalAmount = new Cell().add(new Paragraph("€" + (displayAmount != null ? String.format(Locale.GERMANY, "%.2f", displayAmount) : "N/A")).setFontSize(12).setBold()).setPadding(5);
             totalAmount.setBackgroundColor(accentColor);
             totalTable.addCell(totalAmount);
             
@@ -368,6 +392,51 @@ public class InvoicePdfService {
             logger.error("Error generating PDF", e);
             throw new RuntimeException("PDF generation failed: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Calculate the amount to display in the PDF.
+     * For PARTIAL invoices, shows the refunded amount (from Payment or BookingCancellation).
+     * For REFUNDED invoices, shows 0 (fully refunded).
+     * For other invoices, shows the original invoice amount.
+     */
+    private BigDecimal getTotalDisplayAmount(Invoice invoice, Booking booking) {
+        if (invoice == null || invoice.getAmount() == null) {
+            return BigDecimal.ZERO;
+        }
+
+        Invoice.PaymentStatus statusEnum = invoice.getInvoiceStatus() != null 
+            ? invoice.getInvoiceStatus() 
+            : Invoice.PaymentStatus.PENDING;
+
+        // For REFUNDED invoices, show 0 (fully refunded)
+        if (statusEnum == Invoice.PaymentStatus.REFUNDED) {
+            return BigDecimal.ZERO;
+        }
+
+        // For PARTIAL invoices, check for refunded amount
+        if (statusEnum == Invoice.PaymentStatus.PARTIAL && booking != null && booking.getId() != null) {
+            
+            // Try to get refunded amount from Payment (for cancelled booking fee payments)
+            var paymentWithRefund = paymentRepository.findByBookingId(booking.getId())
+                    .stream()
+                    .filter(p -> p.getRefundedAmount() != null && p.getRefundedAmount().compareTo(BigDecimal.ZERO) > 0)
+                    .findFirst();
+            
+            if (paymentWithRefund.isPresent()) {
+                return paymentWithRefund.get().getRefundedAmount();
+            }
+            
+            // Otherwise, try BookingCancellation (for booking refunds)
+            var cancellation = bookingCancellationRepository.findTopByBookingIdOrderByCancelledAtDesc(booking.getId());
+            if (cancellation.isPresent() && cancellation.get().getRefundedAmount() != null 
+                    && cancellation.get().getRefundedAmount().compareTo(BigDecimal.ZERO) > 0) {
+                return cancellation.get().getRefundedAmount();
+            }
+        }
+
+        // Default: return invoice amount as-is
+        return invoice.getAmount();
     }
 }
 
