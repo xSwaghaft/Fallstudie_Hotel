@@ -121,6 +121,7 @@ public class PasswordResetService {
         String token = UUID.randomUUID().toString();
         Instant expires = Instant.now().plus(TOKEN_EXPIRATION_HOURS, ChronoUnit.HOURS);
         PasswordResetToken prt = new PasswordResetToken(token, user, expires);
+        prt.setEmail(email);
         tokenRepository.save(prt);
 
         String resetLink = String.format("%s/%s?token=%s", baseUrl, ResetPasswordView.ROUTE, token);

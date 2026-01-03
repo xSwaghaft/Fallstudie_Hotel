@@ -171,7 +171,7 @@ public class DashboardView extends VerticalLayout {
         } else if (role == UserRole.MANAGER) {
             Div card1 = CardFactory.createStatCard("Occupied Rooms", String.valueOf(occupiedRooms), VaadinIcon.BED);
             Div card2 = CardFactory.createStatCard("Available Rooms", String.valueOf(availableRooms), VaadinIcon.BED);
-            Div card3 = CardFactory.createStatCard("Revenue Today", String.valueOf(revenueToday) + " €", VaadinIcon.EURO);
+            Div card3 = CardFactory.createStatCard("Revenue Today", String.valueOf(revenueToday), VaadinIcon.DOLLAR);
             Div card4 = CardFactory.createStatCard("Current Guests", String.valueOf(currentGuests), VaadinIcon.USERS);
 
             row.add(card1, card2, card3, card4);
@@ -207,17 +207,17 @@ public class DashboardView extends VerticalLayout {
         cardHeader.add(headerLeft, viewAll);
 
         // Configure columns manually
-        grid.addColumn(Booking::getBookingNumber).setHeader("Booking ID").setWidth("170px").setFlexGrow(0);
+        grid.addColumn(Booking::getBookingNumber).setHeader("Booking ID").setWidth("170px").setFlexGrow(1);
         grid.addColumn(booking -> booking.getGuest().getFullName()).setHeader("Guest Name").setFlexGrow(2);
-        grid.addColumn(booking -> booking.getRoom().getRoomNumber()).setHeader("Room").setWidth("100px").setFlexGrow(0);
+        grid.addColumn(booking -> booking.getRoom().getRoomNumber()).setHeader("Room").setWidth("100px").setFlexGrow(1);
         grid.addColumn(booking -> booking.getCheckInDate().format(GERMAN_DATE_FORMAT))
-                .setHeader("Check-in Date").setWidth("140px").setFlexGrow(0);
-        grid.addComponentColumn(this::createStatusBadge).setHeader("Status").setWidth("120px").setFlexGrow(0);
+                .setHeader("Check-in Date").setWidth("140px").setFlexGrow(1);
+        grid.addComponentColumn(this::createStatusBadge).setHeader("Status").setWidth("120px").setFlexGrow(1);
         grid.addComponentColumn(b -> {
             Button viewBtn = new Button("View");
             viewBtn.addClickListener(e -> UI.getCurrent().navigate(BookingManagementView.class));
             return viewBtn;
-        }).setHeader("Actions").setWidth("100px").setFlexGrow(0);
+        }).setHeader("Actions").setWidth("60px").setFlexGrow(2);
 
         grid.setItems(bookingService.getRecentBookings());
         grid.setAllRowsVisible(true);
