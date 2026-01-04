@@ -37,25 +37,23 @@ import jakarta.annotation.security.RolesAllowed;
 
 /**
  * View for displaying and managing invoices.
- * 
- * This view provides invoice management functionality with role-based access:
- * - GUEST: View only their own invoices
- * - RECEPTIONIST & MANAGER: View and manage all invoices
- * 
- * Features:
- * - Display invoices in a sortable grid with columns for invoice number, booking number,
- *   amount, payment method, status, and issued date
- * - Search invoices by invoice number
- * - Filter invoices by payment status, payment method, and date issued
- * - Download invoices as PDF documents
- * - Visual status badges with color coding
- * - Formatted currency amounts in German locale
- * 
- * The view automatically filters data based on the current user's role,
- * ensuring guests see only their own invoices while staff see all invoices.
- * 
- * All data is loaded and filtered asynchronously to provide a responsive user experience.
- * 
+ * <p>
+ * Provides invoice management functionality with role-based access:
+ * </p>
+ * <ul>
+ *   <li>GUEST: view only their own invoices</li>
+ *   <li>RECEPTIONIST & MANAGER: view and manage all invoices</li>
+ * </ul>
+ * <p>
+ * Features include displaying invoices in a sortable grid with columns for invoice number,
+ * booking number, amount, payment method, status, and issued date; searching invoices by
+ * invoice number; filtering invoices by payment status, payment method, and date issued;
+ * downloading invoices as PDF documents; visual status badges with color coding; and formatted
+ * currency amounts in German locale. The view automatically filters data based on the current
+ * user's role, ensuring guests see only their own invoices while staff see all invoices. All
+ * data is loaded and filtered asynchronously to provide a responsive user experience.
+ * </p>
+ *
  * @author Arman Özcanli
  * @see Invoice
  * @see InvoiceService
@@ -77,6 +75,13 @@ public class InvoiceView extends VerticalLayout {
     private Grid<Invoice> grid;
     private static final DateTimeFormatter GERMAN_DATETIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
+    /**
+     * Constructs an InvoiceView with required service dependencies.
+     *
+     * @param sessionService service for managing user sessions
+     * @param invoiceService service for managing invoices
+     * @param invoicePdfService service for generating invoice PDFs
+     */
     public InvoiceView(SessionService sessionService, InvoiceService invoiceService, InvoicePdfService invoicePdfService) {
         this.sessionService = sessionService;
         this.invoiceService = invoiceService;
@@ -90,12 +95,24 @@ public class InvoiceView extends VerticalLayout {
         initializeUI();
     }
 
+    /**
+     * Initializes the user interface with header, filters, and invoice card.
+     */
     private void initializeUI() {
         add(createHeader());
         add(createFilters());
         add(createInvoicesCard());
     }
 
+    /**
+     * Creates the header component for the invoice view.
+     * <p>
+     * The header title adapts based on the current user's role: "My Invoices" for guests,
+     * "Invoice Management" for staff.
+     * </p>
+     *
+     * @return a Component containing the header
+     */
     private Component createHeader() {
         String title = sessionService.getCurrentRole() == UserRole.GUEST 
             ? "My Invoices" 
@@ -115,6 +132,16 @@ public class InvoiceView extends VerticalLayout {
         return header;
     }
 
+    /**
+     * Creates the search and filter component for invoices.
+     * <p>
+     * Provides filtering capabilities by invoice number, payment status, payment method, and issued date.
+     * Allows users to search for specific invoices and apply multiple filter criteria simultaneously.
+     * The search button triggers the loadInvoices() method with all selected filter parameters.
+     * </p>
+     *
+     * @return a Component containing search and filter controls
+     */
     private Component createFilters() {
         Div card = new Div();
         card.addClassName("card");
@@ -164,6 +191,17 @@ public class InvoiceView extends VerticalLayout {
         return card;
     }
 
+    /**
+     * Creates the main invoice display card with sortable grid.
+     * <p>
+     * Displays invoices in a sortable grid with columns for invoice number, booking number, amount,
+     * payment method, payment status, and issued date. Each invoice row includes a PDF download button.
+     * The grid shows formatted currency amounts in German locale (€) and color-coded status badges.
+     * Initial data is loaded on view creation and respects the current user's role and permissions.
+     * </p>
+     *
+     * @return a Component containing the invoice grid and title
+     */
     private Component createInvoicesCard() {
         Div card = new Div();
         card.addClassName("card");
@@ -211,6 +249,16 @@ public class InvoiceView extends VerticalLayout {
         return card;
     }
 
+    /**
+     * Creates a styled status badge for an invoice payment status.
+     * <p>
+     * Returns a Span component with CSS class styling applied based on the status value.
+     * The badge displays the status text and applies color-coded styling (e.g., pending, paid, failed).
+     * </p>
+     *
+     * @param status the payment status of the invoice
+     * @return a Span component displaying the status badge
+     */
     private Span createStatusBadge(Object status) {
         String statusText = status != null ? String.valueOf(status) : "";
         Span badge = new Span(statusText);
@@ -221,11 +269,33 @@ public class InvoiceView extends VerticalLayout {
         return badge;
     }
 
-    // Simple search method
+    /**
+     * Loads invoices with the specified search query.
+     * <p>
+     * Convenience method that applies only a search query filter while using default values
+     * for status, method, and date filters. Delegates to the full loadInvoices() method
+     * with "All Status" and "All Methods" filters.
+     * </p>
+     *
+     * @param query the search query to filter invoices by invoice number
+     */
     private void loadInvoices(String query) {
         loadInvoices(query, "All Status", "All Methods", null);
     }
 
+    /**
+     * Loads and filters invoices based on multiple criteria.
+     * <p>
+     * Retrieves the base invoice list (filtered by user role), then applies search query filter,
+     * payment status filter, payment method filter, and date filter in sequence.
+     * Updates the grid with the filtered results. All filters are optional and can be null or "All".
+     * </p>
+     *
+     * @param query the search query to filter by invoice number (null or empty to skip)
+     * @param statusFilter the payment status to filter by ("All Status" to skip)
+     * @param methodFilter the payment method to filter by ("All Methods" to skip)
+     * @param dateFilter the issued date to filter by (null to skip)
+     */
     private void loadInvoices(String query, String statusFilter, String methodFilter, LocalDate dateFilter) {
         List<Invoice> items = getBaseInvoices();
         items = applySearchFilter(items, query);
@@ -237,6 +307,16 @@ public class InvoiceView extends VerticalLayout {
 
     // ===== FILTER HELPER METHODS =====
 
+    /**
+     * Retrieves the base list of invoices based on the current user's role.
+     * <p>
+     * For guests, returns only invoices associated with their own bookings.
+     * For staff (receptionist/manager), returns all invoices in the system.
+     * This filtering ensures role-based access control at the data level.
+     * </p>
+     *
+     * @return a List of Invoice objects filtered by user role
+     */
     private List<Invoice> getBaseInvoices() {
         List<Invoice> items = invoiceService.findAll();
         if (sessionService.getCurrentRole() == UserRole.GUEST) {
@@ -250,6 +330,19 @@ public class InvoiceView extends VerticalLayout {
         return items;
     }
 
+    /**
+     * Applies a search query filter to invoices by invoice number.
+     * <p>
+     * If a query is provided, attempts to find an exact invoice number match first.
+     * If found, returns only that invoice. If no exact match, filters invoices by
+     * case-insensitive partial invoice number matching. Empty or null queries return
+     * all invoices unchanged.
+     * </p>
+     *
+     * @param items the list of invoices to filter
+     * @param query the search query string (null or empty to skip filtering)
+     * @return a filtered List of invoices matching the search query
+     */
     private List<Invoice> applySearchFilter(List<Invoice> items, String query) {
         if (query == null || query.isBlank()) {
             return items;
@@ -264,6 +357,17 @@ public class InvoiceView extends VerticalLayout {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Applies a payment status filter to invoices.
+     * <p>
+     * Filters invoices by their payment status (PENDING, PAID, FAILED, REFUNDED, PARTIAL).
+     * The filter "All Status" or null returns all invoices unchanged.
+     * </p>
+     *
+     * @param items the list of invoices to filter
+     * @param statusFilter the status filter value ("All Status" to skip filtering)
+     * @return a filtered List of invoices matching the selected status
+     */
     private List<Invoice> applyStatusFilter(List<Invoice> items, String statusFilter) {
         if (statusFilter != null && !statusFilter.equals("All Status")) {
             return items.stream()
@@ -273,6 +377,17 @@ public class InvoiceView extends VerticalLayout {
         return items;
     }
 
+    /**
+     * Applies a payment method filter to invoices.
+     * <p>
+     * Filters invoices by their payment method (CARD, TRANSFER, CASH, INVOICE).
+     * The filter "All Methods" or null returns all invoices unchanged.
+     * </p>
+     *
+     * @param items the list of invoices to filter
+     * @param methodFilter the payment method filter value ("All Methods" to skip filtering)
+     * @return a filtered List of invoices matching the selected payment method
+     */
     private List<Invoice> applyMethodFilter(List<Invoice> items, String methodFilter) {
         if (methodFilter != null && !methodFilter.equals("All Methods")) {
             return items.stream()
@@ -282,6 +397,18 @@ public class InvoiceView extends VerticalLayout {
         return items;
     }
 
+    /**
+     * Applies a date filter to invoices by issued date.
+     * <p>
+     * Filters invoices to only include those issued on the specified date.
+     * Compares the invoice's issued date (ignoring time component) with the filter date.
+     * A null date filter returns all invoices unchanged.
+     * </p>
+     *
+     * @param items the list of invoices to filter
+     * @param dateFilter the date to filter by (null to skip filtering)
+     * @return a filtered List of invoices matching the issued date
+     */
     private List<Invoice> applyDateFilter(List<Invoice> items, LocalDate dateFilter) {
         if (dateFilter != null) {
             return items.stream()
@@ -292,6 +419,16 @@ public class InvoiceView extends VerticalLayout {
         return items;
     }
 
+    /**
+     * Initiates the download of an invoice as a PDF document.
+     * <p>
+     * Opens the PDF download endpoint in the browser, which triggers a file download.
+     * The endpoint URL is constructed using the invoice ID (/api/invoice/{id}/pdf).
+     * If an error occurs, displays a notification message to the user.
+     * </p>
+     *
+     * @param invoice the invoice to download as PDF
+     */
     private void downloadInvoicePdf(Invoice invoice) {
         try {
             // Simple approach: open the API endpoint directly

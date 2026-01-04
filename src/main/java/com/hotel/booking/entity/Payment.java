@@ -23,20 +23,21 @@ import jakarta.validation.constraints.Size;
 
 /**
  * Payment transaction entity for hotel bookings.
- * 
- * This entity represents individual payment transactions made towards booking invoices.
- * Multiple payments can be made for a single booking to handle partial payments and refunds.
- * Each payment transaction is tracked with its amount, method, status, and transaction reference.
- * 
- * Key attributes:
- * - amount: Payment amount in currency (precision 10, scale 2)
- * - method: Payment method used (CARD, CASH, INVOICE, TRANSFER)
- * - status: Current payment status (PENDING, PAID, FAILED, REFUNDED, PARTIAL)
- * - transactionRef: External transaction reference from payment provider (max 100 characters)
- * - paidAt: Timestamp when payment was processed
- * - refundedAmount: Amount refunded (may be less than original for partial refunds)
- * - booking: Many-to-one relationship with the associated booking
- * 
+ * <p>
+ * Represents individual payment transactions made towards booking invoices. Multiple payments
+ * can be made for a single booking to handle partial payments and refunds. Each payment
+ * transaction is tracked with its amount, method, status, and transaction reference.
+ * </p>
+ * <ul>
+ *   <li>amount: payment amount in currency (precision 10, scale 2)</li>
+ *   <li>method: payment method used (CARD, CASH, INVOICE, TRANSFER)</li>
+ *   <li>status: current payment status (PENDING, PAID, FAILED, REFUNDED, PARTIAL)</li>
+ *   <li>transactionRef: external transaction reference from payment provider (max 100 characters)</li>
+ *   <li>paidAt: timestamp when payment was processed</li>
+ *   <li>refundedAmount: amount refunded (may be less than original for partial refunds)</li>
+ *   <li>booking: many-to-one relationship with the associated booking</li>
+ * </ul>
+ *
  * @author Arman Özcanli
  * @see Booking
  * @see Invoice
@@ -50,13 +51,21 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
+    /**
+     * Payment amount in currency.
+     * Stored with precision of 10 digits and 2 decimal places (e.g., 9999999.99).
+     * Must be greater than or equal to 0.00.
+     */
     @NotNull
     @DecimalMin("0.00")
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
     
     /**
-     * Zahlungsmethode: CARD, CASH, INVOICE, TRANSFER
+     * Payment method used for this transaction.
+     * <p>
+     * Possible values: CARD, CASH, INVOICE, TRANSFER
+     * </p>
      */
     @NotNull
     @Column(nullable = false)
@@ -64,49 +73,75 @@ public class Payment {
     private Invoice.PaymentMethod method;
     
     /**
-     * Zahlungsstatus: PENDING, PAID, FAILED, REFUNDED, PARTIAL
+     * Current status of this payment transaction.
+     * <p>
+     * Possible values: PENDING, PAID, FAILED, REFUNDED, PARTIAL
+     * </p>
      */
     @NotNull
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private Invoice.PaymentStatus status;
     
-    //Referenz ID des Zahlungsanbieters
+    /**
+     * External transaction reference from the payment provider.
+     * Used for tracking and reconciliation with payment gateways.
+     * Maximum length of 100 characters.
+     */
     @Size(max = 100)
     @Column
     private String transactionRef;
     
+    /**
+     * Timestamp when the payment was processed.
+     * Null if the payment has not been completed yet.
+     */
     @Column
     private LocalDateTime paidAt;
     
     /**
-     * Betrag, der bei Refund zurückerstattet wird (kann weniger als amount sein bei Stornierungsgebühren)
+     * Amount refunded for this payment.
+     * May be less than the original amount in case of partial refunds or cancellation fees.
+     * Stored with precision of 10 digits and 2 decimal places.
      */
     @DecimalMin("0.00")
     @Column(precision = 10, scale = 2)
     private BigDecimal refundedAmount;
     
+    /**
+     * The booking associated with this payment.
+     * Many-to-one relationship: a booking can have multiple payments.
+     */
     // Activate when Booking entity 
     @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "booking_id", nullable = false)
     private Booking booking;
     
-    
-    
-    // Default constructor
+    /**
+     * Constructs a default Payment instance.
+     * <p>
+     * Automatically sets status to PENDING.
+     * </p>
+     */
     public Payment() {
         this.status = Invoice.PaymentStatus.PENDING;
     }
     
-    // Constructor with parameters
+    /**
+     * Constructs a Payment instance with amount and payment method.
+     *
+     * @param amount the payment amount
+     * @param method the payment method used
+     */
     public Payment(BigDecimal amount, Invoice.PaymentMethod method) {
         this.method = method;
         this.status = Invoice.PaymentStatus.PENDING;
         setAmount(amount);
     }
     
-    // Getters and Setters
+    // ===== GETTERS AND SETTERS =====
+    
     public Long getId() {
         return id;
     }

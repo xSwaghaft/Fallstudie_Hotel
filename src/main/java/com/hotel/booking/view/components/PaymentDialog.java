@@ -16,22 +16,22 @@ import com.vaadin.flow.data.binder.Binder;
 
 /**
  * Dialog component for payment entry and processing.
- * 
- * This Vaadin dialog provides a user-friendly interface for collecting payment information
- * and processing payments. It supports two payment methods:
- * - Credit Card: Collects card number, expiry date, and CVC
- * - Bank Transfer: Collects IBAN, BIC, and account holder information
- * 
- * Features:
- * - Dynamic payment method selection with form field switching
- * - Comprehensive validation of all payment fields
- * - Error display for failed validation
- * - Callback support for successful and deferred payments
- * - Binder-based data binding for form handling
- * 
- * The dialog displays the payment amount and allows users to choose their preferred
- * payment method before submitting payment details for processing.
- * 
+ * <p>
+ * Provides a user-friendly interface for collecting payment information and processing payments.
+ * Supports two payment methods:
+ * </p>
+ * <ul>
+ *   <li>Credit Card: collects card number, expiry date, and CVC</li>
+ *   <li>Bank Transfer: collects IBAN, BIC, and account holder information</li>
+ * </ul>
+ * <p>
+ * Features include dynamic payment method selection with form field switching, comprehensive
+ * validation of all payment fields, error display for failed validation, callback support for
+ * successful and deferred payments, and binder-based data binding for form handling. The dialog
+ * displays the payment amount and allows users to choose their preferred payment method before
+ * submitting payment details for processing.
+ * </p>
+ *
  * @author Arman Özcanli
  * @see PaymentMethodManager
  * @see PaymentValidator
@@ -49,6 +49,11 @@ public class PaymentDialog extends Dialog {
     private Runnable onPaymentSuccess;
     private Runnable onPaymentDeferred;
 
+    /**
+     * Constructs a PaymentDialog for collecting payment information.
+     *
+     * @param amount the payment amount to be processed
+     */
     public PaymentDialog(BigDecimal amount) {
         setHeaderTitle("Payment");
         setWidth("500px");
@@ -103,6 +108,17 @@ public class PaymentDialog extends Dialog {
 
     // ===== FIELD CREATORS =====
 
+    /**
+     * Creates a standard TextField for payment form input.
+     * <p>
+     * Creates a text field with the specified label and placeholder text.
+     * The field is set to full width and ready for data entry.
+     * </p>
+     *
+     * @param label the label for the text field
+     * @param placeholder the placeholder text to display when field is empty
+     * @return a configured TextField for payment input
+     */
     private TextField createPaymentField(String label, String placeholder) {
         TextField field = new TextField(label);
         field.setPlaceholder(placeholder);
@@ -110,6 +126,17 @@ public class PaymentDialog extends Dialog {
         return field;
     }
 
+    /**
+     * Creates a PasswordField for secure input of sensitive payment data.
+     * <p>
+     * Creates a password field with the specified label and placeholder text.
+     * The field masks input for security and is set to full width.
+     * </p>
+     *
+     * @param label the label for the password field
+     * @param placeholder the placeholder text to display when field is empty
+     * @return a configured PasswordField for sensitive payment input
+     */
     private PasswordField createPasswordField(String label, String placeholder) {
         PasswordField field = new PasswordField(label);
         field.setPlaceholder(placeholder);
@@ -117,31 +144,85 @@ public class PaymentDialog extends Dialog {
         return field;
     }
 
+    /**
+     * Creates a card number input field.
+     * <p>
+     * Creates a TextField for entering credit card numbers with a relevant placeholder.
+     * Stores the field reference for later validation and binder binding.
+     * </p>
+     *
+     * @return a TextField configured for card number input
+     */
     private TextField createCardNumberField() {
         cardNumberField = createPaymentField("Card Number", "1234 5678 9012 3456");
         return cardNumberField;
     }
 
+    /**
+     * Creates an expiry date input field for credit card expiry.
+     * <p>
+     * Creates a TextField for entering card expiry dates in MM/YY format.
+     * Stores the field reference for later validation and binder binding.
+     * </p>
+     *
+     * @return a TextField configured for expiry date input
+     */
     private TextField createExpiryField() {
         expiryField = createPaymentField("Expiry Date", "MM/YY");
         return expiryField;
     }
 
+    /**
+     * Creates a CVC security code input field.
+     * <p>
+     * Creates a PasswordField for entering the 3-4 digit CVC security code on the back of credit cards.
+     * Masks the input for security purposes. Stores the field reference for later validation and binding.
+     * </p>
+     *
+     * @return a PasswordField configured for CVC code input
+     */
     private PasswordField createCvcField() {
         cvcField = createPasswordField("CVC", "123");
         return cvcField;
     }
 
+    /**
+     * Creates an IBAN input field for bank transfer payments.
+     * <p>
+     * Creates a TextField for entering the International Bank Account Number (IBAN).
+     * Stores the field reference for later validation and binder binding.
+     * </p>
+     *
+     * @return a TextField configured for IBAN input
+     */
     private TextField createIbanField() {
         ibanField = createPaymentField("IBAN", "DE89 3704 0044 0532 0130 00");
         return ibanField;
     }
 
+    /**
+     * Creates a BIC input field for bank transfer payments.
+     * <p>
+     * Creates a TextField for entering the Bank Identifier Code (BIC), also known as SWIFT code.
+     * Stores the field reference for later validation and binder binding.
+     * </p>
+     *
+     * @return a TextField configured for BIC code input
+     */
     private TextField createBicField() {
         bicField = createPaymentField("BIC", "COBADEFF");
         return bicField;
     }
 
+    /**
+     * Creates an account holder name input field for bank transfer payments.
+     * <p>
+     * Creates a TextField for entering the name of the account holder for bank transfer verification.
+     * Stores the field reference for later validation and binder binding.
+     * </p>
+     *
+     * @return a TextField configured for account holder name input
+     */
     private TextField createAccountHolderField() {
         accountHolderField = createPaymentField("Account Holder", "John Doe");
         return accountHolderField;
@@ -149,6 +230,15 @@ public class PaymentDialog extends Dialog {
 
     // ===== BINDER SETUP WITH VALIDATORS =====
 
+    /**
+     * Sets up the data binder with validators for all payment form fields.
+     * <p>
+     * Configures bidirectional binding between form fields and the PaymentData object.
+     * Applies appropriate validators for credit card fields (card number, expiry, CVC) and
+     * bank transfer fields (IBAN, BIC, account holder). All validators are required fields.
+     * Validation occurs during form submission via processPayment().
+     * </p>
+     */
     private void setupBinder() {
         binder = new Binder<>(PaymentData.class);
 
@@ -188,6 +278,14 @@ public class PaymentDialog extends Dialog {
 
     // ===== PAYMENT PROCESSING =====
 
+    /**
+     * Processes the payment with validation and callback execution.
+     * <p>
+     * Validates all form fields based on the selected payment method (credit card or bank transfer).
+     * If all validations pass, displays a success notification, executes the onPaymentSuccess callback,
+     * and closes the dialog. If validation fails, displays error messages on the invalid fields.
+     * </p>
+     */
     private void processPayment() {
         String method = paymentMethodManager.getSelectedPaymentMethod();
         resetFieldErrors();
@@ -212,6 +310,14 @@ public class PaymentDialog extends Dialog {
         close();
     }
     
+    /**
+     * Resets the error state of all payment form fields.
+     * <p>
+     * Clears invalid flags on all credit card and bank transfer input fields,
+     * removing any previously displayed error messages. Called before new validation
+     * to ensure a clean state.
+     * </p>
+     */
     private void resetFieldErrors() {
         cardNumberField.setInvalid(false);
         expiryField.setInvalid(false);
@@ -222,7 +328,18 @@ public class PaymentDialog extends Dialog {
     }
     
     /**
-     * Generic validation method - works with both TextField and PasswordField via interface
+     * Validates a single form field using the provided validator function.
+     * <p>
+     * Generic validation method supporting both TextField and PasswordField inputs.
+     * Checks that the field value is not empty and passes the validator predicate test.
+     * Sets field error state and message if validation fails. Used during payment processing
+     * to validate all fields before submitting the payment.
+     * </p>
+     *
+     * @param field the form field to validate (TextField or PasswordField)
+     * @param validator a predicate function that tests the field value
+     * @param errorMsg the error message to display if validation fails
+     * @return true if validation passes, false if validation fails
      */
     private boolean validate(com.vaadin.flow.component.HasValue<?, String> field, 
                              java.util.function.Predicate<String> validator, 
@@ -239,6 +356,16 @@ public class PaymentDialog extends Dialog {
         return true;
     }
 
+    /**
+     * Sets the error state and message for a form field.
+     * <p>
+     * Handles both TextField and PasswordField by checking the field type.
+     * Sets the invalid flag and displays the error message in the field.
+     * </p>
+     *
+     * @param field the form field to mark as invalid
+     * @param errorMsg the error message to display
+     */
     private void setFieldError(com.vaadin.flow.component.HasValue<?, String> field, String errorMsg) {
         if (field instanceof TextField) {
             TextField textField = (TextField) field;
@@ -251,18 +378,41 @@ public class PaymentDialog extends Dialog {
         }
     }
 
+    /**
+     * Registers a callback to be executed when payment is successfully processed.
+     *
+     * @param callback the runnable to execute on successful payment
+     */
     public void setOnPaymentSuccess(Runnable callback) {
         this.onPaymentSuccess = callback;
     }
 
+    /**
+     * Registers a callback to be executed when payment is deferred to a later time.
+     *
+     * @param callback the runnable to execute when payment is deferred
+     */
     public void setOnPaymentDeferred(Runnable callback) {
         this.onPaymentDeferred = callback;
     }
 
+    /**
+     * Gets the currently selected payment method.
+     *
+     * @return the selected payment method ("Credit Card" or "Bank Transfer")
+     */
     public String getSelectedPaymentMethod() {
         return paymentMethodManager.getSelectedPaymentMethod();
     }
 
+    /**
+     * Defers payment to a later time.
+     * <p>
+     * Allows the user to postpone payment, which can be completed later in the "My Bookings" section.
+     * Displays a notification message, executes the onPaymentDeferred callback, and closes the dialog.
+     * Useful for guests who want to finalize bookings without immediately paying.
+     * </p>
+     */
     private void deferPayment() {
         System.out.println("DEBUG: Payment deferred!");
         Notification.show("Payment postponed. You can pay later in 'My Bookings'.", 3000, Notification.Position.TOP_CENTER);

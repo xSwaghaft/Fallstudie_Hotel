@@ -15,11 +15,12 @@ import org.slf4j.LoggerFactory;
 
 /**
  * REST Controller for handling invoice PDF download requests.
- * 
- * This controller provides endpoints for downloading invoices as PDF files.
- * It handles the retrieval of invoice data and PDF generation, then returns
- * the generated PDF file to the client with appropriate HTTP headers.
- * 
+ * <p>
+ * Provides HTTP endpoints for downloading invoices as PDF documents. This controller
+ * orchestrates the retrieval of invoice data and PDF generation, returning the generated
+ * PDF file to the client with appropriate HTTP response headers.
+ * </p>
+ *
  * @author Arman Özcanli
  * @see InvoiceService
  * @see InvoicePdfService
@@ -34,15 +35,26 @@ public class InvoiceDownloadController {
 
     /**
      * Constructs an InvoiceDownloadController with required dependencies.
-     * 
-     * @param invoiceService Service for retrieving invoice data
-     * @param invoicePdfService Service for generating invoice PDFs
+     *
+     * @param invoiceService service for retrieving invoice data
+     * @param invoicePdfService service for generating invoice PDFs
      */
     public InvoiceDownloadController(InvoiceService invoiceService, InvoicePdfService invoicePdfService) {
         this.invoiceService = invoiceService;
         this.invoicePdfService = invoicePdfService;
     }
 
+    /**
+     * Downloads an invoice as a PDF file.
+     * <p>
+     * Retrieves the invoice by ID, generates a PDF from the invoice data, and returns it
+     * to the client with appropriate HTTP headers for file download.
+     * </p>
+     *
+     * @param id the ID of the invoice to download
+     * @return a ResponseEntity containing the PDF bytes with appropriate content type and headers
+     * @apiNote The response includes a Content-Disposition header with the attachment filename
+     */
     @GetMapping("/invoice/{id}/pdf")
     public ResponseEntity<byte[]> downloadInvoicePdf(@PathVariable Long id) {
         try {

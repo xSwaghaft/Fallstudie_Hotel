@@ -16,19 +16,22 @@ import java.util.Optional;
 
 /**
  * Service class for managing invoice operations.
- * 
- * This service handles all business logic related to invoices, including:
- * - Retrieving invoices by various criteria (ID, number, booking, status)
- * - Creating and updating invoices
- * - Generating unique invoice numbers
- * - Creating invoices for bookings with automatic email notifications
- * - Tracking pending invoices
- * 
- * Invoice numbers are generated in the format: INV-YYYY-UUID to ensure uniqueness.
- * When new invoices are created, confirmation emails are automatically sent to guests.
- * 
- * All operations are transactional to maintain data consistency.
- * 
+ * <p>
+ * Handles all business logic related to invoices, including:
+ * </p>
+ * <ul>
+ *   <li>Retrieving invoices by various criteria (ID, number, booking, status)</li>
+ *   <li>Creating and updating invoices</li>
+ *   <li>Generating unique invoice numbers</li>
+ *   <li>Creating invoices for bookings with automatic email notifications</li>
+ *   <li>Tracking pending invoices</li>
+ * </ul>
+ * <p>
+ * Invoice numbers are generated in the format: INV-YYYY-UUID to ensure uniqueness. When new
+ * invoices are created, confirmation emails are automatically sent to guests. All operations
+ * are transactional to maintain data consistency.
+ * </p>
+ *
  * @author Arman Özcanli
  * @see Invoice
  * @see InvoiceRepository
@@ -41,32 +44,63 @@ public class InvoiceService {
     
     private static final Logger log = LoggerFactory.getLogger(InvoiceService.class);
     
-    /** Invoice number prefix */
+    /**
+     * Invoice number prefix used in the INV-YYYY-UUID format.
+     */
     private static final String INVOICE_PREFIX = "INV-";
     
     private final InvoiceRepository invoiceRepository;
     private final EmailService emailService;
 
+    /**
+     * Constructs an InvoiceService with required dependencies.
+     *
+     * @param invoiceRepository repository for invoice persistence operations
+     * @param emailService service for sending invoice-related emails
+     */
     public InvoiceService(InvoiceRepository invoiceRepository, EmailService emailService) {
         this.invoiceRepository = invoiceRepository;
         this.emailService = emailService;
     }
 
+    /**
+     * Retrieves all invoices from the database.
+     *
+     * @return a list containing all invoices
+     */
     @Transactional(readOnly = true)
     public List<Invoice> findAll() {
         return invoiceRepository.findAll();
     }
 
+    /**
+     * Retrieves an invoice by its unique identifier.
+     *
+     * @param id the invoice ID
+     * @return an Optional containing the invoice if found, or empty if not found
+     */
     @Transactional(readOnly = true)
     public Optional<Invoice> findById(Long id) {
         return invoiceRepository.findById(id);
     }
 
+    /**
+     * Retrieves an invoice by its unique invoice number.
+     *
+     * @param invoiceNumber the invoice number to search for
+     * @return an Optional containing the invoice if found, or empty if not found
+     */
     @Transactional(readOnly = true)
     public Optional<Invoice> findByInvoiceNumber(String invoiceNumber) {
         return invoiceRepository.findByInvoiceNumber(invoiceNumber);
     }
 
+    /**
+     * Retrieves the invoice associated with a specific booking.
+     *
+     * @param bookingId the ID of the booking
+     * @return an Optional containing the invoice if found, or empty if not found
+     */
     @Transactional(readOnly = true)
     public Optional<Invoice> findByBookingId(Long bookingId) {
         if (bookingId == null) {
@@ -75,6 +109,16 @@ public class InvoiceService {
         return invoiceRepository.findByBookingId(bookingId);
     }
 
+    /**
+     * Saves or updates an invoice.
+     * <p>
+     * For new invoices, automatically sends a confirmation email to the associated guest.
+     * Email failures are logged but do not prevent the invoice from being saved.
+     * </p>
+     *
+     * @param invoice the invoice entity to save
+     * @return the saved invoice with generated ID if applicable
+     */
     @Transactional
     public Invoice save(Invoice invoice) {
         // Check if this is a new invoice (no ID yet)
@@ -98,10 +142,20 @@ public class InvoiceService {
         return savedInvoice;
     }
 
+    /**
+     * Deletes an invoice by its unique identifier.
+     *
+     * @param id the invoice ID to delete
+     */
     public void deleteById(Long id) {
         invoiceRepository.deleteById(id);
     }
 
+    /**
+     * Retrieves the number of pending invoices that have not yet been paid.
+     *
+     * @return the count of invoices with PENDING status
+     */
     public int getNumberOfPendingInvoices() {
         return invoiceRepository.findByInvoiceStatus(PaymentStatus.PENDING).size();
     }

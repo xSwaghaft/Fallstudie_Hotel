@@ -16,22 +16,23 @@ import java.util.Optional;
 
 /**
  * Service class for managing payment operations.
- * 
- * This service handles all business logic related to payment processing, including:
- * - Retrieving payments by various criteria (booking, transaction reference, status, method)
- * - Processing new payments for bookings
- * - Converting payment method strings from UI to enum values
- * - Creating associated invoices when payments are processed
- * - Updating booking status based on payment status
- * 
- * Payment processing is atomic and transactional, ensuring that payment records,
- * booking status updates, and invoice creation are consistent.
- * 
- * The service supports multiple payment methods (Card, Bank Transfer) and tracks
- * different payment statuses (Pending, Paid, Failed, Refunded, Partial).
- * 
+ * <p>
+ * Handles all business logic related to payment processing, including:
+ * </p>
+ * <ul>
+ *   <li>Retrieving payments by various criteria (booking, transaction reference, status, method)</li>
+ *   <li>Processing new payments for bookings</li>
+ *   <li>Converting payment method strings from UI to enum values</li>
+ *   <li>Creating associated invoices when payments are processed</li>
+ *   <li>Updating booking status based on payment status</li>
+ * </ul>
+ * <p>
+ * Payment processing is atomic and transactional, ensuring that payment records, booking status
+ * updates, and invoice creation are consistent. Supports multiple payment methods (Card, Bank
+ * Transfer) and tracks different payment statuses (Pending, Paid, Failed, Refunded, Partial).
  * All operations are transactional to maintain data consistency.
- * 
+ * </p>
+ *
  * @author Arman Özcanli
  * @see Payment
  * @see PaymentRepository
@@ -47,6 +48,13 @@ public class PaymentService {
     private final BookingService bookingService;
     private final InvoiceService invoiceService;
 
+    /**
+     * Constructs a PaymentService with required dependencies.
+     *
+     * @param paymentRepository repository for payment persistence operations
+     * @param bookingService service for booking management
+     * @param invoiceService service for invoice management
+     */
     public PaymentService(PaymentRepository paymentRepository, 
                          BookingService bookingService,
                          InvoiceService invoiceService) {
@@ -55,26 +63,55 @@ public class PaymentService {
         this.invoiceService = invoiceService;
     }
 
+    /**
+     * Retrieves all payment transactions from the database.
+     *
+     * @return a list containing all payment transactions
+     */
     @Transactional(readOnly = true)
     public List<Payment> findAll() {
         return paymentRepository.findAll();
     }
 
+    /**
+     * Retrieves all payments associated with a specific booking.
+     *
+     * @param bookingId the ID of the booking
+     * @return a list of payment transactions for the specified booking
+     */
     @Transactional(readOnly = true)
     public List<Payment> findByBookingId(Long bookingId) {
         return paymentRepository.findByBookingId(bookingId);
     }
 
+    /**
+     * Retrieves a payment transaction by its unique identifier.
+     *
+     * @param id the payment ID
+     * @return an Optional containing the payment if found, or empty if not found
+     */
     @Transactional(readOnly = true)
     public Optional<Payment> findById(Long id) {
         return paymentRepository.findById(id);
     }
 
+    /**
+     * Retrieves a payment by its external transaction reference.
+     *
+     * @param txRef the transaction reference from the payment provider
+     * @return an Optional containing the payment if found, or empty if not found
+     */
     @Transactional(readOnly = true)
     public Optional<Payment> findByTransactionRef(String txRef) {
         return paymentRepository.findByTransactionRef(txRef);
     }
 
+    /**
+     * Saves or updates a payment transaction.
+     *
+     * @param payment the payment entity to save
+     * @return the saved payment with generated ID if applicable
+     */
     public Payment save(Payment payment) {
         return paymentRepository.save(payment);
     }

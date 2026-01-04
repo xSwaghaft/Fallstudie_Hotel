@@ -31,26 +31,23 @@ import java.util.stream.Collectors;
 
 /**
  * View for displaying and managing payment transactions.
- * 
- * This view provides payment tracking and management functionality with role-based access:
- * - GUEST: View only their own payments
- * - RECEPTIONIST & MANAGER: View and manage all payments
- * 
- * Features:
- * - Display payments in a sortable grid with columns for amount, method, status,
- *   transaction reference, and payment date
- * - Search payments by transaction reference
- * - Filter payments by status, payment method, and date paid
- * - Visual status badges with color coding
- * - Formatted currency amounts in German locale
- * - Multi-level sorting support
- * 
- * The view automatically filters data based on the current user's role,
- * ensuring guests see only their own payment transactions while staff see all payments.
- * 
- * Payment statuses (PENDING, PAID, FAILED, REFUNDED, PARTIAL) are displayed with
- * visual indicators to quickly identify payment states.
- * 
+ * <p>
+ * Provides payment tracking and management functionality with role-based access:
+ * </p>
+ * <ul>
+ *   <li>GUEST: view only their own payments</li>
+ *   <li>RECEPTIONIST & MANAGER: view and manage all payments</li>
+ * </ul>
+ * <p>
+ * Features include displaying payments in a sortable grid with columns for amount, method,
+ * status, transaction reference, and payment date; searching payments by transaction reference;
+ * filtering payments by status, payment method, and date paid; visual status badges with color
+ * coding; formatted currency amounts in German locale; and multi-level sorting support. The view
+ * automatically filters data based on the current user's role, ensuring guests see only their own
+ * payment transactions while staff see all payments. Payment statuses (PENDING, PAID, FAILED,
+ * REFUNDED, PARTIAL) are displayed with visual indicators to quickly identify payment states.
+ * </p>
+ *
  * @author Arman Özcanli
  * @see Payment
  * @see PaymentService
@@ -81,6 +78,16 @@ public class PaymentView extends VerticalLayout {
         initializeUI();
     }
 
+    /**
+     * Initializes the user interface with header, filters, and payments card.
+     * <p>
+     * The content adapts based on the current user's role:
+     * </p>
+     * <ul>
+     *   <li>GUEST: displays "My Payments" with personal payment history</li>
+     *   <li>STAFF: displays "Payment Management" with all system payments</li>
+     * </ul>
+     */
     private void initializeUI() {
         // Title based on role
         String title = sessionService.getCurrentRole() == UserRole.GUEST 
@@ -95,6 +102,13 @@ public class PaymentView extends VerticalLayout {
         add(createPaymentsCard());
     }
 
+    /**
+     * Creates the header component for the payment view.
+     *
+     * @param title the header title
+     * @param subtitle the header subtitle
+     * @return a Component containing the header
+     */
     private Component createHeader(String title, String subtitle) {
         H1 h1 = new H1(title);
         Paragraph p = new Paragraph(subtitle);
@@ -107,6 +121,16 @@ public class PaymentView extends VerticalLayout {
         return header;
     }
 
+    /**
+     * Creates the search and filter component for payments.
+     * <p>
+     * Provides filtering capabilities by booking number/ID, payment status, payment method, and payment date.
+     * Allows users to search for specific payments and apply multiple filter criteria simultaneously.
+     * The search button triggers the loadPayments() method with all selected filter parameters.
+     * </p>
+     *
+     * @return a Component containing search and filter controls
+     */
     private Component createFilters() {
         Div card = new Div();
         card.addClassName("card");
@@ -156,6 +180,18 @@ public class PaymentView extends VerticalLayout {
         return card;
     }
 
+    /**
+     * Creates the main payment display card with sortable grid.
+     * <p>
+     * Displays payments in a sortable grid with columns for booking number, amount (with refund notation),
+     * payment method, payment status, and paid date. Each row shows formatted currency amounts in German
+     * locale (€) and color-coded status badges. The grid supports multi-level sorting and shows all rows
+     * on the page without internal scrolling. Initial data is loaded on view creation and respects the
+     * current user's role and permissions.
+     * </p>
+     *
+     * @return a Component containing the payment grid and title
+     */
     private Component createPaymentsCard() {
         Div card = new Div();
         card.addClassName("card");
@@ -188,6 +224,16 @@ public class PaymentView extends VerticalLayout {
         return card;
     }
 
+    /**
+     * Creates a styled status badge for a payment status.
+     * <p>
+     * Returns a Span component with CSS class styling applied based on the status value.
+     * The badge displays the status text and applies color-coded styling (e.g., pending, paid, failed).
+     * </p>
+     *
+     * @param status the payment status
+     * @return a Span component displaying the status badge
+     */
     private Span createStatusBadge(Object status) {
         String statusText = status != null ? String.valueOf(status) : "";
         Span badge = new Span(statusText);
@@ -198,11 +244,35 @@ public class PaymentView extends VerticalLayout {
         return badge;
     }
 
+    /**
+     * Loads payments with the specified search query.
+     * <p>
+     * Convenience method that applies only a search query filter while using default values
+     * for status, method, and date filters. Delegates to the full loadPayments() method
+     * with "All Status" and "All Methods" filters.
+     * </p>
+     *
+     * @param query the search query to filter payments by booking number or ID
+     */
     private void loadPayments(String query) {
         // No default date filter: show payments immediately like InvoiceView
         loadPayments(query, "All Status", "All Methods", null);
     }
 
+    /**
+     * Loads and filters payments based on multiple criteria.
+     * <p>
+     * Retrieves the base payment list (filtered by user role), then applies status filter, method filter,
+     * date filter, and finally search query filter in sequence. Updates the grid with the filtered results.
+     * The search filter supports both exact booking ID matching and booking number matching. All filters
+     * are optional and can be null or "All".
+     * </p>
+     *
+     * @param query the search query to filter by booking number or ID (null or empty to skip)
+     * @param statusFilter the payment status to filter by ("All Status" to skip)
+     * @param methodFilter the payment method to filter by ("All Methods" to skip)
+     * @param dateFilter the payment date to filter by (null to skip)
+     */
     private void loadPayments(String query, String statusFilter, String methodFilter, LocalDate dateFilter) {
         List<Payment> items = getBasePayments();
         items = applyStatusFilter(items, statusFilter);
@@ -214,6 +284,17 @@ public class PaymentView extends VerticalLayout {
 
     // ===== FILTER AND FORMATTING HELPER METHODS =====
     
+    /**
+     * Formats a payment amount for display with currency symbol and refund notation.
+     * <p>
+     * If the payment has been partially or fully refunded, displays the refunded amount with
+     * "(refunded)" notation. Otherwise displays the full payment amount. All amounts are formatted
+     * to 2 decimal places and suffixed with the Euro currency symbol (€).
+     * </p>
+     *
+     * @param payment the payment to format
+     * @return a formatted string representing the payment amount with currency symbol
+     */
     private String formatPaymentAmount(Payment payment) {
         if (payment.getRefundedAmount() != null && 
             payment.getRefundedAmount().compareTo(java.math.BigDecimal.ZERO) > 0) {
@@ -222,6 +303,16 @@ public class PaymentView extends VerticalLayout {
         return String.format("%.2f €", payment.getAmount());
     }
 
+    /**
+     * Retrieves the base list of payments based on the current user's role.
+     * <p>
+     * For guests, returns only payments associated with their own bookings.
+     * For staff (receptionist/manager), returns all payments in the system.
+     * This filtering ensures role-based access control at the data level.
+     * </p>
+     *
+     * @return a List of Payment objects filtered by user role
+     */
     private List<Payment> getBasePayments() {
         if (sessionService.getCurrentRole() == UserRole.GUEST) {
             Long guestId = sessionService.getCurrentUser().getId();
@@ -234,6 +325,17 @@ public class PaymentView extends VerticalLayout {
         return paymentService.findAll();
     }
 
+    /**
+     * Applies a payment status filter to payments.
+     * <p>
+     * Filters payments by their status (PENDING, PAID, FAILED, REFUNDED, PARTIAL).
+     * The filter "All Status" or null returns all payments unchanged.
+     * </p>
+     *
+     * @param items the list of payments to filter
+     * @param statusFilter the status filter value ("All Status" to skip filtering)
+     * @return a filtered List of payments matching the selected status
+     */
     private List<Payment> applyStatusFilter(List<Payment> items, String statusFilter) {
         if (statusFilter != null && !statusFilter.equals("All Status")) {
             return items.stream()
@@ -243,6 +345,17 @@ public class PaymentView extends VerticalLayout {
         return items;
     }
 
+    /**
+     * Applies a payment method filter to payments.
+     * <p>
+     * Filters payments by their method (Card, Bank Transfer, Cash, etc.).
+     * The filter "All Methods" or null returns all payments unchanged.
+     * </p>
+     *
+     * @param items the list of payments to filter
+     * @param methodFilter the payment method filter value ("All Methods" to skip filtering)
+     * @return a filtered List of payments matching the selected payment method
+     */
     private List<Payment> applyMethodFilter(List<Payment> items, String methodFilter) {
         if (methodFilter != null && !methodFilter.equals("All Methods")) {
             return items.stream()
@@ -252,6 +365,18 @@ public class PaymentView extends VerticalLayout {
         return items;
     }
 
+    /**
+     * Applies a date filter to payments by payment date.
+     * <p>
+     * Filters payments to only include those paid on the specified date.
+     * Compares the payment's paid date (ignoring time component) with the filter date.
+     * A null date filter returns all payments unchanged.
+     * </p>
+     *
+     * @param items the list of payments to filter
+     * @param dateFilter the date to filter by (null to skip filtering)
+     * @return a filtered List of payments matching the paid date
+     */
     private List<Payment> applyDateFilter(List<Payment> items, LocalDate dateFilter) {
         if (dateFilter != null) {
             return items.stream()
@@ -262,6 +387,25 @@ public class PaymentView extends VerticalLayout {
         return items;
     }
 
+    /**
+     * Applies a multi-level search filter to payments by booking number or ID.
+     * <p>
+     * Uses a three-level search strategy:
+     * </p>
+     * <ol>
+     *   <li>Attempts to parse the query as a numeric Booking ID and searches all payments for matching ID</li>
+     *   <li>Searches for exact booking number match (case-insensitive) across all payments</li>
+     *   <li>Falls back to substring search within booking number, booking ID, and transaction reference</li>
+     * </ol>
+     * <p>
+     * All results respect the current user's role-based access permissions. Empty or null queries
+     * return all payments unchanged.
+     * </p>
+     *
+     * @param items the list of payments to filter
+     * @param query the search query for booking number or ID (null or empty to skip filtering)
+     * @return a filtered List of payments matching the search criteria
+     */
     private List<Payment> applySearchFilter(List<Payment> items, String query) {
         if (query != null && !query.isBlank()) {
             String normalized = query.trim();
@@ -306,6 +450,16 @@ public class PaymentView extends VerticalLayout {
         return items;
     }
 
+    /**
+     * Retrieves the booking number from a payment.
+     * <p>
+     * Extracts the booking number from the payment's associated booking object.
+     * Returns an empty string if the payment or booking is null.
+     * </p>
+     *
+     * @param payment the payment to extract the booking number from
+     * @return the booking number string, or empty string if not available
+     */
     private String getBookingNumber(Payment payment) {
         if (payment == null || payment.getBooking() == null) {
             return "";
@@ -314,6 +468,16 @@ public class PaymentView extends VerticalLayout {
         return bookingNumber != null ? bookingNumber : "";
     }
 
+    /**
+     * Attempts to parse a string value as a Long.
+     * <p>
+     * Returns the parsed Long value if successful, or null if the string cannot be
+     * parsed as a valid Long number. Trims the input string before attempting to parse.
+     * </p>
+     *
+     * @param value the string value to parse
+     * @return the parsed Long value, or null if parsing fails
+     */
     private Long tryParseLong(String value) {
         if (value == null) {
             return null;
@@ -325,6 +489,17 @@ public class PaymentView extends VerticalLayout {
         }
     }
 
+    /**
+     * Checks if the current user has access to view a specific payment.
+     * <p>
+     * For guests, returns true only if the payment belongs to their own booking.
+     * For staff (receptionist/manager), always returns true.
+     * This method enforces role-based access control at the individual payment level.
+     * </p>
+     *
+     * @param payment the payment to check access for
+     * @return true if the current user has permission to view this payment, false otherwise
+     */
     private boolean hasAccessToPayment(Payment payment) {
         UserRole role = sessionService.getCurrentRole();
         if (role == UserRole.GUEST) {
