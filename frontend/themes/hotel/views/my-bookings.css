@@ -1,0 +1,295 @@
+/* =========================================================
+   MY BOOKINGS VIEW - STYLES
+   ========================================================= */
+
+/* Base View */
+.guest-portal-view {
+    overflow-x: hidden;
+    overflow-y: visible;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Tabs */
+.bookings-tabs {
+    margin-bottom: var(--spacing-lg);
+}
+
+.bookings-content-area {
+    width: 100%;
+}
+
+.bookings-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: var(--spacing-md);
+    width: 100%;
+}
+
+/* Tablet (768px - 1024px) */
+@media (max-width: 1024px) and (min-width: 769px) {
+    .bookings-container {
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    }
+    
+    /* Grid more compact */
+    vaadin-grid {
+        font-size: var(--font-size-sm);
+    }
+}
+
+/* Mobile & Small Tablets (up to 768px) */
+@media (max-width: 768px) {
+    .bookings-container {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Payment View - Grid responsive */
+    vaadin-grid {
+        font-size: var(--font-size-sm);
+    }
+    
+    /* Filter Form vertical */
+    vaadin-form-layout {
+        flex-direction: column !important;
+    }
+    
+    /* Horizontal Layouts become vertical (except Header) */
+    vaadin-horizontal-layout:not(.main-header):not(.header-left):not(.header-right) {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: var(--spacing-sm) !important;
+    }
+    
+    /* Buttons full width */
+    vaadin-button {
+        width: 100%;
+    }
+    
+    /* Dialogs smaller */
+    vaadin-dialog-overlay {
+        max-width: 95vw !important;
+    }
+    
+    /* Payment Header vertical */
+    .payment-subtitle {
+        margin-top: var(--spacing-sm);
+    }
+}
+
+.bookings-empty-message {
+    padding: var(--spacing-xl);
+    text-align: center;
+    color: var(--color-text-secondary);
+}
+
+/* Booking Item Card */
+.booking-item-card {
+    background: var(--color-bg-white);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--color-border);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.booking-item-clickable {
+    cursor: pointer;
+}
+
+.booking-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.booking-item-number {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.booking-item-status {
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.booking-item-status.confirmed {
+    background-color: var(--color-success-bg);
+    color: var(--color-success);
+}
+
+.booking-item-status.pending {
+    background-color: var(--color-warning-bg);
+    color: var(--color-warning);
+}
+
+.booking-item-status.paid {
+    background-color: var(--color-success-bg);
+    color: var(--color-success);
+}
+
+.booking-item-status.failed {
+    background-color: var(--color-error-bg);
+    color: var(--color-error);
+}
+
+.booking-item-status.refunded {
+    background-color: var(--color-info-bg);
+    color: var(--color-info);
+}
+
+.booking-item-status.partial {
+    background-color: var(--color-warning-bg);
+    color: var(--color-warning);
+}
+
+.booking-item-status.cancelled {
+    background-color: #fef2f2;
+    color: var(--color-error);
+}
+
+.booking-item-status.checked_in {
+    background-color: #e0f2fe;
+    color: #0369a1;
+}
+
+.booking-item-status.completed {
+    background-color: #f0fdf4;
+    color: #16a34a;
+}
+
+.booking-item-status.modified {
+    background-color: #fef3c7;
+    color: #d97706;
+}
+
+.booking-item-details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.booking-item-detail {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--spacing-xs) 0;
+}
+
+.booking-item-detail-label {
+    font-weight: 500;
+    color: var(--color-text-secondary);
+}
+
+.booking-item-detail-value {
+    color: var(--color-text-primary);
+    font-weight: 600;
+}
+
+.booking-item-price {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-primary);
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--color-border);
+}
+
+.booking-item-buttons {
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--color-border);
+}
+
+/* Booking Detail Dialog */
+.booking-detail-section {
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-lg);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.booking-detail-section:last-child {
+    border-bottom: none;
+}
+
+.booking-extra-item {
+    padding: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+    background: var(--color-bg-light);
+    border-radius: var(--radius-md);
+}
+
+.booking-extra-description {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+/* Booking Details Dialog Styles */
+.booking-cancellation-policy {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--color-bg-light);
+    border-radius: var(--radius-md);
+}
+
+.booking-detail-title {
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+}
+
+.booking-history-group {
+    padding: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-white);
+}
+
+.booking-history-cancellation {
+    border-color: #f5c6cb;
+    background: #fef2f2;
+}
+
+.booking-history-field {
+    font-weight: 600;
+}
+
+.booking-history-value {
+    margin-left: var(--spacing-sm);
+}
+
+.booking-history-reason {
+    font-style: italic;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+/* Booking Edit Preview Dialog */
+.booking-edit-preview {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.booking-edit-preview-section {
+    padding: var(--spacing-md);
+    background: var(--color-bg-light);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+}
+
+.booking-edit-preview-title {
+    font-weight: 600;
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-text-primary);
+}

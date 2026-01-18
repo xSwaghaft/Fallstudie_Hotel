@@ -1,0 +1,41 @@
+# Build artifacts
+target/
+*.jar
+*.war
+*.ear
+
+# Node modules and frontend build files
+node_modules/
+frontend/generated/
+package-lock.json
+webpack.generated.js
+
+
+# Local data and images (werden als Volume gemountet)
+data/
+
+# Maven
+.mvn/wrapper/maven-wrapper.jar
+.mvn/timing.properties
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+.project
+.classpath
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+

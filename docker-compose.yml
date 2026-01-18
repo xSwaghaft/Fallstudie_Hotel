@@ -1,0 +1,58 @@
+services:
+  db:
+    image: mariadb:10.11
+    environment:
+      MYSQL_DATABASE: hotelbooking
+      MYSQL_USER: hotel
+      MYSQL_PASSWORD: hotelpass
+      MYSQL_ROOT_PASSWORD: rootpass
+    volumes:
+      - db_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "1025:1025"  
+      - "8025:8025"  
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mariadb://db:3306/hotelbooking
+      SPRING_DATASOURCE_USERNAME: hotel
+      SPRING_DATASOURCE_PASSWORD: hotelpass
+      # JPA settings: update creates/updates tables, validate only checks (not suitable for empty DB)
+      # For initial setup: use update, then switch to validate afterwards
+      # NOTE: If UNIQUE constraints are missing, delete DB volume (docker-compose down -v) and restart
+      # This will recreate the DB with all constraints, then INSERT IGNORE will work correctly
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "false"
+      # Mail configuration
+      SPRING_MAIL_HOST: mailpit
+      SPRING_MAIL_PORT: 1025
+      # Vaadin Production Mode
+      VAADIN_PRODUCTION_MODE: "true"
+      # Image directory
+      APP_IMAGES_ROOT_DIR: /app/data/images
+    ports:
+      - "8080:8080"
+    volumes:
+      - images_data:/app/data/images
+
+volumes:
+  db_data:
+  images_data:

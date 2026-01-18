@@ -1,0 +1,18 @@
+{
+  "frontendFolder": "C:/Users/vikgo/Desktop/FallstudieWS2025Hotel_Gruppe1 (1)/FallstudieWS2025Hotel_Gruppe1/HotelBooking/./frontend",
+  "themeFolder": "themes",
+  "themeResourceFolder": "C:/Users/vikgo/Desktop/FallstudieWS2025Hotel_Gruppe1 (1)/FallstudieWS2025Hotel_Gruppe1/HotelBooking/./frontend/generated/jar-resources",
+  "staticOutput": "C:/Users/vikgo/Desktop/FallstudieWS2025Hotel_Gruppe1 (1)/FallstudieWS2025Hotel_Gruppe1/HotelBooking/target/classes/META-INF/VAADIN/webapp/VAADIN/static",
+  "generatedFolder": "generated",
+  "statsOutput": "C:\\Users\\vikgo\\Desktop\\FallstudieWS2025Hotel_Gruppe1 (1)\\FallstudieWS2025Hotel_Gruppe1\\HotelBooking\\target\\classes\\META-INF\\VAADIN\\config",
+  "frontendBundleOutput": "C:\\Users\\vikgo\\Desktop\\FallstudieWS2025Hotel_Gruppe1 (1)\\FallstudieWS2025Hotel_Gruppe1\\HotelBooking\\target\\classes\\META-INF\\VAADIN\\webapp",
+  "devBundleOutput": "C:/Users/vikgo/Desktop/FallstudieWS2025Hotel_Gruppe1 (1)/FallstudieWS2025Hotel_Gruppe1/HotelBooking/target/dev-bundle/webapp",
+  "devBundleStatsOutput": "C:/Users/vikgo/Desktop/FallstudieWS2025Hotel_Gruppe1 (1)/FallstudieWS2025Hotel_Gruppe1/HotelBooking/target/dev-bundle/config",
+  "i18nOutput": "target/classes/vaadin-i18n",
+  "jarResourcesFolder": "C:/Users/vikgo/Desktop/FallstudieWS2025Hotel_Gruppe1 (1)/FallstudieWS2025Hotel_Gruppe1/HotelBooking/./frontend/generated/jar-resources",
+  "themeName": "",
+  "clientServiceWorkerSource": "C:\\Users\\vikgo\\Desktop\\FallstudieWS2025Hotel_Gruppe1 (1)\\FallstudieWS2025Hotel_Gruppe1\\HotelBooking\\target\\sw.ts",
+  "pwaEnabled": false,
+  "offlineEnabled": false,
+  "offlinePath": "'offline.html'"
+}

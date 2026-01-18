@@ -1,0 +1,232 @@
+/* =========================================================
+   DASHBOARD VIEW - STYLES
+   ========================================================= */
+
+.kpi-card-header {
+  margin-bottom: 0.5rem;
+}
+
+.recent-bookings-header {
+  margin-bottom: 1rem;
+}
+
+.view-all-button {
+  color: var(--color-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  padding: 0;
+}
+
+.view-all-button:hover {
+  color: var(--color-primary-hover);
+}
+
+/* =========================================================
+   RESPONSIVE DESIGN
+   ========================================================= */
+
+/* Tablet (768px - 1024px) */
+@media (max-width: 1024px) and (min-width: 769px) {
+  /* Dashboard Header - Buttons below title */
+  vaadin-horizontal-layout:has(.recent-bookings-header) {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: var(--spacing-md) !important;
+  }
+  
+  /* Grid columns more compact */
+  vaadin-grid {
+    font-size: var(--font-size-sm);
+  }
+  
+  /* Grid cells more compact */
+  vaadin-grid-cell-content {
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+  
+  /* Grid columns - adjust minimum widths */
+  vaadin-grid-column[header="Booking ID"] {
+    min-width: 120px !important;
+  }
+  
+  vaadin-grid-column[header="Guest Name"] {
+    min-width: 140px !important;
+  }
+  
+  vaadin-grid-column[header="Room"] {
+    min-width: 80px !important;
+  }
+  
+  vaadin-grid-column[header="Check-in Date"] {
+    min-width: 110px !important;
+  }
+  
+  vaadin-grid-column[header="Status"] {
+    min-width: 100px !important;
+  }
+  
+  vaadin-grid-column[header="Actions"] {
+    min-width: 80px !important;
+  }
+  
+  /* Recent Bookings Card */
+  .card {
+    padding: var(--spacing-md);
+  }
+  
+  /* View All Button more compact */
+  .view-all-button {
+    font-size: var(--font-size-sm);
+  }
+}
+
+/* Mobile & Small Tablets (up to 768px) */
+@media (max-width: 768px) {
+  /* Dashboard Header - stack vertically */
+  vaadin-horizontal-layout:not(.main-header):not(.header-left):not(.header-right):not(.stats-row) {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: var(--spacing-md) !important;
+  }
+  
+  /* Header Buttons - full width */
+  vaadin-horizontal-layout:has(vaadin-button) vaadin-button {
+    width: 100% !important;
+    margin-bottom: var(--spacing-xs);
+  }
+  
+  /* Recent Bookings Card */
+  .card {
+    width: 100% !important;
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+  }
+  
+  /* Recent Bookings Header - vertical */
+  .recent-bookings-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: var(--spacing-sm) !important;
+  }
+  
+  /* View All Button - full width */
+  .view-all-button {
+    width: 100% !important;
+    text-align: left !important;
+    padding: var(--spacing-sm) 0 !important;
+  }
+  
+  /* Grid responsive - horizontal scrolling */
+  vaadin-grid {
+    font-size: var(--font-size-xs);
+    overflow-x: auto !important;
+  }
+  
+  /* Grid cells very compact */
+  vaadin-grid-cell-content {
+    padding: var(--spacing-xs) 4px !important;
+    font-size: var(--font-size-xs) !important;
+  }
+  
+  /* Grid columns - minimum widths for mobile */
+  vaadin-grid-column[header="Booking ID"] {
+    min-width: 100px !important;
+    flex-grow: 0 !important;
+  }
+  
+  vaadin-grid-column[header="Guest Name"] {
+    min-width: 120px !important;
+    flex-grow: 1 !important;
+  }
+  
+  vaadin-grid-column[header="Room"] {
+    min-width: 60px !important;
+    flex-grow: 0 !important;
+  }
+  
+  vaadin-grid-column[header="Check-in Date"] {
+    min-width: 90px !important;
+    flex-grow: 0 !important;
+  }
+  
+  vaadin-grid-column[header="Status"] {
+    min-width: 80px !important;
+    flex-grow: 0 !important;
+  }
+  
+  vaadin-grid-column[header="Actions"] {
+    min-width: 70px !important;
+    flex-grow: 0 !important;
+  }
+  
+  /* Status Badge more compact */
+  .status-badge {
+    font-size: var(--font-size-xs) !important;
+    padding: 2px 6px !important;
+  }
+  
+  /* View Button more compact */
+  vaadin-grid-column[header="Actions"] vaadin-button {
+    font-size: var(--font-size-xs) !important;
+    padding: var(--spacing-xs) var(--spacing-sm) !important;
+    min-width: auto !important;
+  }
+  
+  /* Dialogs smaller */
+  vaadin-dialog-overlay {
+    max-width: 95vw !important;
+    width: 95vw !important;
+  }
+}
+
+/* Very small smartphones (up to 480px) */
+@media (max-width: 480px) {
+  /* Grid even more compact */
+  vaadin-grid {
+    font-size: 10px !important;
+  }
+  
+  vaadin-grid-cell-content {
+    padding: 2px !important;
+    font-size: 10px !important;
+  }
+  
+  /* Grid columns even narrower */
+  vaadin-grid-column[header="Booking ID"] {
+    min-width: 80px !important;
+  }
+  
+  vaadin-grid-column[header="Guest Name"] {
+    min-width: 100px !important;
+  }
+  
+  vaadin-grid-column[header="Room"] {
+    min-width: 50px !important;
+  }
+  
+  vaadin-grid-column[header="Check-in Date"] {
+    min-width: 75px !important;
+  }
+  
+  vaadin-grid-column[header="Status"] {
+    min-width: 70px !important;
+  }
+  
+  vaadin-grid-column[header="Actions"] {
+    min-width: 60px !important;
+  }
+  
+  /* Status Badge very small */
+  .status-badge {
+    font-size: 9px !important;
+    padding: 1px 4px !important;
+  }
+  
+  /* View Button very small */
+  vaadin-grid-column[header="Actions"] vaadin-button {
+    font-size: 9px !important;
+    padding: 2px 4px !important;
+  }
+}

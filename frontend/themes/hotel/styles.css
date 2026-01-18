@@ -1,0 +1,806 @@
+/* =========================================================
+   HOTELIUM - HOTEL MANAGEMENT SYSTEM
+   Modern, Clean Design
+   ========================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Primary Colors */
+  --color-primary: #D4AF37;
+  --color-primary-hover: #c29b2e;
+  --color-primary-dark: #b8992f;
+  
+  /* Neutral Colors - Light Theme */
+  --color-bg-light: #f5f7fa;
+  --color-bg-white: #ffffff;
+  --color-text-primary: #1f2937;
+  --color-text-secondary: #6b7280;
+  --color-text-muted: #9ca3af;
+  --color-border: #e5e7eb;
+  
+  
+  /* Sidebar Colors */
+  --color-sidebar-bg: #374151;
+  --color-sidebar-text: #e5e7eb;
+  --color-sidebar-hover: rgba(255, 255, 255, 0.08);
+  --color-sidebar-active: var(--color-primary);
+  
+  /* Header Colors */
+  --color-header-bg: #ffffff;
+  --color-header-border: #e5e7eb;
+  
+  /* Status Colors */
+  --color-success: #10b981;
+  --color-success-bg: #d1fae5;
+  --color-warning: #f59e0b;
+  --color-warning-bg: #fef3c7;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+  --color-info-bg: #dbeafe;
+  
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  
+  /* Typography */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  
+  /* Border Radius */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+  --transition-slow: 350ms ease;
+}
+
+/* =========================================================
+   GLOBAL STYLES
+   ========================================================= */
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  background-color: var(--color-bg-light);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--color-text-primary);
+  margin: 0;
+  font-weight: 600;
+}
+
+p {
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* =========================================================
+   MAIN HEADER (Navbar)
+   ========================================================= */
+.main-header {
+  background-color: var(--color-header-bg);
+  border-bottom: 1px solid var(--color-header-border);
+  padding: var(--spacing-md) var(--spacing-lg);
+  height: 64px;
+  box-shadow: var(--shadow-sm);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.drawer-toggle {
+  color: var(--color-text-primary);
+}
+
+.welcome-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  line-height: 1.2;
+}
+
+.welcome-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}
+
+.username-text {
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  background-color: var(--color-primary);
+  color: white;
+  font-weight: 600;
+}
+
+.theme-toggle-btn,
+.logout-btn {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  color: var(--color-text-primary);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.theme-toggle-btn:hover,
+.logout-btn:hover {
+  background-color: var(--color-bg-light);
+  border-color: var(--color-primary);
+}
+
+/* Header Logout Button (rot umrandet, rote Schrift) */
+.logout-btn-header {
+  background: transparent;
+  border: 1px solid #ef4444;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  color: #ef4444;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.logout-btn-header:hover {
+  background-color: #fef2f2;
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.theme-icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* =========================================================
+   SIDEBAR (Drawer)
+   ========================================================= */
+.main-drawer {
+  background-color: var(--color-sidebar-bg);
+  width: 260px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow-y: auto;
+}
+
+.drawer-header {
+  padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-md);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.drawer-logo {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 var(--spacing-xs) 0;
+  letter-spacing: -0.02em;
+}
+
+.drawer-subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+  font-weight: 400;
+}
+
+.nav-links {
+  flex: 1;
+  padding: var(--spacing-md) 0;
+  gap: var(--spacing-xs);
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  margin: 0 var(--spacing-md);
+  border-radius: var(--radius-lg);
+  color: var(--color-sidebar-text);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: var(--font-size-sm);
+  transition: all var(--transition-base);
+  cursor: pointer;
+}
+
+.nav-link:hover {
+  background-color: var(--color-sidebar-hover);
+  color: #ffffff;
+}
+
+.nav-link[highlight] {
+  background-color: var(--color-sidebar-active);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
+}
+
+.nav-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.nav-link:hover .nav-icon,
+.nav-link[highlight] .nav-icon {
+  color: #ffffff;
+}
+
+.drawer-footer {
+  padding: var(--spacing-lg);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: auto;
+}
+
+.drawer-footer p {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin: 0 0 var(--spacing-sm) 0;
+}
+
+.support-link {
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color var(--transition-base);
+}
+
+.support-link:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+/* =========================================================
+   CONTENT AREA CARDS
+   ========================================================= */
+.card {
+  background: var(--color-bg-white);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+}
+
+.card h3 {
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.card p {
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--spacing-md) 0;
+}
+
+/* Card Accent Colors */
+.card-rooms {
+  --card-accent-color: var(--color-success);
+}
+
+.card-categories,
+.card-extras {
+  --card-accent-color: #8b5cf6;
+}
+
+.card-stats {
+  --card-accent-color: var(--color-info);
+}
+
+.card-stats-available {
+  --card-accent-color: var(--color-success);
+}
+
+.card-stats-occupied {
+  --card-accent-color: var(--color-error);
+}
+
+.card-stats-cleaning {
+  --card-accent-color: var(--color-warning);
+}
+
+.card-stats-renovating {
+  --card-accent-color: #db2777;
+}
+
+.card-stats-out-of-service {
+  --card-accent-color: #7c3aed;
+}
+
+.card-stats-inactive {
+  --card-accent-color: #6b7280;
+}
+
+.card-stats-categories {
+  --card-accent-color: #8b5cf6;
+}
+
+/* Status Badges */
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: lowercase;
+}
+
+.status-confirmed {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.status-completed {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.status-pending {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.status-cancelled {
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.status-modified {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.status-checked_in {
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+/* Room Status Badges */
+.room-status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.room-status-available {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.room-status-occupied {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.room-status-cleaning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.room-status-renovating {
+  background: #fce7f3;
+  color: #db2777;
+}
+
+.room-status-out-of-service {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.room-status-default {
+  background: var(--color-bg-light);
+  color: var(--color-text-muted);
+}
+
+/* Category Status Badge */
+.category-status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.category-status-active {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.category-status-inactive {
+  background: var(--color-bg-light);
+  color: var(--color-text-muted);
+}
+
+/* User Role Badges */
+.user-role-badge,
+.role-badge-base {
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.user-role-manager,
+.role-badge-manager {
+  background: #fef3c7;
+  color: #f59e0b;
+}
+
+.user-role-receptionist,
+.role-badge-receptionist {
+  background: var(--color-info-bg);
+  color: #3b82f6;
+}
+
+.user-role-guest,
+.role-badge-guest {
+  background: #f3e8ff;
+  color: #5c065f;
+}
+
+/* =========================================================
+   BUTTONS & FORMS
+   ========================================================= */
+vaadin-button[theme~="primary"],
+.primary-button {
+  background-color: var(--color-primary) !important;
+  color: white !important;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  transition: background-color var(--transition-base);
+}
+
+vaadin-button[theme~="primary"]:hover,
+.primary-button:hover {
+  background-color: var(--color-primary-hover) !important;
+}
+
+/* Gold Button - Alias for Primary Button */
+.gold-button {
+  width: 100%;
+  background: var(--color-primary) !important;
+  color: white !important;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--transition-base);
+}
+
+.gold-button:hover {
+  background: var(--color-primary-hover) !important;
+}
+
+vaadin-text-field,
+vaadin-password-field,
+vaadin-email-field,
+vaadin-number-field,
+vaadin-text-area,
+vaadin-date-picker,
+vaadin-select {
+  --vaadin-input-field-border-color: var(--color-border);
+  --vaadin-input-field-hover-highlight-color: var(--color-primary);
+  --vaadin-input-field-border-width: 1px;
+  --vaadin-input-field-background: var(--color-bg-white);
+}
+
+/* =========================================================
+   GRID STYLING
+   ========================================================= */
+vaadin-grid {
+  --lumo-font-family: var(--font-family);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--color-bg-white);
+}
+
+vaadin-grid-cell-content {
+  padding: var(--spacing-md);
+}
+
+/* Grid Action Buttons - Base Styles */
+.booking-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.booking-actions vaadin-button {
+  min-width: auto;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  flex-shrink: 0;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+/* Vaadin Button Text - verhindert Ellipsis */
+.booking-actions vaadin-button::part(label) {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+/* =========================================================
+   RESPONSIVE DESIGN
+   ========================================================= */
+
+/* Tablet (768px - 1024px) */
+@media (max-width: 1024px) and (min-width: 769px) {
+  /* Grid Spalten etwas kompakter */
+  vaadin-grid {
+    font-size: var(--font-size-sm);
+  }
+  
+  /* Grid Zellen kompakter */
+  vaadin-grid-cell-content {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+  
+  /* Dialoge etwas kleiner */
+  vaadin-dialog-overlay {
+    max-width: 90vw !important;
+  }
+  
+  /* Actions Spalte - genug Platz für Buttons */
+  vaadin-grid-column[header="Actions"],
+  vaadin-grid-column[header="Action"] {
+    min-width: 120px !important;
+  }
+  
+  /* Amount Spalte für Invoices */
+  vaadin-grid-column[header="Amount"] {
+    min-width: 160px !important;
+  }
+  
+  /* Payment Method Spalte */
+  vaadin-grid-column[header="Payment Method"] {
+    min-width: 130px !important;
+  }
+}
+
+/* Mobile & Small Tablets (bis 768px) */
+@media (max-width: 768px) {
+  .main-header {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+  
+  .header-right {
+    gap: var(--spacing-xs);
+    flex-wrap: nowrap;
+  }
+  
+  .logout-btn span {
+    display: none;
+  }
+  
+  /* Logout Button kleiner auf mobilen Geräten */
+  .logout-btn-header {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-xs);
+    min-width: auto;
+  }
+  
+  .main-drawer {
+    width: 240px;
+  }
+  
+  .card {
+    padding: var(--spacing-md);
+  }
+  
+  /* Global: Horizontal Layouts werden vertikal auf mobilen Geräten */
+  /* AUSSER Header-Layouts und Rating-Layouts - diese bleiben horizontal */
+  vaadin-horizontal-layout:not(.main-header):not(.header-left):not(.header-right):not(.rating-cell-layout) {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  
+  /* Header bleibt horizontal, aber kompakter */
+  .main-header {
+    flex-direction: row !important;
+    flex-wrap: nowrap;
+  }
+  
+  .header-left,
+  .header-right {
+    flex-direction: row !important;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+  }
+  
+  /* Grid Spalten kleiner */
+  vaadin-grid {
+    font-size: var(--font-size-sm);
+  }
+  
+  /* Grid Zellen kompakter */
+  vaadin-grid-cell-content {
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+  
+  /* Grid Action Buttons - Mobile: vertikal stapeln */
+  .booking-actions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: var(--spacing-xs) !important;
+  }
+  
+  .booking-actions vaadin-button {
+    width: 100% !important;
+    min-width: 0 !important;
+    font-size: var(--font-size-xs) !important;
+    padding: var(--spacing-xs) var(--spacing-sm) !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+  
+  /* Actions Spalte - genug Platz für "Cancel" Button */
+  vaadin-grid-column[header="Actions"],
+  vaadin-grid-column[header="Action"] {
+    min-width: 140px !important;
+    width: auto !important;
+    flex-grow: 0 !important;
+  }
+  
+  /* Grid Cell für Actions - sichtbar machen, kein Overflow */
+  vaadin-grid-cell-content[col-id*="Actions"],
+  vaadin-grid-cell-content[col-id*="Action"] {
+    overflow: visible !important;
+    padding: var(--spacing-xs) !important;
+    min-width: 140px !important;
+  }
+  
+  /* Dialoge responsive */
+  vaadin-dialog-overlay {
+    max-width: 95vw !important;
+    width: 95vw !important;
+  }
+  
+  /* Form Layouts stapeln */
+  vaadin-form-layout {
+    flex-direction: column !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .username-text {
+    display: none;
+  }
+  
+  .welcome-text {
+    font-size: var(--font-size-xs);
+  }
+  
+  /* Logout Button noch kleiner */
+  .logout-btn-header {
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+  
+  .logout-btn-header vaadin-icon {
+    width: 14px;
+    height: 14px;
+  }
+  
+  /* Noch kleinere Dialoge */
+  vaadin-dialog-overlay {
+    max-width: 98vw !important;
+    width: 98vw !important;
+  }
+  
+  /* Grid noch kleiner */
+  vaadin-grid {
+    font-size: var(--font-size-xs);
+  }
+  
+  /* Grid Zellen noch kompakter */
+  vaadin-grid-cell-content {
+    padding: 4px 6px;
+  }
+  
+  /* Action Buttons - sehr kleine Bildschirme */
+  .booking-actions vaadin-button {
+    font-size: 10px !important;
+    padding: 4px 6px !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+  
+  /* Actions Spalte - sehr kleine Bildschirme, aber genug für "Cancel" */
+  vaadin-grid-column[header="Actions"],
+  vaadin-grid-column[header="Action"] {
+    min-width: 140px !important;
+  }
+  
+  vaadin-grid-cell-content[col-id*="Actions"],
+  vaadin-grid-cell-content[col-id*="Action"] {
+    min-width: 140px !important;
+    overflow: visible !important;
+  }
+  
+  /* Button Text auf sehr kleinen Bildschirmen */
+  .booking-actions vaadin-button::part(label) {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+}

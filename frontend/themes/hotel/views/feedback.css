@@ -1,0 +1,208 @@
+/* =========================================================
+   FEEDBACK VIEW - STYLES
+   ========================================================= */
+
+/* Rating Cell Layout - Keep horizontal */
+.rating-cell-layout,
+vaadin-horizontal-layout.rating-cell-layout {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+}
+
+/* Grid Styling */
+.feedback-view vaadin-grid {
+  --lumo-font-family: var(--font-family);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--color-bg-white);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Column minimum widths for header */
+.feedback-view vaadin-grid-column[header="Category"] {
+  min-width: 100px;
+}
+
+.feedback-view vaadin-grid-column[header="Rating"] {
+  min-width: 90px;
+}
+
+.feedback-view vaadin-grid-column[header="Created At"] {
+  min-width: 120px;
+}
+
+.feedback-view vaadin-grid-column[header="Actions"] {
+  min-width: 100px;
+}
+
+.feedback-view vaadin-grid-cell-content {
+  padding: var(--spacing-md);
+  font-size: var(--font-size-sm);
+}
+
+.feedback-view vaadin-grid::part(header-cell) {
+  background: var(--color-bg-light);
+  font-weight: 600;
+  border-bottom: 2px solid var(--color-border);
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  word-wrap: break-word;
+}
+
+/* Don't truncate header text */
+.feedback-view vaadin-grid::part(header-cell) ::slotted(*) {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  word-wrap: break-word;
+}
+
+/* Rating Cell */
+.feedback-view vaadin-grid-cell-content[col-id*="Rating"] {
+  overflow: visible !important;
+  white-space: nowrap !important;
+}
+
+.feedback-view vaadin-grid-cell-content[col-id*="Rating"] vaadin-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--color-primary);
+}
+
+.feedback-view vaadin-grid-cell-content[col-id*="Rating"] span {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Comment Cell */
+.feedback-view vaadin-grid-cell-content[col-id*="Comment"] {
+  overflow: visible;
+  white-space: normal;
+  word-wrap: break-word;
+  line-height: 1.5;
+}
+
+/* Actions Cell */
+.feedback-view vaadin-grid-cell-content[col-id*="Actions"] {
+  overflow: visible;
+  padding: var(--spacing-sm);
+}
+
+/* Filter Section */
+.feedback-view vaadin-form-layout {
+  margin-bottom: var(--spacing-md);
+}
+
+/* =========================================================
+   RESPONSIVE DESIGN
+   ========================================================= */
+
+/* Tablet */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .feedback-view vaadin-grid {
+    font-size: var(--font-size-sm);
+  }
+  
+  .feedback-view vaadin-grid-cell-content {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+  
+  .feedback-view vaadin-grid-cell-content[col-id*="Rating"] vaadin-icon {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .feedback-view vaadin-grid-column[header="Comment"] {
+    min-width: 200px;
+    flex-grow: 2;
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .feedback-view h1 {
+    font-size: var(--font-size-xl);
+  }
+  
+  .feedback-view vaadin-grid {
+    font-size: var(--font-size-sm);
+    overflow-x: auto;
+  }
+  
+  .feedback-view vaadin-grid-cell-content {
+    padding: var(--spacing-sm);
+  }
+  
+  .feedback-view vaadin-grid-cell-content[col-id*="Rating"] {
+    padding: var(--spacing-sm) var(--spacing-xs) !important;
+  }
+  
+  .feedback-view vaadin-grid-cell-content[col-id*="Rating"] vaadin-icon {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .feedback-view vaadin-grid-column[header="Category"] {
+    min-width: 90px;
+  }
+  
+  .feedback-view vaadin-grid-column[header="Rating"] {
+    min-width: 75px;
+  }
+  
+  .feedback-view vaadin-grid-column[header="Comment"] {
+    min-width: 150px;
+    flex-grow: 2;
+  }
+  
+  .feedback-view vaadin-form-layout {
+    flex-direction: column;
+  }
+  
+  .feedback-view vaadin-button[theme~="primary"],
+  .feedback-view .primary-button {
+    width: 100%;
+  }
+}
+
+/* Small Mobile */
+@media (max-width: 480px) {
+  .feedback-view h1 {
+    font-size: var(--font-size-lg);
+  }
+  
+  .feedback-view vaadin-grid {
+    font-size: var(--font-size-xs);
+  }
+  
+  .feedback-view vaadin-grid-cell-content {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-xs);
+  }
+  
+  .feedback-view vaadin-grid-cell-content[col-id*="Rating"] {
+    padding: var(--spacing-xs) !important;
+  }
+  
+  .feedback-view vaadin-grid-cell-content[col-id*="Rating"] vaadin-icon {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .feedback-view vaadin-grid-column[header="Category"] {
+    min-width: 80px;
+  }
+  
+  .feedback-view vaadin-grid-column[header="Rating"] {
+    min-width: 70px;
+  }
+  
+  .feedback-view vaadin-grid-column[header="Comment"] {
+    min-width: 120px;
+  }
+}

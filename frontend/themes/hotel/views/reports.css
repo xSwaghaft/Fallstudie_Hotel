@@ -1,0 +1,214 @@
+/* ReportsView Styles */
+
+.reports-view {
+    width: 100%;
+    height: 100%;
+}
+
+/* Header Styles */
+.reports-header-title,
+.reports-header-subtitle {
+    margin: 0;
+}
+
+.reports-header {
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Filters Section */
+.reports-filters-title {
+    margin: 0 0 0.5rem 0;
+}
+
+.reports-filters-subtitle {
+    margin: 0 0 1rem 0;
+}
+
+.reports-filter-button {
+    margin-top: 1rem;
+}
+
+/* KPI Cards - Defined in card-factory.css */
+.kpi-card-value {
+    margin: 0.5rem 0;
+}
+
+.kpi-card-trend {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.kpi-card-trend.positive {
+    color: #10b981;
+}
+
+.kpi-card-trend.neutral {
+    color: #6b7280;
+}
+
+/* Chart Placeholders */
+.chart-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    border: 2px dashed;
+}
+
+.chart-placeholder-content {
+    text-align: center;
+}
+
+.chart-placeholder-icon {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-top: 1rem;
+}
+
+.chart-placeholder-info {
+    margin-top: 0.5rem;
+    color: #9ca3af;
+    font-size: 0.875rem;
+}
+
+/* Revenue Chart */
+.revenue-chart-placeholder {
+    height: 350px;
+    background: linear-gradient(180deg, #f9fafb 0%, #ffffff 100%);
+    border-color: #e5e7eb;
+}
+
+.revenue-chart-icon {
+    color: #9ca3af;
+}
+
+/* Occupancy Chart */
+.occupancy-chart-placeholder {
+    height: 300px;
+    background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%);
+    border-color: #d1fae5;
+}
+
+.occupancy-chart-icon {
+    color: #10b981;
+}
+
+/* Room Type Chart */
+.room-type-chart-placeholder {
+    height: 300px;
+    background: linear-gradient(180deg, #fef3c7 0%, #ffffff 100%);
+    border-color: #fde68a;
+}
+
+.room-type-chart-icon {
+    color: #D4AF37;
+}
+
+/* Weekly Booking Chart */
+.weekly-booking-chart-placeholder {
+    height: 350px;
+    background: linear-gradient(180deg, #dbeafe 0%, #ffffff 100%);
+    border-color: #bfdbfe;
+}
+
+.weekly-booking-chart-icon {
+    color: #3b82f6;
+}
+
+/* =========================================================
+   RESPONSIVE DESIGN
+   ========================================================= */
+
+/* Tablet (768px - 1024px) */
+@media (max-width: 1024px) and (min-width: 769px) {
+  /* KPI Cards - 2 columns */
+  .card {
+    width: calc(50% - var(--spacing-md));
+  }
+  
+  /* Charts slightly smaller */
+  .chart-placeholder {
+    height: 280px !important;
+  }
+  
+  .revenue-chart-placeholder,
+  .weekly-booking-chart-placeholder {
+    height: 280px !important;
+  }
+  
+  .occupancy-chart-placeholder,
+  .room-type-chart-placeholder {
+    height: 250px !important;
+  }
+}
+
+/* Mobile & Small Tablets (up to 768px) */
+@media (max-width: 768px) {
+  /* Header becomes vertical */
+  .reports-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: var(--spacing-md) !important;
+  }
+  
+  /* Horizontal Layouts become vertical (except Header) */
+  vaadin-horizontal-layout:not(.main-header):not(.header-left):not(.header-right) {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  
+  /* KPI Cards stack */
+  .card {
+    width: 100% !important;
+    margin-bottom: var(--spacing-md);
+  }
+  
+  /* Chart Placeholders smaller */
+  .chart-placeholder {
+    height: 250px !important;
+  }
+  
+  .revenue-chart-placeholder,
+  .weekly-booking-chart-placeholder {
+    height: 250px !important;
+  }
+  
+  .occupancy-chart-placeholder,
+  .room-type-chart-placeholder {
+    height: 200px !important;
+  }
+  
+  /* Buttons full width */
+  vaadin-button {
+    width: 100%;
+  }
+  
+  /* Form Layouts stack */
+  vaadin-form-layout {
+    flex-direction: column !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Charts even smaller */
+  .chart-placeholder {
+    height: 200px !important;
+  }
+  
+  .revenue-chart-placeholder,
+  .weekly-booking-chart-placeholder {
+    height: 180px !important;
+  }
+  
+  .occupancy-chart-placeholder,
+  .room-type-chart-placeholder {
+    height: 150px !important;
+  }
+  
+  /* KPI Cards more compact */
+  .kpi-card-value {
+    font-size: var(--font-size-lg);
+  }
+}

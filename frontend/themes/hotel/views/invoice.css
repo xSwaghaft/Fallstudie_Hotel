@@ -1,0 +1,90 @@
+/* =========================================================
+   INVOICE VIEW - STYLES
+   ========================================================= */
+
+.invoice-balance-positive,
+.invoice-balance-negative {
+  font-weight: 600;
+}
+
+.invoice-balance-positive {
+  color: #10b981;
+}
+
+.invoice-balance-negative {
+  color: #ef4444;
+}
+
+.invoice-button-success {
+  color: #10b981;
+}
+
+/* =========================================================
+   RESPONSIVE DESIGN
+   ========================================================= */
+
+/* Tablet (768px - 1024px) */
+@media (max-width: 1024px) and (min-width: 769px) {
+  /* Amount column - enough space for Refund/Fee */
+  vaadin-grid-column[header="Amount"] {
+    min-width: 170px !important;
+    flex-grow: 2 !important;
+  }
+  
+  /* Payment Method column */
+  vaadin-grid-column[header="Payment Method"] {
+    min-width: 130px !important;
+    flex-grow: 1 !important;
+  }
+  
+  /* Grid cells - don't truncate text */
+  vaadin-grid-cell-content[col-id*="Amount"],
+  vaadin-grid-cell-content[col-id*="Payment Method"] {
+    overflow: visible !important;
+    white-space: normal !important;
+    text-overflow: clip !important;
+  }
+}
+
+/* Mobile & Small Tablets (up to 768px) */
+@media (max-width: 768px) {
+  /* Amount column - enough space for Refund/Fee in parentheses */
+  vaadin-grid-column[header="Amount"] {
+    min-width: 180px !important;
+    flex-grow: 2 !important;
+  }
+  
+  /* Payment Method column - enough space for "Bank Transfer" */
+  vaadin-grid-column[header="Payment Method"] {
+    min-width: 140px !important;
+    flex-grow: 1 !important;
+  }
+  
+  /* Grid cells - don't truncate text */
+  vaadin-grid-cell-content[col-id*="Amount"],
+  vaadin-grid-cell-content[col-id*="Payment Method"] {
+    overflow: visible !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    text-overflow: clip !important;
+  }
+  
+  /* Invoice Number and Booking Number more compact */
+  vaadin-grid-column[header="Invoice No."],
+  vaadin-grid-column[header="Booking No."] {
+    min-width: 100px !important;
+    flex-grow: 0 !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Amount column - even wider on very small screens */
+  vaadin-grid-column[header="Amount"] {
+    min-width: 160px !important;
+  }
+  
+  /* Payment Method - more compact but visible */
+  vaadin-grid-column[header="Payment Method"] {
+    min-width: 120px !important;
+  }
+}

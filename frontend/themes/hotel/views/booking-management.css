@@ -1,0 +1,69 @@
+/* =========================================================
+   BOOKING MANAGEMENT VIEW - STYLES
+   ========================================================= */
+
+.booking-subtitle,
+.booking-section-title {
+  margin: 0 0 var(--spacing-md) 0;
+}
+
+.booking-details-container {
+  min-height: 200px;
+}
+
+.extras-list-box {
+    font-size: 12px;
+    background: #fafbfc;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 8px 12px;
+    width: 180px;
+}
+
+/* =========================================================
+   RESPONSIVE DESIGN
+   ========================================================= */
+
+/* Tablet (768px - 1024px) */
+@media (max-width: 1024px) and (min-width: 769px) {
+  /* Grid columns more compact */
+  vaadin-grid {
+    font-size: var(--font-size-sm);
+  }
+  
+  /* Actions column - enough space */
+  vaadin-grid-column[header="Actions"],
+  vaadin-grid-column[header="Action"] {
+    min-width: 120px !important;
+  }
+  
+  /* Extras List Box slightly smaller */
+  .extras-list-box {
+    width: 160px;
+  }
+}
+
+/* Mobile & Small Tablets (up to 768px) */
+@media (max-width: 768px) {
+  /* Horizontal Layouts become vertical (except Header) */
+  vaadin-horizontal-layout:not(.main-header):not(.header-left):not(.header-right) {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  
+  /* Extras List Box smaller */
+  .extras-list-box {
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  /* Dialogs smaller */
+  vaadin-dialog-overlay {
+    max-width: 95vw !important;
+  }
+  
+  /* Filter Cards stack */
+  .card {
+    margin-bottom: var(--spacing-md);
+  }
+}
